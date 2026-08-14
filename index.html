@@ -41,7 +41,7 @@
   .header{
     background:var(--bg-dark);
     color:var(--text-light);
-    padding:16px;
+    padding:25px;
     border-radius:0 0 20px 20px;
     position:relative;
     overflow:visible;
@@ -53,13 +53,13 @@
     display:flex;
     align-items:center;
     justify-content:space-between;
-    padding:16px 16px 12px;
+    padding:5px 16px 12px;
     position:fixed;
     top:0;
     left:50%;
     transform:translateX(-50%);
     width:100%;
-    max-width:480px;
+    max-width:490px;
     margin:0;
     z-index:1000;
     background:var(--bg-dark);
@@ -134,7 +134,48 @@
   .header-content{
     display:flex;
     justify-content:space-between;
-    align-items:flex-end;
+    align-items:center;
+  }
+
+  .valor-total-label{
+    font-size:13px;
+    font-weight:500;
+    color:var(--text-muted);
+    display:flex;
+    align-items:center;
+    gap:5px;
+    margin-bottom:10px;
+  }
+  .valor-total-label i{
+    font-size:10px;
+  }
+
+  .valor-total-amount{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .valor-total-amount .balance-amount{
+    font-size:28px;
+    font-weight:700;
+    color:#fff;
+  }
+  .valor-total-amount .balance-currency{
+    font-size:15px;
+    font-weight:500;
+    color:var(--text-muted);
+  }
+  .valor-refresh-icon{
+    font-size:14px;
+    color:var(--text-muted);
+    cursor:pointer;
+  }
+
+  .valor-total-updated{
+    font-size:12px;
+    font-weight:400;
+    color:var(--text-muted);
   }
 
   .header-text h1{
@@ -178,11 +219,10 @@
     background:var(--red);
     color:#fff;
     border:none;
-    padding:10px 22px;
-    border-radius:24px;
-    font-size:14px;
-    font-weight:600;
-    margin-bottom: 30px;
+    padding:14px 30px;
+    border-radius:26px;
+    font-size:15px;
+    font-weight:700;
     cursor:pointer;
     transition:box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
   }
@@ -664,7 +704,8 @@
   @media (max-width: 480px){
     .header{ padding:14px; border-radius:0 0 18px 18px; }
     .header-text h1{ font-size:16px; }
-    .deposit-btn{ padding:9px 18px; font-size:13px; }
+    .deposit-btn{ padding:12px 24px; font-size:14px; }
+    .valor-total-amount .balance-amount{ font-size:25px; }
     .header-illustration{ width:60px; height:60px; }
     .section{ padding:18px 14px 6px; }
     .accounts-scroll{ gap:8px; }
@@ -682,7 +723,10 @@
     .header-icons{ gap:12px; }
     .header-text h1{ font-size:15px; }
     .progress-bar{ width:60px; }
-    .deposit-btn{ padding:8px 16px; font-size:12px; }
+    .deposit-btn{ padding:11px 20px; font-size:13px; }
+    .valor-total-label{ font-size:12px; }
+    .valor-total-amount .balance-amount{ font-size:22px; }
+    .valor-total-updated{ font-size:11px; }
     .header-illustration{ width:52px; height:52px; }
     .section-title{ font-size:14px; }
     .account-icon{ width:28px; height:28px; margin-bottom:22px; }
@@ -711,7 +755,7 @@
 
   @media (max-width: 340px){
     .header{ padding:12px; }
-    .header-content{ flex-direction:row; align-items:flex-end; }
+    .header-content{ flex-direction:row; align-items:center; }
     .header-illustration{ width:44px; height:44px; }
     .account-card, .add-account-card{ padding:10px; }
     .account-icon{ margin-bottom:18px; }
@@ -733,9 +777,9 @@
   .notif-panel{
     position:fixed;
     top:0;
-    left:50%;
+    left:100%;
     width:100%;
-    max-width:480px;
+    max-width:580px;
     height:100vh;
     height:100dvh;
     background:var(--bg-white);
@@ -747,7 +791,7 @@
     overflow-y:auto;
   }
   .notif-panel.open{
-    transform:translate(-50%, 0);
+    transform:translate(-100%, 0);
   }
 
   .notif-panel-header{
@@ -901,15 +945,14 @@
     <div class="header-top-spacer"></div>
     <div class="header-content">
       <div class="header-text">
-        <h1>Make your first deposit</h1>
-          <div class="progress-bars">
-            <div class="progress-bar"><span></span></div>
-            <div class="progress-bar2"><span></span></div>
-          </div>
-        
-        <button class="deposit-btn">Deposit now</button>
+        <div class="valor-total-label">Valor total <i class="fa-solid fa-chevron-right"></i></div>
+        <div class="valor-total-amount">
+          <span class="balance-amount" id="totalValueBalance" data-value="2.98">2.98</span><span class="balance-currency">USD</span>
+          <i class="fa-solid fa-rotate valor-refresh-icon"></i>
+        </div>
+        <div class="valor-total-updated">Actualizado ahora</div>
       </div>
-      <img src="assets/img/image.png" alt="Illustration" class="header-illustration">
+      <button class="deposit-btn">Depósito</button>
     </div>
   </header>
 
@@ -1206,7 +1249,7 @@
   // ===== SALDOS: ojo + panel de Cuenta Demo / Cuenta Real =====
   (function(){
     const STORAGE_KEY = 'account-balances';
-    const DEFAULT_BALANCES = { demo: 0, real: 0 };
+    const DEFAULT_BALANCES = { demo: 0, real: 2.98 };
     let balancesHidden = false;
 
     function formatMoney(n){
@@ -1246,9 +1289,11 @@
       const demoEl = document.getElementById('demoCurrentBalance');
       const realEl = document.getElementById('realCurrentBalance');
       const mt5El = document.getElementById('mt5TradingBalance');
+      const totalEl = document.getElementById('totalValueBalance');
       if(demoEl) demoEl.textContent = formatMoney(data.demo);
       if(realEl) realEl.textContent = formatMoney(data.real);
       if(mt5El) mt5El.dataset.value = formatMoney(data.demo);
+      if(totalEl) totalEl.dataset.value = formatMoney(data.real);
       applyVisibility();
     }
 
