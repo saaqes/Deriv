@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>TradeLab Sim — Bot Builder (simulador educativo)</title>
+<title>DBot — Bot builder</title>
 <style>
   :root{
     --bg:#f4f6f8;
@@ -313,8 +313,6 @@
 </style>
 </head>
 <body>
-<script src="assets/js/sim-shared.js"></script>
-<script>TradeLabSim.mountDisclaimerBanner();</script>
 
 <div class="app-shell" id="appShell">
 
@@ -323,12 +321,12 @@
     <div class="avatar">DB</div>
     <div class="acc-block">
       <button class="acc-dropdown-btn" id="accBtn">
-        <span id="accLabel">Cuenta Demo</span>
+        <span id="accLabel">Real account</span>
         <svg viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <div class="balance" id="balanceText">10,006.76 USD</div>
+      <div class="balance" id="balanceText">0.00 USD</div>
     </div>
-    <button class="deposit-btn" id="depositBtn">+ Fondos virtuales</button>
+    <button class="deposit-btn" id="depositBtn">Deposit</button>
   </header>
 
   <!-- WORKSPACE -->
@@ -640,12 +638,12 @@
   <div class="acc-overlay" id="accOverlay"></div>
   <div class="acc-sheet" id="accSheet">
     <div class="acc-sheet-handle"></div>
-    <button class="acc-row active" id="accRowDemo" data-acc="Cuenta Demo" data-bal="10,006.76 USD">
-      <span class="acc-row-label demo">Cuenta Demo</span>
+    <button class="acc-row" id="accRowDemo" data-acc="Demo account" data-bal="10,006.76 USD">
+      <span class="acc-row-label demo">Demo account</span>
       <span class="acc-row-balance">10,006.76 USD</span>
     </button>
-    <button class="acc-row" id="accRowReal" data-acc="Cuenta Virtual" data-bal="0.00 USD">
-      <span class="acc-row-label">Cuenta Virtual</span>
+    <button class="acc-row active" id="accRowReal" data-acc="Real account" data-bal="0.00 USD">
+      <span class="acc-row-label">Real account</span>
       <span class="acc-row-balance">0.00 USD</span>
     </button>
   </div>
@@ -693,22 +691,6 @@
   accRowReal.addEventListener('click', ()=> selectAccount(accRowReal));
 
   document.getElementById('depositBtn').addEventListener('click', ()=>{});
-
-  /* ---------- saldo virtual compartido (TradeLabSim) ---------- */
-  function syncSimBalances(){
-    const data = TradeLabSim.loadBalances();
-    const demoBal = TradeLabSim.formatMoney(data.demo) + ' USD';
-    const virtualBal = TradeLabSim.formatMoney(data.virtual) + ' USD';
-    accRowDemo.setAttribute('data-bal', demoBal);
-    accRowReal.setAttribute('data-bal', virtualBal);
-    accRowDemo.querySelector('.acc-row-balance').textContent = demoBal;
-    accRowReal.querySelector('.acc-row-balance').textContent = virtualBal;
-    const activeRow = accRowDemo.classList.contains('active') ? accRowDemo : accRowReal;
-    balanceText.textContent = activeRow.getAttribute('data-bal');
-  }
-  window.addEventListener('tradelab-sim:balances-updated', syncSimBalances);
-  window.addEventListener('storage', (e) => { if(e.key === TradeLabSim.STORAGE_KEY) syncSimBalances(); });
-  syncSimBalances();
 
   /* ---------- checkboxes ---------- */
   document.querySelectorAll('[data-check]').forEach(cb=>{

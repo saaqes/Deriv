@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>TradeLab Sim — Bot Builder Chart (simulador educativo)</title>
+<title>Deriv Bot — Clon Educativo</title>
 <style>
   :root{
     --red: #ff444f;
@@ -382,7 +382,7 @@
 
   /* ---------- navegacion inferior ---------- */
   .bottom-nav{ display:flex; border-top:1px solid var(--line); padding: 8px 4px calc(10px + env(safe-area-inset-bottom)); flex-shrink:0; background:#fff; }
-  .nav-item{ flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 2px; color: var(--gray-500); cursor:pointer; border:none; background:none; text-decoration:none; font-size:10.5px; font-weight:600; font-family:inherit; }
+  .nav-item{ flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:0; color: var(--gray-500); cursor:pointer; border:none; background:none; }
   .nav-item a{ display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 2px; width:100%; color:inherit; text-decoration:none; font-size:10.5px; font-weight:600; font-family:inherit; }
   .nav-item svg{ width:20px; height:20px; }
   .nav-item.active{ color: var(--red); }
@@ -458,8 +458,6 @@
 </style>
 </head>
 <body>
-<script src="assets/js/sim-shared.js"></script>
-<script>TradeLabSim.mountDisclaimerBanner();</script>
 <div class="app-shell">
   <div class="phone" id="phone">
 
@@ -643,26 +641,36 @@
       </div>
 
       <div class="bottom-nav">
-        <a class="nav-item" href="index.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/></svg>
-          Home
-        </a>
-        <a class="nav-item" href="options.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="7" height="7" rx="1.3"/><rect x="13" y="4" width="7" height="7" rx="1.3"/><rect x="4" y="13" width="7" height="7" rx="1.3"/><rect x="13" y="13" width="7" height="7" rx="1.3"/></svg>
-          Dashboard
-        </a>
-        <a class="nav-item" href="bot_builder.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="8" width="14" height="11" rx="2.4"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1.3" fill="currentColor" stroke="none"/><circle cx="9" cy="13" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.2" fill="currentColor" stroke="none"/></svg>
-          Bot builder
-        </a>
-        <a class="nav-item active" href="chart.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V9"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M22 19H2"/></svg>
-          Chart
-        </a>
-        <a class="nav-item" href="options.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-          Menu
-        </a>
+        <button class="nav-item" data-name="Home" type="button">
+          <a href="index.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/></svg>
+            Home
+          </a>
+        </button>
+        <button class="nav-item" data-name="Dashboard" type="button">
+          <a href="dashboard.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="7" height="7" rx="1.3"/><rect x="13" y="4" width="7" height="7" rx="1.3"/><rect x="4" y="13" width="7" height="7" rx="1.3"/><rect x="13" y="13" width="7" height="7" rx="1.3"/></svg>
+            Dashboard
+          </a>
+        </button>
+        <button class="nav-item" data-name="Bot builder" type="button">
+          <a href="bot_builder.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="8" width="14" height="11" rx="2.4"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1.3" fill="currentColor" stroke="none"/><circle cx="9" cy="13" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.2" fill="currentColor" stroke="none"/></svg>
+            Bot builder
+          </a>
+        </button>
+        <button class="nav-item active" data-name="Chart" type="button">
+          <a href="chart.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V9"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M22 19H2"/></svg>
+            Chart
+          </a>
+        </button>
+        <button class="nav-item" data-name="Menu" type="button">
+          <a href="menu.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            Menu
+          </a>
+        </button>
       </div>
     </div>
   </div>
@@ -676,8 +684,8 @@
       <div class="account-sheet-balance" id="sheetDemoBalance">10,006.76 USD</div>
     </div>
     <div class="account-sheet-item" data-acc="real">
-      <div class="account-sheet-label">Cuenta Virtual</div>
-      <div class="account-sheet-balance" id="sheetRealBalance">0.00 USD</div>
+      <div class="account-sheet-label">Real account</div>
+      <div class="account-sheet-balance">0.00 USD</div>
     </div>
   </div>
 </div>
@@ -999,21 +1007,16 @@
   draw(Date.now());
   requestAnimationFrame(loop);
   connectDeriv();
-  window.addEventListener('pagehide', function(){ if(ws){ try{ ws.close(); }catch(e){} } if(simTimer) clearInterval(simTimer); });
+  window.addEventListener('beforeunload', function(){ if(ws){ try{ ws.close(); }catch(e){} } if(simTimer) clearInterval(simTimer); });
 
   /* ==========================================================
      ESTADO GLOBAL DEL BOT / CUENTA
      ========================================================== */
-  var balance = TradeLabSim.loadBalances().demo;
+  var balance = 10006.76;
   var totals = { stake:0, payout:0, runs:0, lost:0, won:0, pl:0 };
   var balanceLabel = document.getElementById('balanceLabel');
 
   function fmtMoney(n){ return n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
-  function persistDemoBalance(){
-    var data = TradeLabSim.loadBalances();
-    data.demo = balance;
-    TradeLabSim.saveBalances(data);
-  }
   function renderBalance(){
     if(currentAccount === 'demo'){
       balanceLabel.textContent = fmtMoney(balance) + ' USD';
@@ -1021,7 +1024,6 @@
       setTimeout(function(){ balanceLabel.classList.remove('flash'); }, 260);
     }
     sheetDemoBalance.textContent = fmtMoney(balance) + ' USD';
-    persistDemoBalance();
   }
 
   var totalsGridTx = document.getElementById('totalsGridTx');
@@ -1284,10 +1286,8 @@
   var accountType = document.getElementById('accountType');
   var accountTypeText = document.getElementById('accountTypeText');
   var sheetDemoBalance = document.getElementById('sheetDemoBalance');
-  var sheetRealBalance = document.getElementById('sheetRealBalance');
   var currentAccount = 'demo';
-  var realBalance = TradeLabSim.loadBalances().virtual;
-  if(sheetRealBalance) sheetRealBalance.textContent = fmtMoney(realBalance) + ' USD';
+  var realBalance = 0;
 
   function openAccountSheet(){ accountOverlay.classList.add('show'); accountType.classList.add('open'); closeMarketsOverlay(); }
   function closeAccountSheet(){ accountOverlay.classList.remove('show'); accountType.classList.remove('open'); }
@@ -1304,7 +1304,7 @@
       accountType.classList.remove('real');
       balanceLabel.textContent = fmtMoney(balance) + ' USD';
     } else {
-      accountTypeText.textContent = 'Cuenta Virtual';
+      accountTypeText.textContent = 'Real account';
       accountType.classList.add('real');
       balanceLabel.textContent = fmtMoney(realBalance) + ' USD';
     }
@@ -1696,23 +1696,6 @@
   document.getElementById('depositBtn').addEventListener('click', function(e){
     e.stopPropagation();
     showToast('Función deshabilitada en este demo educativo', false);
-  });
-
-  // ===== Mantiene sincronizado el saldo virtual con Home/Options =====
-  window.addEventListener('tradelab-sim:balances-updated', function(e){
-    var data = e.detail || TradeLabSim.loadBalances();
-    balance = data.demo;
-    realBalance = data.virtual;
-    renderAccountHeader();
-    sheetDemoBalance.textContent = fmtMoney(balance) + ' USD';
-    if(sheetRealBalance) sheetRealBalance.textContent = fmtMoney(realBalance) + ' USD';
-  });
-  window.addEventListener('storage', function(e){
-    if(e.key !== TradeLabSim.STORAGE_KEY) return;
-    var data = TradeLabSim.loadBalances();
-    balance = data.demo;
-    realBalance = data.virtual;
-    renderAccountHeader();
   });
 
   updateTxEmptyState();

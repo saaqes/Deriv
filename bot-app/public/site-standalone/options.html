@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>TradeLab Sim — Options (simulador)</title>
+<title>Deriv</title>
 <style>
   :root{
     --bg: #181c25;
@@ -160,8 +160,6 @@
 </style>
 </head>
 <body>
-<script src="assets/js/sim-shared.js"></script>
-<script>TradeLabSim.mountDisclaimerBanner();</script>
 <div class="app">
 
   <div class="header-dark">
@@ -169,7 +167,7 @@
     <!-- Top bar -->
     <div class="topbar">
       <div class="toggle">
-        <button class="active">Virtual</button>
+        <button class="active">Real</button>
         <button>Demo</button>
       </div>
       <div class="icon-btn">
@@ -183,8 +181,8 @@
 
     <!-- Balance -->
     <div class="balance">
-      <div class="balance-label">Saldo virtual total</div>
-      <div class="balance-amount"><span id="optTotalBalance">0.00</span> USD (sim) <span class="refresh-ic">&#8635;</span></div>
+      <div class="balance-label">Total trading value</div>
+      <div class="balance-amount">0.00 USD <span class="refresh-ic">&#8635;</span></div>
       <div class="updated" id="updatedTxt">Updated just now</div>
     </div>
 
@@ -238,29 +236,26 @@
     <div class="section-title">Platforms</div>
 
     <div class="platform-card">
-      <div class="platform-logo">TP</div>
+      <div class="platform-logo">DT</div>
       <div>
-        <div class="platform-name">Trader Panel</div>
-        <div class="platform-desc">Simulador de opciones sobre 100+ mercados. Fondos virtuales.</div>
+        <div class="platform-name">Deriv Trader</div>
+        <div class="platform-desc">Trade options on 100+ markets. No overnight swap fees.</div>
       </div>
     </div>
 
-    <div class="platform-card" id="botBuilderCard" onclick="window.location.href='bot_builder.html'" style="cursor:pointer">
-      <div class="platform-logo db">BB</div>
+    <div class="platform-card" onclick="window.location.href='bot_builder.html'" style="cursor:pointer">
+      <div class="platform-logo db">DB</div>
       <div>
-        <div class="platform-name">Bot Builder <span style="font-size:10px;font-weight:600;color:#ffd23f;">· Simulador</span></div>
-        <div class="platform-desc">Crea y ejecuta bots automatizados sobre una cuenta demo virtual, sin código.</div>
-        <div style="margin-top:6px;">
-          <a href="../bot-app/dist/index.html" style="font-size:11px;color:#8aa6ff;text-decoration:underline;" onclick="event.stopPropagation();">Abrir versión completa (requiere compilar bot-app primero) →</a>
-        </div>
+        <div class="platform-name">Deriv Bot</div>
+        <div class="platform-desc">Build and run automated bots, no coding needed.</div>
       </div>
     </div>
 
     <div class="platform-card">
-      <div class="platform-logo st">PA</div>
+      <div class="platform-logo st">ST</div>
       <div>
-        <div class="platform-name">Panel Avanzado</div>
-        <div class="platform-desc">Interfaz clásica para practicar estrategias de opciones.</div>
+        <div class="platform-name">SmartTrader</div>
+        <div class="platform-desc">Classic interface for advanced options traders.</div>
       </div>
     </div>
   </div>
@@ -270,9 +265,9 @@
     <div class="section-title">Trade types</div>
   </div>
   <div class="pill-row">
-    <div class="pill active">Trader Panel</div>
-    <div class="pill" onclick="window.location.href='bot_builder.html'" style="cursor:pointer">Bot Builder</div>
-    <div class="pill">Panel Avanzado</div>
+    <div class="pill active">Deriv Trader</div>
+    <div class="pill" onclick="window.location.href='bot_builder.html'" style="cursor:pointer">Deriv Bot</div>
+    <div class="pill">SmartTrader</div>
   </div>
 
   <div class="trade-type-grid">
@@ -360,7 +355,7 @@ function connect(){
 function setConn(live){
   document.getElementById('connDot').classList.toggle('live', live);
   document.getElementById('connText').textContent = live ? 'Live' : 'Reconectando';
-  document.getElementById('updatedTxt').textContent = live ? 'Datos de mercado en vivo (API pública)' : 'Conectando…';
+  document.getElementById('updatedTxt').textContent = live ? 'Updated live · Deriv API' : 'Conectando a Deriv…';
 }
 
 function handle(data){
@@ -420,18 +415,6 @@ function drawSparkline(code, points, up){
 
 buildGrid();
 connect();
-
-// ===== Saldo virtual (compartido con Home vía TradeLabSim) =====
-(function(){
-  function renderTotal(){
-    const data = TradeLabSim.loadBalances();
-    const el = document.getElementById('optTotalBalance');
-    if(el) el.textContent = TradeLabSim.formatMoney(data.virtual);
-  }
-  window.addEventListener('tradelab-sim:balances-updated', renderTotal);
-  window.addEventListener('storage', (e) => { if(e.key === TradeLabSim.STORAGE_KEY) renderTotal(); });
-  renderTotal();
-})();
 </script>
 </body>
 </html>

@@ -4,8 +4,7 @@
 <meta charset="UTF-8">
 <script src="https://kit.fontawesome.com/69112f3248.js" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TradeLab Sim — Simulador educativo de trading (no oficial)</title>
-<meta name="description" content="Simulador educativo independiente. No es Deriv ni ninguna plataforma de trading real, y no gestiona dinero real.">
+<title>Deriv - Online Trading Platform</title>
 <style>
   :root{
     --bg-dark:#181c25;
@@ -930,7 +929,6 @@
 </style>
 </head>
 <body>
-<script src="assets/js/sim-shared.js"></script>
 
 <div class="app">
 
@@ -938,7 +936,7 @@
   <header class="header">
     <div class="header-top">
       <div class="avatar">JR</div>
-      <div class="ask-amy">💬 Ayuda</div>
+      <div class="ask-amy"><img src="assets/img/ask_amy_mobile.svg" alt=""></div>
       <div class="header-icons">
         <div class="icon-btn" id="eyeToggle"><i class="fa-regular fa-eye" id="eyeIcon"></i></div>
         <div class="icon-btn" id="bellToggle"><i class="fa-regular fa-bell"></i> <span class="badge">5</span></div>
@@ -954,32 +952,34 @@
         </div>
         <div class="valor-total-updated">Actualizado ahora</div>
       </div>
-      <button class="deposit-btn">+ Fondos virtuales</button>
+      <button class="deposit-btn">Depósito</button>
     </div>
   </header>
 
   <!-- TRADING ACCOUNTS CAROUSEL -->
   <section class="section">
-    <div class="section-title">Mis cuentas simuladas</div>
+    <div class="section-title">My trading accounts</div>
     <div class="accounts-scroll">
       <div class="account-card">
-        <div class="account-icon icon-tv" style="background:#2e8de0;color:#fff;font-size:16px;">📈</div>
-        <div class="account-name">Gráficos</div>
-        <div class="account-balance"><span class="balance-amount" data-value="0.00">0.00</span><span class="balance-currency">USD (sim)</span></div>
+        <div class="account-icon icon-tv">
+          <img src="assets/img/TradingView.webp" alt="TradingView">
+        </div>
+        <div class="account-name">TradingView</div>
+        <div class="account-balance"><span class="balance-amount" data-value="0.00">0.00</span><span class="balance-currency">USD</span></div>
       </div>
       <div class="account-card">
-        <div class="account-icon icon-mts" style="background:#00d0a3;color:#fff;font-size:16px;">💹</div>
-        <div class="account-name">CFDs | Estándar</div>
-        <div class="account-balance"><span class="balance-amount" id="mt5TradingBalance" data-value="0.00">0.00</span><span class="balance-currency">USD (sim)</span></div>
+        <div class="account-icon icon-mts"><img src="assets/img/MT5.webp" alt=""></div>
+        <div class="account-name">CFDs | Standard</div>
+        <div class="account-balance"><span class="balance-amount" id="mt5TradingBalance" data-value="0.00">0.00</span><span class="balance-currency">USD</span></div>
       </div>
       <div class="account-card">
-        <div class="account-icon icon-options" style="background:#ff444f;color:#fff;font-size:16px;">🎯</div>
+        <div class="account-icon icon-options"><img src="assets/img/Options.webp" alt="Options"></div>
         <div class="account-name">Options</div>
-        <div class="account-balance"><span class="balance-amount" data-value="0.00">0.00</span><span class="balance-currency">USD (sim)</span></div>
+        <div class="account-balance"><span class="balance-amount" data-value="0.00">0.00</span><span class="balance-currency">USD</span></div>
       </div>
       <div class="add-account-card">
         <div class="plus-circle">+</div>
-        Agregar cuenta simulada
+        Add more accounts
       </div>
     </div>
   </section>
@@ -1013,33 +1013,33 @@
     <div class="promo-dot"><span class="fill"></span></div>
   </div>
 
-  <!-- EXPLORE (simulador) -->
+  <!-- EXPLORE DERIV -->
   <section class="section">
-    <div class="section-title">Explorar el simulador</div>
+    <div class="section-title">Explore Deriv</div>
     <div class="explore-grid">
       <div class="explore-item">
-        <div class="explore-icon mts-icon" style="font-size:24px;">💹</div>
-        <div class="explore-label link">CFDs | Estándar</div>
+        <div class="explore-icon mts-icon"><img src="assets/img/MT5.webp" alt=""></div>
+        <div class="explore-label link">CFDs | Standard</div>
       </div>
       <div class="explore-item" onclick="window.location.href='options.html'" style="cursor:pointer">
-        <div class="explore-icon options-icon" style="font-size:24px;">🎯</div>
+        <div class="explore-icon options-icon"><img src="assets/img/Options.webp" alt="Options"></div>
         <div class="explore-label link-red">Options</div>
       </div>
       <div class="explore-item">
-        <div class="explore-icon tv-icon" style="font-size:24px;">📈</div>
-        <div class="explore-label">Gráficos</div>
+        <div class="explore-icon tv-icon"><img src="assets/img/TradingView.webp" alt=""></div>
+        <div class="explore-label">TradingView</div>
       </div>
       <div class="explore-item">
-        <div class="explore-icon mts-icon" style="font-size:24px;">🔄</div>
+        <div class="explore-icon mts-icon"><img src="assets/img/SWF.webp" alt=""></div>
         <div class="explore-label link">Swap-Free</div>
       </div>
       <div class="explore-item">
-        <div class="explore-icon p2p-icon" style="font-size:24px;">🤝</div>
+        <div class="explore-icon p2p-icon"><img src="assets/img/P2P.webp" alt="P2P"></div>
         <div class="explore-label link-red">P2P</div>
       </div>
       <div class="explore-item">
-        <div class="explore-icon more-icon" style="font-size:24px;">⋯</div>
-        <div class="explore-label">Más</div>
+        <div class="explore-icon more-icon"><img src="assets/img/more.png" alt="More"></div>
+        <div class="explore-label">More</div>
       </div>
     </div>
   </section>
@@ -1155,17 +1155,16 @@
 
       <div class="balance-manager-card">
         <div class="balance-manager-header">
-          <span class="balance-manager-name">Cuenta Virtual</span>
-          <span class="balance-manager-current"><span id="virtualCurrentBalance">0.00</span> <small>USD (sim)</small></span>
+          <span class="balance-manager-name">Cuenta Real</span>
+          <span class="balance-manager-current"><span id="realCurrentBalance">0.00</span> <small>USD</small></span>
         </div>
-        <input type="number" inputmode="decimal" min="0" step="0.01" class="balance-input" id="virtualAmountInput" placeholder="Monto virtual">
+        <input type="number" inputmode="decimal" min="0" step="0.01" class="balance-input" id="realAmountInput" placeholder="Monto en USD">
         <div class="balance-manager-actions">
-          <button class="bal-btn bal-btn-sub" data-account="virtual" data-action="restar">− Restar</button>
-          <button class="bal-btn bal-btn-add" data-account="virtual" data-action="sumar">+ Sumar</button>
-          <button class="bal-btn bal-btn-set" data-account="virtual" data-action="fijar">Fijar</button>
+          <button class="bal-btn bal-btn-sub" data-account="real" data-action="restar">− Restar</button>
+          <button class="bal-btn bal-btn-add" data-account="real" data-action="sumar">+ Sumar</button>
+          <button class="bal-btn bal-btn-set" data-account="real" data-action="fijar">Fijar</button>
         </div>
-        <div class="balance-manager-feedback" id="virtualFeedback"></div>
-        <div style="margin-top:8px; font-size:11px; color:var(--text-muted);">Esta cuenta es 100% simulada. No representa dinero real ni está conectada a ninguna cuenta bancaria o de bróker.</div>
+        <div class="balance-manager-feedback" id="realFeedback"></div>
       </div>
     </div>
   </div>
@@ -1173,7 +1172,7 @@
 </div>
 
 <script>
-  TradeLabSim.mountDisclaimerBanner();
+
 
   // ===== PROMO AUTOPLAY CAROUSEL =====
   (function(){
@@ -1249,10 +1248,15 @@
     window.addEventListener('resize', updateSpacer);
   })();
 
-  // ===== SALDOS VIRTUALES: ojo + panel de Cuenta Demo / Cuenta Virtual =====
-  // Todo lo que gestiona este bloque es dinero simulado (ver sim-shared.js).
+  // ===== SALDOS: ojo + panel de Cuenta Demo / Cuenta Real =====
   (function(){
+    const STORAGE_KEY = 'account-balances';
+    const DEFAULT_BALANCES = { demo: 0, real: 2.98 };
     let balancesHidden = false;
+
+    function formatMoney(n){
+      return n.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+    }
 
     function applyVisibility(){
       document.querySelectorAll('.balance-amount').forEach(el => {
@@ -1264,20 +1268,38 @@
       });
     }
 
+    async function loadBalances(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw) return JSON.parse(raw);
+        return { ...DEFAULT_BALANCES };
+      }catch(err){
+        return { ...DEFAULT_BALANCES };
+      }
+    }
+
+    async function saveBalances(data){
+      try{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      }catch(err){
+        console.error('Error al guardar el saldo', err);
+      }
+    }
+
     function renderBalances(data){
       const demoEl = document.getElementById('demoCurrentBalance');
-      const virtualEl = document.getElementById('virtualCurrentBalance');
+      const realEl = document.getElementById('realCurrentBalance');
       const mt5El = document.getElementById('mt5TradingBalance');
       const totalEl = document.getElementById('totalValueBalance');
-      if(demoEl) demoEl.textContent = TradeLabSim.formatMoney(data.demo);
-      if(virtualEl) virtualEl.textContent = TradeLabSim.formatMoney(data.virtual);
-      if(mt5El) mt5El.dataset.value = TradeLabSim.formatMoney(data.demo);
-      if(totalEl) totalEl.dataset.value = TradeLabSim.formatMoney(data.virtual);
+      if(demoEl) demoEl.textContent = formatMoney(data.demo);
+      if(realEl) realEl.textContent = formatMoney(data.real);
+      if(mt5El) mt5El.dataset.value = formatMoney(data.demo);
+      if(totalEl) totalEl.dataset.value = formatMoney(data.real);
       applyVisibility();
     }
 
-    function refreshBalances(){
-      const data = TradeLabSim.loadBalances();
+    async function refreshBalances(){
+      const data = await loadBalances();
       renderBalances(data);
       return data;
     }
@@ -1290,6 +1312,32 @@
       el.classList.add('show');
       clearTimeout(el._fadeTimeout);
       el._fadeTimeout = setTimeout(() => el.classList.remove('show'), 2200);
+    }
+
+    async function applyAction(account, action, rawAmount){
+      const amount = parseFloat(rawAmount);
+      if(isNaN(amount) || amount < 0){
+        showFeedback(account, 'Ingresa un monto válido', true);
+        return false;
+      }
+      const data = await loadBalances();
+
+      if(action === 'sumar'){
+        data[account] = data[account] + amount;
+      } else if(action === 'restar'){
+        if(amount > data[account]){
+          showFeedback(account, 'Saldo insuficiente', true);
+          return false;
+        }
+        data[account] = data[account] - amount;
+      } else if(action === 'fijar'){
+        data[account] = amount;
+      }
+
+      await saveBalances(data);
+      renderBalances(data);
+      showFeedback(account, 'Guardado ✓', false);
+      return true;
     }
 
     const eyeBtn = document.getElementById('eyeToggle');
@@ -1317,26 +1365,14 @@
     });
 
     document.querySelectorAll('.bal-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const account = btn.dataset.account;
         const action = btn.dataset.action;
         const input = document.getElementById(account + 'AmountInput');
-        const result = TradeLabSim.applyAction(account, action, input.value);
-        if(result.ok){
-          renderBalances(result.data);
-          showFeedback(account, 'Guardado ✓ (simulado)', false);
-          input.value = '';
-        } else if(result.reason === 'insufficient'){
-          showFeedback(account, 'Saldo virtual insuficiente', true);
-        } else {
-          showFeedback(account, 'Ingresa un monto válido', true);
-        }
+        const success = await applyAction(account, action, input.value);
+        if(success){ input.value = ''; }
       });
     });
-
-    // Mantiene sincronizado si se cambia el saldo desde otra pestaña/página.
-    window.addEventListener('tradelab-sim:balances-updated', () => refreshBalances());
-    window.addEventListener('storage', (e) => { if(e.key === TradeLabSim.STORAGE_KEY) refreshBalances(); });
 
     refreshBalances();
   })();
