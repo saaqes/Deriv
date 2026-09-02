@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<script src="https://kit.fontawesome.com/69112f3248.js" crossorigin="anonymous"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeLab Sim — Simulador educativo de trading (no oficial)</title>
+<meta name="description" content="Simulador educativo independiente. No es Deriv ni ninguna plataforma de trading real, y no gestiona dinero real.">
+<style>
+  :root{
+    --bg-dark:#181c25;
+    --bg-white:#ffffff;
+    --bg-light-gray:#f7f7f8;
+    --red:#ff444f;
+    --red-dark:#e6222e;
+    --green:#00d0a3;
+    --text-light:#ffffff;
+    --text-muted:#9a9ca3;
+    --text-dark:#1a1c22;
+    --border-color:#ececed;
+    --blue:#1976d2;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  body{
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:var(--bg-white);
+    color:var(--text-dark);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .app{
+    margin:0 auto;
+    background:var(--bg-white);
+    min-height:100vh;
+    position:relative;
+    padding-bottom:64px;
+  }
+
+  /* ===== HEADER ===== */
+  .header{
+    background:var(--bg-dark);
+    color:var(--text-light);
+    padding:25px;
+    border-radius:0 0 20px 20px;
+    position:relative;
+    overflow:visible;
+    box-shadow:0 20px 14px -6px rgba(0,0,0,0.25);
+    z-index:1;
+  }
+
+  .header-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:5px 16px 12px;
+    position:fixed;
+    top:0;
+    left:50%;
+    transform:translateX(-50%);
+    width:100%;
+    max-width:490px;
+    margin:0;
+    z-index:1000;
+    background:var(--bg-dark);
+  }
+  .header-top-spacer{
+    flex-basis:100%;
+  }
+
+  .avatar{
+    width:32px;
+    height:32px;
+    border-radius:50%;
+    background:#2a2c34;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    font-weight:600;
+  }
+
+  .ask-amy{
+    font-size:13px;
+    padding:6px 14px;
+    border-radius:20px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-weight:500;
+  }
+
+  .header-icons{
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+
+  .icon-btn{
+    position:relative;
+    width:20px;
+    height:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(255,255,255,0.12);
+    border-radius:50%;
+    padding:15px;
+    cursor:pointer;
+    transition:box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  }
+  .icon-btn:hover{
+    background:rgba(255,255,255,0.2);
+    box-shadow:0 4px 12px rgba(0,0,0,0.35);
+    transform:translateY(-1px);
+  }
+
+  .badge{
+    position:absolute;
+    top:-4px;
+    right:-4px;
+    background:var(--red);
+    color:#fff;
+    font-size:9px;
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:700;
+  }
+
+  .header-content{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+
+  .valor-total-label{
+    font-size:13px;
+    font-weight:500;
+    color:var(--text-muted);
+    display:flex;
+    align-items:center;
+    gap:5px;
+    margin-bottom:10px;
+  }
+  .valor-total-label i{
+    font-size:10px;
+  }
+
+  .valor-total-amount{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .valor-total-amount .balance-amount{
+    font-size:28px;
+    font-weight:700;
+    color:#fff;
+  }
+  .valor-total-amount .balance-currency{
+    font-size:15px;
+    font-weight:500;
+    color:var(--text-muted);
+  }
+  .valor-refresh-icon{
+    font-size:14px;
+    color:var(--text-muted);
+    cursor:pointer;
+  }
+
+  .valor-total-updated{
+    font-size:12px;
+    font-weight:400;
+    color:var(--text-muted);
+  }
+
+  .header-text h1{
+    font-size:18px;
+    font-weight:600;
+    margin-bottom:12px;
+  }
+
+  .progress-bar{
+    width:50px;
+    height:4px;
+    gap:4px;
+    background:rgba(255,255,255,0.15);
+    border-radius:4px;
+    margin-bottom:14px;
+    overflow:hidden;
+  }
+  .progress-bar2{
+    width:50px;
+    height:4px;
+    gap:4px;
+    background:rgba(255,255,255,0.15);
+    border-radius:4px;
+    margin-bottom:14px;
+    overflow:hidden;
+  }
+  .progress-bars{
+    display:flex;
+    gap:4px;
+    margin-bottom:14px;
+  }
+  .progress-bar span{
+    display:block;
+    width:100%;
+    height:100%;
+    background:var(--green);
+    border-radius:4px;
+  }
+
+  .deposit-btn{
+    background:var(--red);
+    color:#fff;
+    border:none;
+    padding:14px 30px;
+    border-radius:26px;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+    transition:box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
+  }
+  .deposit-btn:hover{
+    background:var(--red-dark);
+    box-shadow:0 8px 18px rgba(230,34,46,0.45);
+    transform:translateY(-1px);
+  }
+
+  .header-illustration{
+    width:120px;
+    height:120px;
+    opacity:0.9;
+  }
+
+  /* ===== SECTION TITLES ===== */
+  .section{
+    padding:20px 16px 8px;
+  }
+  .section-title{
+    font-size:19px;
+    font-weight:700;
+    color:var(--text-dark);
+    margin-bottom:14px;
+    margin-top: 20px;
+  }
+
+  /* ===== ACCOUNTS CAROUSEL ===== */
+  .accounts-scroll{
+    display:flex;
+    gap:10px;
+    overflow-x:auto;
+    scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:4px;
+  }
+  .accounts-scroll::-webkit-scrollbar{ display:none; }
+  .accounts-scroll{ scrollbar-width:none; }
+
+  .account-card{
+    background:var(--bg-light-gray);
+    border-radius:14px;
+    padding:24px;
+    flex:0 0 calc(50% - 5px);
+    scroll-snap-align:start;
+  }
+
+  .account-icon{
+    width:32px;
+    height:32px;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:26px;
+    font-size:10px;
+    font-weight:800;
+    color:#fff;
+  }
+  .icon-tv img{ 
+    width: 50px;
+    height: 50px;
+   }
+  .icon-mts img{ 
+    width: 50px;
+    height: 50px;
+    }
+  .icon-options img{ 
+    width: 50px;
+    height: 50px;
+  }
+
+  .account-name{
+    font-size:17px;
+    font-weight:500;
+    color:var(--text-dark);
+    margin-bottom:4px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .account-balance{
+    display:flex;
+    align-items:center;
+    gap:3px;
+  }
+  .account-balance .balance-amount{
+    font-size:17px;
+    font-weight:400;
+    color:var(--text-dark);
+  }
+  .account-balance .balance-currency{
+    font-size:12px;
+    font-weight:400;
+    color: #0000007a;
+    letter-spacing:0.3px;
+  }
+
+  .add-account-card{
+    border:1.5px dashed #d7d8db;
+    border-radius:14px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    color:var(--text-muted);
+    font-size:12px;
+    font-weight:600;
+    flex:0 0 calc(50% - 5px);
+    scroll-snap-align:start;
+    min-height:96px;
+  }
+  .add-account-card .plus-circle{
+    width:26px;
+    height:26px;
+    border:1.5px solid #d7d8db;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:14px;
+  }
+
+  /* ===== PROMO CAROUSEL ===== */
+  .promo-wrapper{
+    margin:20px 16px 0;
+    border-radius:16px;
+    overflow:hidden;
+    position:relative;
+  }
+  .promo-track{
+    display:flex;
+    width:200%;
+    transition:transform 0.5s ease;
+  }
+  .promo-slide{
+    width:50%;
+    flex-shrink:0;
+    background:var(--bg-dark);
+    padding:15px;
+    color:#fff;
+    position:relative;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    min-height:70px;
+    gap:12px;
+  }
+  .promo-slide.slide-ai{
+    background:#181c25;
+  }
+  .promo-close{
+    position:absolute;
+    top:10px;
+    right:10px;
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.12);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    z-index:2;
+  }
+  .promo-text h3{
+    font-size:15px;
+    font-weight:700;
+    margin-bottom:4px;
+  }
+  .promo-text p{
+    font-size:15px;
+    color:#b7b9c2;
+    max-width:200px;
+  } 
+  .promo-text .ai-title{
+    font-size:17px;
+    font-weight:700;
+    line-height:1.35;
+    max-width:300px;
+    margin-bottom:0;
+  }
+  .promo-logo{
+    font-size:13px;
+    font-weight:800;
+    letter-spacing:1px;
+    white-space:nowrap;
+    height: 26px;
+  }
+  .promo-logo img{
+    height: 115px;
+    top: -30px;
+    right: -30px;
+    width: 100%;
+    position: relative;
+  }
+  .promo-emblem{
+    font-size:26px;
+  }
+
+  /* AI analysis illustration */
+  .ai-illustration{
+    position:relative;
+    width:152px;
+    height:86px;
+    flex-shrink:0;
+  }
+  .ai-chart-card{
+    position:absolute;
+    top:0;
+    right:2px;
+    width:52px;
+    height:34px;
+    background:#fff;
+    border-radius:8px;
+    box-shadow:0 6px 14px rgba(0,0,0,0.35);
+    transform:rotate(-6deg);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .ai-coin{
+    position:absolute;
+    bottom:0;
+    left:0;
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ffb347, #e8850c);
+    color:#fff;
+    font-size:13px;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 4px 8px rgba(0,0,0,0.35);
+    z-index:2;
+  }
+  .ai-gold{
+    position:absolute;
+    bottom:2px;
+    right:6px;
+    width:22px;
+    height:14px;
+    background:linear-gradient(135deg,#f5d382,#c8941f);
+    border-radius:3px;
+    transform:rotate(8deg) skewX(-8deg);
+    box-shadow:0 4px 8px rgba(0,0,0,0.3);
+  }
+
+  /* Loading-style progress indicators: dot that stretches into a bar */
+  .promo-progress{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:6px;
+    margin:12px 0 4px;
+    height:6px;
+  }
+  .promo-dot{
+    width:6px;
+    height:6px;
+    border-radius:3px;
+    background:#e0e0e2;
+    overflow:hidden;
+    position:relative;
+    transition:width 0.25s ease;
+  }
+  .promo-dot.active{
+    width:52px;
+  }
+  .promo-dot .fill{
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:var(--text-dark);
+    transform-origin:left center;
+    transform:scaleX(0);
+  }
+  .promo-dot.filled .fill{
+    transform:scaleX(1);
+  }
+  @keyframes fillBar{
+    from{ transform:scaleX(0); }
+    to{ transform:scaleX(1); }
+  }
+
+  /* ===== EXPLORE GRID ===== */
+  .explore-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:20px 0;
+    text-align:center;
+  }
+  .explore-item{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+  }
+  .explore-icon{
+    width:44px;
+    height:44px;
+    border-radius:50%;
+    background:var(--bg-light-gray);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:9px;
+    font-weight:800;
+  }
+  .explore-icon.mts-icon img{ background:var(--bg-light-gray); padding:15px; border-radius:50%; width:70px; height:70px; }
+  .explore-icon.options-icon img{ background:var(--bg-light-gray); padding:15px; border-radius:50%; width:70px; height:70px;}
+  .explore-icon.tv-icon img{ background:var(--bg-light-gray); padding:15px; border-radius:50%; width:70px; height:70px; }
+  .explore-icon.p2p-icon img{ background:var(--bg-light-gray); padding:15px; border-radius:50%; width:70px; height:70px; }
+  .explore-icon.more-icon img{ background:var(--bg-light-gray); padding:15px; border-radius:50%; width:70px; height:70px; }
+
+  .explore-label{
+    font-size:12px;
+    font-weight:500;
+    color:var(--text-dark);
+    margin: 10px;
+    color:var(--text-dark);
+  }
+  .explore-label.link{ color:var(--black); }
+  .explore-label.link-red{ color:var(--black); }
+
+  /* ===== HIGHLIGHTS ===== */
+  .highlights-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .carousel-arrows{
+    display:flex;
+    gap:8px;
+  }
+  .carousel-arrows button{
+    width:24px;
+    height:24px;
+    border-radius:50%;
+    border:1px solid var(--border-color);
+    background:#fff;
+    color:var(--text-muted);
+    font-size:12px;
+    cursor:pointer;
+    transition:box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .carousel-arrows button:hover{
+    box-shadow:0 4px 10px rgba(0,0,0,0.15);
+    transform:translateY(-1px);
+  }
+
+  .highlights-scroll{
+    display:flex;
+    gap:12px;
+    margin-left:17px;
+    overflow-x:auto;
+    padding:6px 46px 50px;
+    scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+  }
+  .highlights-scroll::-webkit-scrollbar{ display:none; }
+  .highlights-scroll{ scrollbar-width:none; }
+
+  .highlight-card{
+    flex:0 0 62%;
+    scroll-snap-align:start;
+    border-radius:16px;
+    overflow:hidden;
+    border:1px solid var(--border-color);
+    background:#fff;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .highlight-image{
+    height:130px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-weight:700;
+    font-size:13px;
+    position:relative;
+  }
+  .highlight-image img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+  }
+  .metals-bg{ background:linear-gradient(135deg,#3a2f1f,#0e0f14); }
+  .indices-bg{ background:linear-gradient(135deg,#7a1f2b,#0e0f14); }
+  .zero-bg{ background:radial-gradient(circle, #1a0000 30%, #000 100%); }
+  .crypto-bg{ background:linear-gradient(135deg,#241f3a,#0e0f14); }
+
+  .highlight-body{
+    padding:15px;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    background:#f5f4f4;
+  }
+  .highlight-body h4{
+    font-size:20px;
+    font-weight:700;
+    margin-bottom:6px;
+  }
+  .highlight-body p{
+    font-size:15px;
+    color:var(--text-muted);
+    line-height:1.4;
+    margin-bottom:12px;
+  }
+
+  .tag-row{
+    display:flex;
+    gap:5px;
+    flex-wrap:wrap;
+    margin-top:auto;
+    padding-top:12px;
+  }
+  .tag{
+    font-size:13px;
+    font-weight:600;
+    background: #e4e4e6;
+    color:var(--text-dark);
+    padding:2px 4px;
+    border-radius:6px;
+    white-space:nowrap;
+  }
+
+  /* ===== BOTTOM NAV ===== */
+  .bottom-nav{
+    position:fixed;
+    bottom:0;
+    left:50%;
+    transform:translateX(-50%);
+    width:100%;
+    max-width:480px;
+    background:#fff;
+    border-top:1px solid #e0e0e0;
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+    padding:10px 0 10px max(8px, env(safe-area-inset-bottom));
+  }
+  .nav-item{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--text-muted);
+  }
+  .nav-item.active{ color:var(--red); }
+  .nav-icon.active{ color:var(--red); }
+  .nav-icon{
+    width:35px;
+    height:35px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+    color:#9a9ca3;
+  }
+  .nav-icon svg{
+    fill:currentColor;
+  }
+
+  /* ===== RESPONSIVE MEDIA QUERIES ===== */
+
+  @media (max-width: 480px){
+    .header{ padding:14px; border-radius:0 0 18px 18px; }
+    .header-text h1{ font-size:16px; }
+    .deposit-btn{ padding:12px 24px; font-size:14px; }
+    .valor-total-amount .balance-amount{ font-size:25px; }
+    .header-illustration{ width:60px; height:60px; }
+    .section{ padding:18px 14px 6px; }
+    .accounts-scroll{ gap:8px; }
+    .account-card, .add-account-card{ flex:0 0 calc(50% - 4px); padding:12px; }
+    .promo-wrapper{ margin:18px 14px 0; }
+    .promo-slide{ padding:16px; }
+    .promo-progress{ margin:12px 14px 4px; }
+    .highlights-scroll{ padding:14px 14px 6px; }
+    .highlight-card{ flex-basis:64%; }
+  }
+
+  @media (max-width: 390px){
+    .header-top{ margin-bottom:16px; }
+    .ask-amy{ font-size:12px; padding:5px 12px; }
+    .header-icons{ gap:12px; }
+    .header-text h1{ font-size:15px; }
+    .progress-bar{ width:60px; }
+    .deposit-btn{ padding:11px 20px; font-size:13px; }
+    .valor-total-label{ font-size:12px; }
+    .valor-total-amount .balance-amount{ font-size:22px; }
+    .valor-total-updated{ font-size:11px; }
+    .header-illustration{ width:52px; height:52px; }
+    .section-title{ font-size:14px; }
+    .account-icon{ width:28px; height:28px; margin-bottom:22px; }
+    .account-name{ font-size:12px; }
+    .account-balance .balance-amount{ font-size:17px; }
+    .account-balance .balance-currency{ font-size:9px; }
+    .add-account-card{ font-size:11px; min-height:88px; }
+    .promo-text h3{ font-size:14px; }
+    .promo-text p{ font-size:11px; max-width:170px; }
+    .promo-text .ai-title{ font-size:13px; max-width:160px; }
+    .promo-logo{ font-size:11px; }
+    .ai-illustration{ width:62px; height:48px; }
+    .ai-chart-card{ width:44px; height:30px; }
+    .ai-coin{ width:22px; height:22px; font-size:11px; }
+    .ai-gold{ width:18px; height:12px; }
+    .explore-grid{ gap:16px 0; }
+    .explore-icon{ width:40px; height:40px; }
+    .explore-label{ font-size:11px; }
+    .highlight-card{ flex-basis:66%; }
+    .highlight-image{ height:110px; }
+    .highlight-body{ padding:12px; }
+    .highlight-body h4{ font-size:14px; }
+    .highlight-body p{ font-size:11px; }
+    .nav-item{ font-size:9px; }
+  }
+
+  @media (max-width: 340px){
+    .header{ padding:12px; }
+    .header-content{ flex-direction:row; align-items:center; }
+    .header-illustration{ width:44px; height:44px; }
+    .account-card, .add-account-card{ padding:10px; }
+    .account-icon{ margin-bottom:18px; }
+    .promo-slide{ padding:14px; gap:8px; flex-direction:column; align-items:flex-start; }
+    .explore-grid{ grid-template-columns:repeat(3, 1fr); gap:14px 0; }
+    .highlight-card{ flex-basis:70%; }
+  }
+
+  @media (max-width: 900px) and (orientation: landscape){
+    .app{ max-width:600px; }
+    .header-illustration{ display:none; }
+  }
+
+  /* ===== PANEL DE CUENTAS (campana) ===== */
+  body.panel-open{
+    overflow:hidden;
+  }
+
+  .notif-panel{
+    position:fixed;
+    top:0;
+    left:100%;
+    width:100%;
+    max-width:580px;
+    height:100vh;
+    height:100dvh;
+    background:var(--bg-white);
+    transform:translate(calc(-50% + 100%), 0);
+    transition:transform 0.32s cubic-bezier(.22,.9,.32,1);
+    z-index:2000;
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+  }
+  .notif-panel.open{
+    transform:translate(-100%, 0);
+  }
+
+  .notif-panel-header{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:18px 16px 14px;
+    border-bottom:1px solid var(--border-color);
+    position:sticky;
+    top:0;
+    background:var(--bg-white);
+    z-index:2;
+    flex-shrink:0;
+  }
+  .notif-back-btn, .notif-more-btn{
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    border:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .notif-back-btn{
+    background:var(--bg-light-gray);
+    color:var(--text-dark);
+    font-size:14px;
+  }
+  .notif-more-btn{
+    background:transparent;
+    color:var(--text-dark);
+    font-size:16px;
+  }
+  .notif-title{
+    font-size:19px;
+    font-weight:700;
+    color:var(--text-dark);
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex:1;
+  }
+  .notif-title i{ font-size:11px; color:var(--text-muted); }
+
+  .notif-body{
+    padding:18px 16px 40px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .balance-manager-card{
+    background:var(--bg-light-gray);
+    border-radius:16px;
+    padding:18px;
+  }
+  .balance-manager-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+    gap:10px;
+  }
+  .balance-manager-name{
+    font-size:15px;
+    font-weight:700;
+    color:var(--text-dark);
+  }
+  .balance-manager-current{
+    font-size:17px;
+    font-weight:700;
+    color:var(--text-dark);
+    white-space:nowrap;
+  }
+  .balance-manager-current small{
+    font-size:11px;
+    font-weight:600;
+    color:var(--text-muted);
+    margin-left:2px;
+  }
+  .balance-input{
+    width:100%;
+    padding:12px 14px;
+    border-radius:10px;
+    border:1px solid var(--border-color);
+    font-size:15px;
+    margin-bottom:10px;
+    background:var(--bg-white);
+    color:var(--text-dark);
+    font-family:inherit;
+  }
+  .balance-input:focus{
+    outline:none;
+    border-color:var(--blue);
+  }
+  .balance-manager-actions{
+    display:flex;
+    gap:8px;
+  }
+  .bal-btn{
+    flex:1;
+    border:none;
+    border-radius:10px;
+    padding:10px 4px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    transition:transform 0.15s ease;
+  }
+  .bal-btn:active{ transform:scale(0.96); }
+  .bal-btn-sub{ background:rgba(255,68,79,0.12); color:var(--red-dark); }
+  .bal-btn-add{ background:rgba(0,208,163,0.16); color:#00967a; }
+  .bal-btn-set{ background:var(--bg-dark); color:#fff; }
+
+  .balance-manager-feedback{
+    font-size:12px;
+    font-weight:600;
+    color:#00967a;
+    margin-top:8px;
+    min-height:14px;
+    opacity:0;
+    transition:opacity 0.2s ease;
+  }
+  .balance-manager-feedback.show{ opacity:1; }
+  .balance-manager-feedback.error{ color:var(--red-dark); }
+
+  @media (max-width: 390px){
+    .notif-title{ font-size:16px; }
+    .balance-manager-card{ padding:14px; }
+    .balance-manager-current{ font-size:15px; }
+    .bal-btn{ font-size:11px; padding:9px 2px; }
+  }
+</style>
+</head>
+<body>
+<script src="assets/js/sim-shared.js"></script>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-top">
+      <div class="avatar">JR</div>
+      <div class="ask-amy">💬 Ayuda</div>
+      <div class="header-icons">
+        <div class="icon-btn" id="eyeToggle"><i class="fa-regular fa-eye" id="eyeIcon"></i></div>
+        <div class="icon-btn" id="bellToggle"><i class="fa-regular fa-bell"></i> <span class="badge">5</span></div>
+      </div>
+    </div>
+    <div class="header-top-spacer"></div>
+    <div class="header-content">
+      <div class="header-text">
+        <div class="valor-total-label">Valor total <i class="fa-solid fa-chevron-right"></i></div>
+        <div class="valor-total-amount">
+          <span class="balance-amount" id="totalValueBalance" data-value="2.98">2.98</span><span class="balance-currency">USD</span>
+          <i class="fa-solid fa-rotate valor-refresh-icon"></i>
+        </div>
+        <div class="valor-total-updated">Actualizado ahora</div>
+      </div>
+      <button class="deposit-btn">+ Fondos virtuales</button>
+    </div>
+  </header>
+
+  <!-- TRADING ACCOUNTS CAROUSEL -->
+  <section class="section">
+    <div class="section-title">Mis cuentas simuladas</div>
+    <div class="accounts-scroll">
+      <div class="account-card">
+        <div class="account-icon icon-tv" style="background:#2e8de0;color:#fff;font-size:16px;">📈</div>
+        <div class="account-name">Gráficos</div>
+        <div class="account-balance"><span class="balance-amount" data-value="0.00">0.00</span><span class="balance-currency">USD (sim)</span></div>
+      </div>
+      <div class="account-card">
+        <div class="account-icon icon-mts" style="background:#00d0a3;color:#fff;font-size:16px;">💹</div>
+        <div class="account-name">CFDs | Estándar</div>
+        <div class="account-balance"><span class="balance-amount" id="mt5TradingBalance" data-value="0.00">0.00</span><span class="balance-currency">USD (sim)</span></div>
+      </div>
+      <div class="account-card">
+        <div class="account-icon icon-options" style="background:#ff444f;color:#fff;font-size:16px;">🎯</div>
+        <div class="account-name">Options</div>
+        <div class="account-balance"><span class="balance-amount" data-value="0.00">0.00</span><span class="balance-currency">USD (sim)</span></div>
+      </div>
+      <div class="add-account-card">
+        <div class="plus-circle">+</div>
+        Agregar cuenta simulada
+      </div>
+    </div>
+  </section>
+
+  <!-- PROMO CAROUSEL (autoplay) -->
+  <div class="promo-wrapper">
+    <div class="promo-track" id="promoTrack">
+      <div class="promo-slide slide-ai">
+        <div class="promo-close">✕</div>
+        <div class="promo-text">
+          <h3 class="ai-title">AI analysis on Gold, BTC, Silver, ETH and more.</h3>
+        </div>
+        <div class="ai-illustration">
+            <img src="assets/img/trade.gif" alt="AI illustration" class="ai-illustration">
+        </div>
+      </div>
+      <div class="promo-slide slide-spacex">
+        <div class="promo-close">✕</div>
+        <div class="promo-text">
+          <h3>SpaceX CFDs</h3>
+          <p>Trade the space giant with competitive leverage.</p>
+        </div>
+        <div class="promo-logo">
+          <img src="assets/img/spaceX.gif" alt="SpaceX Logo">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="promo-progress" id="promoProgress">
+    <div class="promo-dot"><span class="fill"></span></div>
+    <div class="promo-dot"><span class="fill"></span></div>
+  </div>
+
+  <!-- EXPLORE (simulador) -->
+  <section class="section">
+    <div class="section-title">Explorar el simulador</div>
+    <div class="explore-grid">
+      <div class="explore-item">
+        <div class="explore-icon mts-icon" style="font-size:24px;">💹</div>
+        <div class="explore-label link">CFDs | Estándar</div>
+      </div>
+      <div class="explore-item" onclick="window.location.href='options.html'" style="cursor:pointer">
+        <div class="explore-icon options-icon" style="font-size:24px;">🎯</div>
+        <div class="explore-label link-red">Options</div>
+      </div>
+      <div class="explore-item">
+        <div class="explore-icon tv-icon" style="font-size:24px;">📈</div>
+        <div class="explore-label">Gráficos</div>
+      </div>
+      <div class="explore-item">
+        <div class="explore-icon mts-icon" style="font-size:24px;">🔄</div>
+        <div class="explore-label link">Swap-Free</div>
+      </div>
+      <div class="explore-item">
+        <div class="explore-icon p2p-icon" style="font-size:24px;">🤝</div>
+        <div class="explore-label link-red">P2P</div>
+      </div>
+      <div class="explore-item">
+        <div class="explore-icon more-icon" style="font-size:24px;">⋯</div>
+        <div class="explore-label">Más</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HIGHLIGHTS -->
+  <section class="section">
+    <div class="highlights-header">
+      <div class="section-title" style="margin-bottom:0">Highlights</div>
+      <div class="carousel-arrows">
+        <button id="hlPrev">‹</button>
+        <button id="hlNext">›</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="highlights-scroll" id="highlightsScroll">
+    <div class="highlight-card">
+      <div class="highlight-image metals-bg"><img src="assets/img/metals.png" alt=""></div>
+      <div class="highlight-body">
+        <h4>Metals</h4>
+        <p>Key metals. Tight spreads. Up to 1:800 leverage.</p>
+        <div class="tag-row">
+          <span class="tag">MT5</span>
+          <span class="tag">Gold</span>
+          <span class="tag">Silver</span>
+          <span class="tag">Copper</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="highlight-card">
+      <div class="highlight-image indices-bg"><img src="assets/img/us.png" alt="US Indices"></div>
+      <div class="highlight-body">
+        <h4>US Indices</h4>
+        <p>1:400 leverage and record-low spreads on America's top indices.</p>
+        <div class="tag-row">
+          <span class="tag">US Tech 100</span>
+          <span class="tag">US SP 500</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="highlight-card">
+      <div class="highlight-image zero-bg"><img src="assets/img/zero.png" alt="Zero Spread"></div>
+      <div class="highlight-body">
+        <h4>Zero Spread</h4>
+        <p>Keep more of what you earn.</p>
+        <div class="tag-row">
+          <span class="tag">CFDs</span>
+          <span class="tag">From 0 pips</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="highlight-card">
+      <div class="highlight-image crypto-bg"><img src="assets/img/crypto.png" alt="Crypto transfers"></div>
+      <div class="highlight-body">
+        <h4>Crypto transfers</h4>
+        <p>Fast deposits and withdrawals. Low fees.</p>
+        <div class="tag-row">
+          <span class="tag">SOL</span>
+          <span class="tag">ADA</span>
+          <span class="tag">BNB</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <div class="nav-item active">
+      <div class="nav-icon active"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" role="img" viewBox="0 0 32 32"
+        ><path d="M27.21 16.5c0 .703-.585 1.25-1.25 1.25h-1.25l.04 6.25c0 1.406-1.094 2.54-2.5 2.54H9.75a2.49 2.49 0 0 1-2.5-2.5v-6.29H6c-.703 0-1.25-.547-1.25-1.25 0-.352.117-.664.39-.937l10-8.75c.274-.274.587-.313.86-.313s.586.078.82.273l9.961 8.79c.313.273.469.585.43.937"></path><polyline points="9 22 12 17 15 22"></polyline></svg></div>
+      Home
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" role="img" viewBox="0 0 32 32"
+        ><path d="M7.25 8.375v13.75A1.85 1.85 0 0 0 9.125 24h16.25c.313 0 .625.313.625.625a.64.64 0 0 1-.625.625H9.125C7.367 25.25 6 23.883 6 22.125V8.375c0-.312.273-.625.625-.625.313 0 .625.313.625.625m11.25 0v1.915c.703.155 1.25.78 1.25 1.523v3.124c0 .782-.547 1.407-1.25 1.563v1.875a.64.64 0 0 1-.625.625.617.617 0 0 1-.625-.625V16.5c-.742-.156-1.25-.781-1.25-1.562v-3.126c0-.742.508-1.367 1.25-1.523V8.375c0-.312.273-.625.625-.625.313 0 .625.313.625.625M12.875 9c.313 0 .625.313.625.625v1.915c.703.155 1.25.78 1.25 1.523v4.374c0 .782-.547 1.407-1.25 1.563v1.875a.64.64 0 0 1-.625.625.617.617 0 0 1-.625-.625V19c-.742-.156-1.25-.781-1.25-1.562v-4.375c0-.743.508-1.368 1.25-1.524V9.625c0-.312.273-.625.625-.625m5.625 2.813a.336.336 0 0 0-.312-.313h-.625a.31.31 0 0 0-.313.313v3.124c0 .196.117.313.313.313h.625a.31.31 0 0 0 .312-.312zm4.063 3.437a.31.31 0 0 0-.313.313v1.874c0 .196.117.313.313.313h.625a.31.31 0 0 0 .312-.312v-1.875a.336.336 0 0 0-.312-.313zM22.25 14v-1.875c0-.312.273-.625.625-.625.313 0 .625.313.625.625v1.915c.703.155 1.25.78 1.25 1.523v1.874c0 .782-.547 1.407-1.25 1.563v1.875a.64.64 0 0 1-.625.625.617.617 0 0 1-.625-.625V19c-.742-.156-1.25-.781-1.25-1.562v-1.875c0-.743.508-1.368 1.25-1.524zm-9.062-1.25h-.626a.31.31 0 0 0-.312.313v4.374c0 .196.117.313.313.313h.624a.31.31 0 0 0 .313-.312v-4.375a.336.336 0 0 0-.312-.313"></path><polyline points="9 22 12 17 15 22"></polyline></svg></div>
+      CFDs
+    </div>
+    <div class="nav-item" onclick="window.location.href='options.html'" style="cursor:pointer">
+      <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" role="img" viewBox="0 0 32 32"
+        ><path d="M8.852 26.305a2.184 2.184 0 0 1-2.188-2.188v-5.586c0-.742.586-1.367 1.328-1.367h1.016c.781 0 1.406.625 1.406 1.367v1.485l1.172-1.172c.703-.703 1.601-1.094 2.578-1.094h2.734c.743 0 1.368.625 1.368 1.367v.86a1.36 1.36 0 0 1-1.368 1.367H14.79c-.39 0-.82.156-1.094.468l-.742.743h1.485c.742 0 1.367.625 1.367 1.367v1.015c0 .782-.625 1.368-1.367 1.368zm-.86-8.086a.336.336 0 0 0-.312.312v5.586c0 .625.547 1.172 1.172 1.172h5.546a.35.35 0 0 0 .352-.352v-1.015c0-.156-.156-.313-.352-.313h-1.875c-.351 0-.664-.234-.82-.547a.92.92 0 0 1 .195-.937l1.016-1.055a2.77 2.77 0 0 1 1.875-.742h2.07a.31.31 0 0 0 .313-.312v-.86c0-.195-.117-.312-.313-.312h-2.734c-.664 0-1.328.273-1.836.742l-1.445 1.484c-.274.235-.664.313-.977.157a.8.8 0 0 1-.547-.782v-1.914a.336.336 0 0 0-.312-.312zm16.055-1.563H23.03c-.742 0-1.367-.625-1.367-1.406v-1.484l-1.172 1.21c-.703.665-1.601 1.055-2.578 1.055H15.18a1.36 1.36 0 0 1-1.367-1.367v-.86c0-.742.624-1.367 1.367-1.367h2.11c.39 0 .78-.156 1.093-.43l.742-.78h-1.484a1.36 1.36 0 0 1-1.368-1.368V8.844c0-.742.625-1.367 1.368-1.367h5.547c1.21 0 2.226 1.015 2.226 2.226v5.547c0 .781-.625 1.367-1.367 1.367zm-2.188-4.14c.118 0 .235 0 .313.039a.88.88 0 0 1 .547.82v1.914c0 .156.156.313.351.313h1.016a.336.336 0 0 0 .312-.313V9.703c0-.625-.507-1.172-1.171-1.172H17.68a.31.31 0 0 0-.313.313v1.015c0 .196.117.352.313.352h1.875c.351 0 .664.195.82.547.117.312.078.703-.195.937l-1.016 1.016c-.508.508-1.133.781-1.836.781h-2.11c-.195 0-.312.117-.312.313v.86c0 .194.156.312.313.312h2.734c.703 0 1.328-.274 1.836-.743l1.484-1.484a.8.8 0 0 1 .586-.234"></path><polyline points="9 22 12 17 15 22"></polyline></svg></div>
+      Options
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" role="img" viewBox="0 0 32 32"
+        ><path d="M9.125 7.75h15c.313 0 .625.313.625.625a.64.64 0 0 1-.625.625h-15C8.07 9 7.25 9.86 7.25 10.875v11.25A1.85 1.85 0 0 0 9.125 24h13.75c1.016 0 1.875-.82 1.875-1.875v-8.75c0-1.016-.86-1.875-1.875-1.875h-12.5a.617.617 0 0 1-.625-.625c0-.312.273-.625.625-.625h12.5A3.134 3.134 0 0 1 26 13.375v8.75a3.11 3.11 0 0 1-3.125 3.125H9.125C7.367 25.25 6 23.883 6 22.125v-11.25A3.11 3.11 0 0 1 9.125 7.75M21 18.688c-.547 0-.937-.391-.937-.938 0-.508.39-.937.937-.937a.95.95 0 0 1 .938.937c0 .547-.43.938-.938.938"></path><polyline points="9 22 12 17 15 22"></polyline></svg></div>
+      Portfolio
+    </div>
+  </nav>
+
+  <div class="notif-panel" id="notifPanel">
+    <div class="notif-panel-header">
+      <button class="notif-back-btn" id="notifBack" aria-label="Volver"><i class="fa-solid fa-arrow-left"></i></button>
+      <div class="notif-title">Notifications <i class="fa-solid fa-chevron-down"></i></div>
+      <button class="notif-more-btn" aria-label="Más opciones"><i class="fa-solid fa-ellipsis"></i></button>
+    </div>
+    <div class="notif-body">
+      <div class="balance-manager-card">
+        <div class="balance-manager-header">
+          <span class="balance-manager-name">Cuenta Demo</span>
+          <span class="balance-manager-current"><span id="demoCurrentBalance">0.00</span> <small>USD</small></span>
+        </div>
+        <input type="number" inputmode="decimal" min="0" step="0.01" class="balance-input" id="demoAmountInput" placeholder="Monto en USD">
+        <div class="balance-manager-actions">
+          <button class="bal-btn bal-btn-sub" data-account="demo" data-action="restar">− Restar</button>
+          <button class="bal-btn bal-btn-add" data-account="demo" data-action="sumar">+ Sumar</button>
+          <button class="bal-btn bal-btn-set" data-account="demo" data-action="fijar">Fijar</button>
+        </div>
+        <div class="balance-manager-feedback" id="demoFeedback"></div>
+      </div>
+
+      <div class="balance-manager-card">
+        <div class="balance-manager-header">
+          <span class="balance-manager-name">Cuenta Virtual</span>
+          <span class="balance-manager-current"><span id="virtualCurrentBalance">0.00</span> <small>USD (sim)</small></span>
+        </div>
+        <input type="number" inputmode="decimal" min="0" step="0.01" class="balance-input" id="virtualAmountInput" placeholder="Monto virtual">
+        <div class="balance-manager-actions">
+          <button class="bal-btn bal-btn-sub" data-account="virtual" data-action="restar">− Restar</button>
+          <button class="bal-btn bal-btn-add" data-account="virtual" data-action="sumar">+ Sumar</button>
+          <button class="bal-btn bal-btn-set" data-account="virtual" data-action="fijar">Fijar</button>
+        </div>
+        <div class="balance-manager-feedback" id="virtualFeedback"></div>
+        <div style="margin-top:8px; font-size:11px; color:var(--text-muted);">Esta cuenta es 100% simulada. No representa dinero real ni está conectada a ninguna cuenta bancaria o de bróker.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  TradeLabSim.mountDisclaimerBanner();
+
+  // ===== PROMO AUTOPLAY CAROUSEL =====
+  (function(){
+    const track = document.getElementById('promoTrack');
+    const dots = document.querySelectorAll('#promoProgress .promo-dot');
+    let index = 0;
+    const total = dots.length;
+    const duration = 5000;
+
+    function showSlide(i){
+      index = i;
+      track.style.transform = `translateX(-${i * (100 / total)}%)`;
+
+      dots.forEach((dot, idx) => {
+        const fill = dot.querySelector('.fill');
+        dot.classList.remove('active', 'filled');
+
+        if(idx === i){
+          dot.classList.add('active');
+          // start empty, then fill from left to right over 5s
+          fill.style.transition = 'none';
+          fill.style.animation = 'none';
+          fill.style.transform = 'scaleX(0)';
+          void fill.offsetWidth; // force reflow
+          fill.style.animation = 'fillBar 5s linear forwards';
+        } else if(idx < i){
+          // dot ya recorrido: conserva el color de la carga progresiva
+          dot.classList.add('filled');
+          fill.style.animation = 'none';
+          fill.style.transition = 'none';
+          fill.style.transform = 'scaleX(1)';
+        } else {
+          fill.style.animation = 'none';
+          fill.style.transition = 'none';
+          fill.style.transform = 'scaleX(0)';
+        }
+      });
+    }
+
+    showSlide(0);
+
+    setInterval(() => {
+      const next = (index + 1) % total;
+      showSlide(next);
+    }, duration);
+  })();
+
+  // ===== HIGHLIGHTS ARROWS =====
+  (function(){
+    const scroller = document.getElementById('highlightsScroll');
+    const prevBtn = document.getElementById('hlPrev');
+    const nextBtn = document.getElementById('hlNext');
+    const cardWidth = () => scroller.querySelector('.highlight-card').offsetWidth + 12;
+
+    prevBtn.addEventListener('click', () => {
+      scroller.scrollBy({ left: -cardWidth(), behavior: 'smooth' });
+    });
+    nextBtn.addEventListener('click', () => {
+      scroller.scrollBy({ left: cardWidth(), behavior: 'smooth' });
+    });
+  })();
+
+  // ===== HEADER SIEMPRE FIJO =====
+  (function(){
+    const headerTop = document.querySelector('.header-top');
+    const spacer = document.querySelector('.header-top-spacer');
+
+    function updateSpacer(){
+      spacer.style.height = headerTop.offsetHeight + 'px';
+    }
+
+    updateSpacer();
+    window.addEventListener('resize', updateSpacer);
+  })();
+
+  // ===== SALDOS VIRTUALES: ojo + panel de Cuenta Demo / Cuenta Virtual =====
+  // Todo lo que gestiona este bloque es dinero simulado (ver sim-shared.js).
+  (function(){
+    let balancesHidden = false;
+
+    function applyVisibility(){
+      document.querySelectorAll('.balance-amount').forEach(el => {
+        if(el.dataset.value === undefined){ el.dataset.value = el.textContent.trim(); }
+        el.textContent = balancesHidden ? '******' : el.dataset.value;
+      });
+      document.querySelectorAll('.balance-currency').forEach(el => {
+        el.style.display = balancesHidden ? 'none' : '';
+      });
+    }
+
+    function renderBalances(data){
+      const demoEl = document.getElementById('demoCurrentBalance');
+      const virtualEl = document.getElementById('virtualCurrentBalance');
+      const mt5El = document.getElementById('mt5TradingBalance');
+      const totalEl = document.getElementById('totalValueBalance');
+      if(demoEl) demoEl.textContent = TradeLabSim.formatMoney(data.demo);
+      if(virtualEl) virtualEl.textContent = TradeLabSim.formatMoney(data.virtual);
+      if(mt5El) mt5El.dataset.value = TradeLabSim.formatMoney(data.demo);
+      if(totalEl) totalEl.dataset.value = TradeLabSim.formatMoney(data.virtual);
+      applyVisibility();
+    }
+
+    function refreshBalances(){
+      const data = TradeLabSim.loadBalances();
+      renderBalances(data);
+      return data;
+    }
+
+    function showFeedback(account, message, isError){
+      const el = document.getElementById(account + 'Feedback');
+      if(!el) return;
+      el.textContent = message;
+      el.classList.toggle('error', !!isError);
+      el.classList.add('show');
+      clearTimeout(el._fadeTimeout);
+      el._fadeTimeout = setTimeout(() => el.classList.remove('show'), 2200);
+    }
+
+    const eyeBtn = document.getElementById('eyeToggle');
+    const eyeIcon = document.getElementById('eyeIcon');
+    eyeBtn.addEventListener('click', () => {
+      balancesHidden = !balancesHidden;
+      applyVisibility();
+      eyeIcon.classList.toggle('fa-eye', !balancesHidden);
+      eyeIcon.classList.toggle('fa-eye-slash', balancesHidden);
+    });
+
+    const bellBtn = document.getElementById('bellToggle');
+    const panel = document.getElementById('notifPanel');
+    const backBtn = document.getElementById('notifBack');
+
+    bellBtn.addEventListener('click', () => {
+      panel.classList.add('open');
+      document.body.classList.add('panel-open');
+      refreshBalances();
+    });
+
+    backBtn.addEventListener('click', () => {
+      panel.classList.remove('open');
+      document.body.classList.remove('panel-open');
+    });
+
+    document.querySelectorAll('.bal-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const account = btn.dataset.account;
+        const action = btn.dataset.action;
+        const input = document.getElementById(account + 'AmountInput');
+        const result = TradeLabSim.applyAction(account, action, input.value);
+        if(result.ok){
+          renderBalances(result.data);
+          showFeedback(account, 'Guardado ✓ (simulado)', false);
+          input.value = '';
+        } else if(result.reason === 'insufficient'){
+          showFeedback(account, 'Saldo virtual insuficiente', true);
+        } else {
+          showFeedback(account, 'Ingresa un monto válido', true);
+        }
+      });
+    });
+
+    // Mantiene sincronizado si se cambia el saldo desde otra pestaña/página.
+    window.addEventListener('tradelab-sim:balances-updated', () => refreshBalances());
+    window.addEventListener('storage', (e) => { if(e.key === TradeLabSim.STORAGE_KEY) refreshBalances(); });
+
+    refreshBalances();
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>TradeLab Sim — Bot Builder (simulador educativo)</title>
+<style>
+  :root{
+    --bg:#f4f6f8;
+    --white:#ffffff;
+    --border:#e6e9ee;
+    --text:#1f2733;
+    --text-muted:#6b7686;
+    --text-faint:#9aa3b1;
+    --blue:#2e8de0;
+    --amber:#ff9f1a;
+    --red:#ff444f;
+    --red-dark:#e6323d;
+    --teal-run:#17a689;
+    --block:#1c4a58;
+    --block-bar:#265c6d;
+    --pill-bg:#ffffff;
+    --pill-border:#d7dce2;
+    --grid-dot:#dfe4ea;
+    --topbar-h:57px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%; overscroll-behavior:none;}
+  body{
+    background:var(--bg);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    color:var(--text);
+    overflow:hidden;
+    width:100%; height:100%;
+  }
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; border:none; background:none; cursor:pointer; color:inherit;}
+  select{font-family:inherit;}
+  input{font-family:inherit;}
+
+  .app-shell{
+    width:100%; height:100dvh; height:100vh; background:var(--bg);
+    display:flex; flex-direction:column; position:relative; overflow:hidden;
+  }
+
+  /* ---------------- TOPBAR ---------------- */
+  .topbar{
+    display:flex; align-items:center; gap:12px; padding:10px 14px;
+    background:var(--white); border-bottom:1px solid var(--border); position:relative; z-index:10; flex-shrink:0;
+    height:var(--topbar-h);
+  }
+  .avatar{
+    width:34px; height:34px; border-radius:8px; background:var(--red);
+    display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:12px; flex-shrink:0;
+  }
+  .acc-block{flex:1; min-width:0;}
+  .acc-dropdown-btn{
+    display:flex; align-items:center; gap:4px; font-size:13.5px; font-weight:500; color:var(--blue);
+  }
+  .acc-dropdown-btn.demo{color:var(--amber);}
+  .acc-dropdown-btn svg{width:12px; height:12px; transition:transform .2s;}
+  .acc-dropdown-btn.open svg{transform:rotate(180deg);}
+  .balance{font-size:16.5px; font-weight:700; margin-top:1px;}
+  .deposit-btn{
+    background:linear-gradient(180deg,var(--red),var(--red-dark)); color:#fff; font-weight:700; font-size:13.5px;
+    padding:9px 18px; border-radius:100px; flex-shrink:0;
+  }
+  .deposit-btn:active{transform:scale(0.96);}
+
+  /* ---------------- WORKSPACE ---------------- */
+  .workspace{flex:1; display:flex; position:relative; overflow:hidden; min-height:0;}
+
+  .toolbar-left{
+    width:38px; flex-shrink:0; background:var(--white); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; align-items:center; padding:12px 0; gap:14px; overflow:hidden;
+  }
+  .toolbar-left.collapsed{display:none;}
+  .tool-btn{width:22px; height:22px; color:var(--text-muted); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .tool-btn svg{width:18px; height:18px;}
+  .tool-btn:active{color:var(--red); transform:scale(0.9);}
+  .tool-divider{width:20px; height:1px; background:var(--border); margin:2px 0; flex-shrink:0;}
+
+  .canvas-area{flex:1; position:relative; overflow:hidden; min-width:0;}
+
+  .quick-strategy-wrap{
+    position:absolute; top:10px; left:10px; z-index:5;
+    background:#fff; border-radius:14px; padding:10px;
+    box-shadow:0 10px 30px rgba(20,30,45,0.22), 0 2px 8px rgba(20,30,45,0.12);
+  }
+  .quick-strategy-btn{
+    background:var(--red); color:#fff; font-weight:700; font-size:14px;
+    padding:11px 22px; border-radius:8px; box-shadow:0 2px 6px rgba(255,68,79,0.35);
+    display:block;
+  }
+  .quick-strategy-btn:active{transform:scale(0.97);}
+
+  .builder-content{position:absolute; inset:0; z-index:1;}
+
+  .canvas-viewport{
+    position:absolute; inset:0; overflow:hidden; touch-action:none; cursor:grab;
+  }
+  .canvas-viewport.grabbing{cursor:grabbing;}
+  .canvas-pan{
+    position:absolute; left:0; top:0; width:2600px; height:2600px;
+    background-image:radial-gradient(var(--grid-dot) 1.5px, transparent 1.5px);
+    background-size:26px 26px;
+    transform-origin:0 0;
+    will-change:transform;
+  }
+
+  .block{
+    position:absolute; width:280px; background:var(--block); border-radius:8px;
+    box-shadow:0 3px 10px rgba(0,0,0,0.18); overflow:visible; user-select:none;
+  }
+  .block::before{
+    content:''; position:absolute; top:-7px; left:24px; width:22px; height:9px;
+    background:var(--block); border-radius:4px 4px 0 0;
+  }
+  .block-head{
+    display:flex; align-items:center; gap:8px; padding:11px 14px; font-weight:700; font-size:13.5px; color:#fff;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+  }
+  .block-head svg{width:15px; height:15px; flex-shrink:0; opacity:0.85;}
+  .block-body{padding:12px 14px 16px;}
+  .field-row{
+    display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:9px; font-size:12.5px; color:#dce8ec;
+  }
+  .field-row:last-child{margin-bottom:0;}
+  .field-label{flex-shrink:0; margin-right:2px;}
+  .pill-select, .pill-input{
+    background:var(--pill-bg); border:1px solid var(--pill-border); border-radius:6px; color:var(--text);
+    font-size:12px; padding:5px 8px; min-width:0;
+  }
+  .pill-select{padding-right:4px;}
+  .pill-input.num{width:42px; text-align:center;}
+  .field-chevron{color:#cfe0e5; font-size:11px; margin:0 1px;}
+  .check-row{justify-content:space-between;}
+  .checkbox{
+    width:15px; height:15px; border-radius:3px; border:1px solid #9fb8bf; background:#f7fafb;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--block);
+  }
+  .checkbox.checked{background:#fff;}
+  .checkbox svg{width:11px; height:11px; display:none;}
+  .checkbox.checked svg{display:block;}
+
+  .sub-bar{
+    background:var(--block-bar); margin:10px -14px 10px; padding:9px 14px; font-weight:600; font-size:12.5px; color:#fff;
+  }
+  .sub-bar:first-child{margin-top:-12px;}
+  .toggle-mini{
+    background:#fff; border-radius:6px; padding:6px 10px; display:inline-flex; align-items:center; gap:8px; margin-top:-2px;
+  }
+  .toggle-mini .switch{
+    width:30px; height:16px; border-radius:100px; background:#d7dce2; position:relative; transition:background .15s;
+  }
+  .toggle-mini .switch::after{
+    content:''; position:absolute; width:12px; height:12px; border-radius:50%; background:#fff; top:2px; left:2px;
+    transition:left .15s; box-shadow:0 1px 2px rgba(0,0,0,0.3);
+  }
+  .toggle-mini .switch.on{background:var(--teal-run);}
+  .toggle-mini .switch.on::after{left:16px;}
+  .toggle-mini span.txt{font-size:11.5px; color:var(--text-muted);}
+  .empty-slot{
+    width:34px; height:13px; background:#fff; border-radius:0 0 7px 7px; margin:2px 0 0 4px;
+  }
+
+  /* ---------------- DRAWER (Summary view) — slides up smoothly ---------------- */
+  .drawer-view{
+    position:absolute; inset:0; background:var(--white); display:flex; flex-direction:column; overflow:hidden;
+    transform:translateY(100%);
+    transition:transform .32s cubic-bezier(.32,.72,0,1);
+    z-index:6;
+  }
+  .drawer-view.open{transform:translateY(0);}
+
+  .drawer-toprow{
+    display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--border); flex-shrink:0;
+  }
+  .chevron-center-btn{
+    flex:1; display:flex; justify-content:center; color:var(--text-muted); padding:4px 0;
+  }
+  .chevron-center-btn svg{width:18px; height:18px;}
+  .reset-btn{
+    border:1px solid var(--pill-border); border-radius:6px; padding:7px 14px; font-size:12.5px; font-weight:600; color:var(--text);
+  }
+  .reset-btn:active{background:#f2f4f6;}
+
+  .tabs{display:flex; border-bottom:1px solid var(--border); flex-shrink:0;}
+  .tab-btn{
+    flex:1; text-align:center; padding:13px 0; font-size:13.5px; font-weight:600; color:var(--text-muted);
+    border-bottom:2px solid transparent;
+  }
+  .tab-btn.active{color:var(--text); border-color:var(--red);}
+
+  .tab-content{flex:1; overflow-y:auto; min-height:0;}
+  .tab-pane{display:none; height:100%; flex-direction:column;}
+  .tab-pane.active{display:flex;}
+
+  .summary-empty{
+    flex:1; display:flex; align-items:center; justify-content:center; text-align:center;
+    padding:30px 26px; color:var(--text); font-size:13.5px; line-height:1.6;
+  }
+
+  /* transactions table */
+  .tx-toolbar{display:flex; gap:10px; padding:12px 14px;}
+  .tx-btn{border:1px solid var(--pill-border); border-radius:6px; padding:8px 14px; font-size:12.5px; font-weight:600; color:var(--text);}
+  .tx-btn:active{background:#f2f4f6;}
+  .tx-head{
+    display:grid; grid-template-columns:56px 1fr 100px; padding:8px 14px; border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+    font-size:11.5px; color:var(--text-muted); font-weight:600;
+  }
+  .tx-head span:nth-child(2){text-align:center;}
+  .tx-head span:nth-child(3){text-align:right;}
+  .tx-rows{flex:1; overflow-y:auto;}
+  .tx-row{
+    display:grid; grid-template-columns:56px 1fr 100px; align-items:center; padding:14px; border-bottom:1px solid var(--border);
+  }
+  .tx-type-icons{display:flex; gap:4px; align-items:center;}
+  .tx-icon{width:16px; height:16px;}
+  .tx-spots{display:flex; flex-direction:column; gap:5px; align-items:center; font-size:12.5px; color:var(--text);}
+  .tx-spot{display:flex; align-items:center; gap:6px;}
+  .spot-dot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+  .spot-dot.entry{background:var(--red);}
+  .spot-dot.exit{border:1.5px solid var(--text-faint); background:transparent;}
+  .tx-prices{display:flex; flex-direction:column; gap:5px; align-items:flex-end; font-size:12.5px;}
+  .tx-buy{color:var(--text);}
+  .tx-pl.win{color:var(--teal-run); font-weight:600;}
+  .tx-pl.lose{color:var(--red); font-weight:600;}
+
+  .stats-panel{
+    background:#f2f4f6; border-top:1px solid var(--border); padding:16px 20px 18px; flex-shrink:0;
+    display:grid; grid-template-columns:1fr 1fr 1fr; row-gap:16px; position:relative;
+  }
+  .whats-this{position:absolute; top:10px; right:14px; font-size:11px; color:var(--text-faint); text-decoration:underline;}
+  .stat-cell{text-align:center;}
+  .stat-lbl{font-size:11.5px; color:var(--text-muted); margin-bottom:4px;}
+  .stat-val{font-size:14.5px; font-weight:700;}
+  .stat-val.pos{color:var(--teal-run);}
+  .stat-val.neg{color:var(--red);}
+
+  .journal-list{flex:1; overflow-y:auto; padding:6px 14px;}
+  .journal-item{padding:9px 0; border-bottom:1px solid var(--border); font-size:12.5px; color:var(--text-muted); display:flex; gap:8px;}
+  .journal-item .jt{color:var(--text-faint); flex-shrink:0; font-family:'Courier New',monospace;}
+
+  /* ---------------- STATUS BAR ---------------- */
+  .status-bar{background:var(--white); border-top:1px solid var(--border); flex-shrink:0;}
+  .chevron-row{
+    display:flex; justify-content:center; padding:7px 0; color:var(--text-muted);
+    transition:opacity .2s; border-bottom:1px solid var(--border);
+  }
+  .chevron-row svg{width:18px; height:18px;}
+  .run-row{display:flex; align-items:stretch; gap:0; padding:12px 14px 14px;}
+  .run-frame{
+    display:flex; align-items:stretch; flex:1; min-width:0;
+    border:1px solid var(--pill-border); border-radius:8px; overflow:hidden;
+  }
+  .run-btn{
+    background:var(--teal-run); color:#fff; font-weight:700; font-size:14px; padding:11px 18px;
+    display:flex; align-items:center; gap:6px; flex-shrink:0; white-space:nowrap;
+  }
+  .run-btn.running{background:var(--red);}
+  .run-btn:active{transform:scale(0.96);}
+  .run-btn svg{width:13px; height:13px;}
+  .run-status{flex:1; min-width:0; padding:9px 14px; display:flex; flex-direction:column; justify-content:center;}
+  .run-status-text{text-align:center; font-weight:600; font-size:13.5px; margin-bottom:6px;}
+  .progress-track{position:relative; height:6px; background:#e9ecf1; border-radius:3px;}
+  .progress-fill{position:absolute; left:0; top:0; height:100%; width:0%; background:var(--teal-run); border-radius:3px;}
+  .progress-dot{
+    position:absolute; left:50%; top:50%; width:7px; height:7px; background:#333d4d; border-radius:50%;
+    transform:translate(-50%,-50%); z-index:2;
+  }
+
+  /* ---------------- BOTTOM NAV ---------------- */
+  .bottom-nav{
+    display:flex; background:var(--white); border-top:1px solid var(--border); flex-shrink:0;
+    padding-bottom:env(safe-area-inset-bottom,0);
+  }
+  .nav-item{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:9px 0 8px; color:var(--text-faint);
+  }
+  .nav-item svg{width:21px; height:21px;}
+  .nav-item span{font-size:10.5px; font-weight:600;}
+  .nav-item.active{color:var(--red);}
+  .nav-item:active{opacity:0.6;}
+
+  /* ---------------- ACCOUNT SWITCH (bottom sheet) ---------------- */
+  .acc-overlay{
+    position:absolute; top:var(--topbar-h); left:0; right:0; bottom:0; background:rgba(15,20,28,0.4);
+    z-index:40; opacity:0; pointer-events:none; transition:opacity .25s ease;
+  }
+  .acc-overlay.show{opacity:1; pointer-events:auto;}
+
+  .acc-sheet{
+    position:absolute; left:0; right:0; bottom:0; background:#fff; z-index:41;
+    border-radius:16px 16px 0 0; box-shadow:0 -10px 30px rgba(0,0,0,0.2);
+    padding:10px 0 6px; transform:translateY(100%);
+    transition:transform .32s cubic-bezier(.32,.72,0,1);
+  }
+  .acc-sheet.show{transform:translateY(0);}
+  .acc-sheet-handle{width:36px; height:4px; border-radius:3px; background:var(--pill-border); margin:0 auto 10px;}
+  .acc-row{
+    display:flex; flex-direction:column; align-items:flex-start; gap:4px; width:100%;
+    padding:14px 20px; margin:0 10px; width:calc(100% - 20px); border-radius:10px;
+  }
+  .acc-row.active{background:#f2f4f6;}
+  .acc-row-label{font-size:13px; font-weight:500; color:var(--blue);}
+  .acc-row-label.demo{color:var(--amber);}
+  .acc-row-balance{font-size:16px; font-weight:700; color:var(--text);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+  }
+</style>
+</head>
+<body>
+<script src="assets/js/sim-shared.js"></script>
+<script>TradeLabSim.mountDisclaimerBanner();</script>
+
+<div class="app-shell" id="appShell">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="avatar">DB</div>
+    <div class="acc-block">
+      <button class="acc-dropdown-btn" id="accBtn">
+        <span id="accLabel">Cuenta Demo</span>
+        <svg viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="balance" id="balanceText">10,006.76 USD</div>
+    </div>
+    <button class="deposit-btn" id="depositBtn">+ Fondos virtuales</button>
+  </header>
+
+  <!-- WORKSPACE -->
+  <div class="workspace">
+
+    <!-- left tool rail (builder view only) -->
+    <div class="toolbar-left" id="toolbarLeft">
+      <button class="tool-btn" id="toolRefresh" title="Actualizar">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M4 4v5h5M20 20v-5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="tool-btn">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="tool-btn">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 3v5h7V3M7 21v-7h9v7" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="tool-btn">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M8 6a2 2 0 1 0 4 0M4 12h16M14 12a2 2 0 1 0 4 0M4 18h16M9 18a2 2 0 1 0 4 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <div class="tool-divider"></div>
+      <button class="tool-btn">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 7 4 12l5 5M4 12h11a5 5 0 0 1 0 10h-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="tool-btn">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 7l5 5-5 5M20 12H9A5 5 0 0 0 9 22h1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="tool-divider"></div>
+      <button class="tool-btn" id="zoomInBtn">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <button class="tool-btn" id="zoomOutBtn">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M21 21l-4.3-4.3M8 11h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <!-- CANVAS AREA -->
+    <div class="canvas-area">
+
+      <!-- BUILDER VIEW -->
+      <div class="builder-content" id="builderContent">
+        <div class="quick-strategy-wrap">
+          <button class="quick-strategy-btn" id="quickStrategyBtn">Quick strategy</button>
+        </div>
+
+        <div class="canvas-viewport" id="canvasViewport">
+          <div class="canvas-pan" id="canvasPan">
+
+            <div class="block" style="left:70px; top:40px;">
+              <div class="block-head">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="#fff" stroke-width="1.6"/><path d="M9 12h6M9 16h6M9 8h3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
+                1. Trade parameters
+              </div>
+              <div class="block-body">
+                <div class="field-row">
+                  <span class="field-label">Market:</span>
+                  <select class="pill-select" id="marketCat1">
+                    <option>Derived</option>
+                    <option>Forex</option>
+                  </select>
+                  <span class="field-chevron">›</span>
+                  <select class="pill-select" id="marketCat2">
+                    <option>Continuous Indices</option>
+                    <option>Daily Reset Indices</option>
+                  </select>
+                  <span class="field-chevron">›</span>
+                  <select class="pill-select" id="marketSel">
+                    <option>Volatility 100 (1s) Index</option>
+                    <option>Volatility 75 (1s) Index</option>
+                    <option>Volatility 10 Index</option>
+                    <option>Volatility 25 Index</option>
+                    <option>Volatility 50 Index</option>
+                    <option>Volatility 75 Index</option>
+                    <option>Volatility 100 Index</option>
+                    <option>Boom 500 Index</option>
+                    <option>Crash 500 Index</option>
+                    <option>Jump 75 Index</option>
+                  </select>
+                </div>
+
+                <div class="field-row">
+                  <span class="field-label">Trade Type:</span>
+                  <select class="pill-select" id="tradeCat">
+                    <option>Up/Down</option>
+                    <option selected>Digits</option>
+                  </select>
+                  <span class="field-chevron">›</span>
+                  <select class="pill-select" id="tradeTypeSel">
+                    <option>Rise/Fall</option>
+                    <option>Higher/Lower</option>
+                    <option selected>Matches/Differs</option>
+                    <option>Even/Odd</option>
+                    <option>Over/Under</option>
+                  </select>
+                </div>
+
+                <div class="field-row">
+                  <span class="field-label">Contract Type:</span>
+                  <select class="pill-select">
+                    <option>Both</option>
+                    <option>Rise only</option>
+                    <option>Fall only</option>
+                  </select>
+                </div>
+
+                <div class="field-row">
+                  <span class="field-label">Default Candle Interval:</span>
+                  <select class="pill-select">
+                    <option>1 minute</option>
+                    <option>5 minutes</option>
+                    <option>15 minutes</option>
+                    <option>1 hour</option>
+                  </select>
+                </div>
+
+                <div class="field-row check-row">
+                  <span class="field-label">Restart buy/sell on error (disable for better performance):</span>
+                  <div class="checkbox" data-check id="chk1">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M4 12l5 5L20 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </div>
+                </div>
+                <div class="field-row check-row">
+                  <span class="field-label">Restart last trade on error (bot ignores the unsuccessful trade):</span>
+                  <div class="checkbox checked" data-check id="chk2">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M4 12l5 5L20 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </div>
+                </div>
+
+                <div class="sub-bar" style="margin-bottom:0; padding-bottom:14px;">Run once at start:
+                  <div class="empty-slot"></div>
+                </div>
+
+                <div class="sub-bar">Trade options:</div>
+                <div class="field-row" style="margin-top:-2px;">
+                  <span class="field-label">Duration:</span>
+                  <select class="pill-select" id="durationType">
+                    <option>Ticks</option>
+                    <option>Seconds</option>
+                    <option>Minutes</option>
+                  </select>
+                  <input class="pill-input num" type="number" min="1" value="1" id="durationVal">
+                  <span class="field-label">Stake: USD</span>
+                  <input class="pill-input num" type="number" min="0.35" step="0.01" value="1" id="stakeVal">
+                  <span class="field-label">Prediction:</span>
+                  <input class="pill-input num" type="number" min="0" max="9" value="1" id="predictionVal">
+                </div>
+              </div>
+            </div>
+
+            <div class="block" style="left:70px; top:470px;">
+              <div class="block-head">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5L12 3z" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                2. Purchase conditions
+              </div>
+              <div class="block-body">
+                <div class="field-row">
+                  <span class="field-label">Purchase:</span>
+                  <select class="pill-select" id="purchaseSel">
+                    <option selected>Matches</option>
+                    <option>Differs</option>
+                    <option>Rise</option>
+                    <option>Fall</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="block" style="left:400px; top:40px;">
+              <div class="block-head">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 4h16v6H4zM4 14h10v6H4z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                3. Sell conditions
+              </div>
+              <div class="block-body">
+                <div class="field-row">
+                  <span class="field-label">if</span>
+                  <select class="pill-select">
+                    <option>Sell price</option>
+                    <option>Profit</option>
+                  </select>
+                  <select class="pill-select">
+                    <option>&gt;</option>
+                    <option>&lt;</option>
+                    <option>=</option>
+                  </select>
+                  <input class="pill-input num" type="number" value="0">
+                </div>
+              </div>
+            </div>
+
+            <div class="block" style="left:400px; top:230px;">
+              <div class="block-head">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M4 4v5h5M20 20v-5h-5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                4. Restart trade conditions
+              </div>
+              <div class="block-body">
+                <div class="field-row">
+                  <span class="field-label">Trade again if:</span>
+                </div>
+                <div class="toggle-mini">
+                  <div class="switch on"></div>
+                  <span class="txt">On</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- DRAWER / SUMMARY VIEW (slides up) -->
+      <div class="drawer-view" id="drawerView">
+        <div class="drawer-toprow">
+          <button class="chevron-center-btn" id="chevronDownBtn">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="reset-btn" id="resetBtn">Reset</button>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="summary">Summary</button>
+          <button class="tab-btn" data-tab="transactions">Transactions</button>
+          <button class="tab-btn" data-tab="journal">Journal</button>
+        </div>
+
+        <div class="tab-content">
+          <div class="tab-pane active" id="pane-summary">
+            <div class="summary-empty" id="summaryEmpty">
+              When you're ready to trade, hit <strong>Run</strong>. You'll be able to track your bot's performance here.
+            </div>
+          </div>
+
+          <div class="tab-pane" id="pane-transactions">
+            <div class="tx-toolbar">
+              <button class="tx-btn">Download</button>
+              <button class="tx-btn">View Detail</button>
+            </div>
+            <div class="tx-head"><span>Type</span><span>Entry/Exit spot</span><span>Buy price and P/L</span></div>
+            <div class="tx-rows" id="txRows">
+              <div class="summary-empty" style="padding:40px 26px;">No transactions yet.</div>
+            </div>
+          </div>
+
+          <div class="tab-pane" id="pane-journal">
+            <div class="journal-list" id="journalList">
+              <div class="summary-empty" style="padding:40px 26px;">No journal entries yet.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-panel">
+          <a class="whats-this" href="#" id="whatsThisLink">What's this?</a>
+          <div class="stat-cell"><div class="stat-lbl">Total stake</div><div class="stat-val" id="statStake">0.00 USD</div></div>
+          <div class="stat-cell"><div class="stat-lbl">Total payout</div><div class="stat-val" id="statPayout">0.00 USD</div></div>
+          <div class="stat-cell"><div class="stat-lbl">No. of runs</div><div class="stat-val" id="statRuns">0</div></div>
+          <div class="stat-cell"><div class="stat-lbl">Contracts lost</div><div class="stat-val" id="statLost">0</div></div>
+          <div class="stat-cell"><div class="stat-lbl">Contracts won</div><div class="stat-val" id="statWon">0</div></div>
+          <div class="stat-cell"><div class="stat-lbl">Total profit/loss</div><div class="stat-val" id="statPL">0.00 USD</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <div class="chevron-row" id="chevronUpRow">
+      <button id="chevronUpBtn">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="run-row">
+      <div class="run-frame">
+        <button class="run-btn" id="runBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8V4z"/></svg>
+          <span id="runBtnText">Run</span>
+        </button>
+        <div class="run-status">
+          <div class="run-status-text" id="runStatusText">Bot is not running</div>
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div><div class="progress-dot"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <a class="nav-item" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1v-9z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <span>Home</span>
+    </a>
+    <button class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="4" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="4" y="13" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/></svg>
+      <span>Dashboard</span>
+    </button>
+    <button class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="9" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M12 9V5M9 5h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="14" r="1.2" fill="currentColor"/><circle cx="15" cy="14" r="1.2" fill="currentColor"/></svg>
+      <span>Bot builder</span>
+    </button>
+    <a class="nav-item" href="chart.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Chart</span>
+    </a>
+    <button class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>Menu</span>
+    </button>
+  </nav>
+
+  <!-- ACCOUNT SWITCH BOTTOM SHEET -->
+  <div class="acc-overlay" id="accOverlay"></div>
+  <div class="acc-sheet" id="accSheet">
+    <div class="acc-sheet-handle"></div>
+    <button class="acc-row active" id="accRowDemo" data-acc="Cuenta Demo" data-bal="10,006.76 USD">
+      <span class="acc-row-label demo">Cuenta Demo</span>
+      <span class="acc-row-balance">10,006.76 USD</span>
+    </button>
+    <button class="acc-row" id="accRowReal" data-acc="Cuenta Virtual" data-bal="0.00 USD">
+      <span class="acc-row-label">Cuenta Virtual</span>
+      <span class="acc-row-balance">0.00 USD</span>
+    </button>
+  </div>
+
+</div>
+
+<script>
+(function(){
+
+  /* ---------- account switcher (bottom sheet) ---------- */
+  const accBtn = document.getElementById('accBtn');
+  const accLabel = document.getElementById('accLabel');
+  const balanceText = document.getElementById('balanceText');
+  const accOverlay = document.getElementById('accOverlay');
+  const accSheet = document.getElementById('accSheet');
+  const accRowDemo = document.getElementById('accRowDemo');
+  const accRowReal = document.getElementById('accRowReal');
+
+  function openAccSheet(){
+    accOverlay.classList.add('show');
+    accSheet.classList.add('show');
+    accBtn.classList.add('open');
+  }
+  function closeAccSheet(){
+    accOverlay.classList.remove('show');
+    accSheet.classList.remove('show');
+    accBtn.classList.remove('open');
+  }
+  accBtn.addEventListener('click', ()=>{
+    if(accSheet.classList.contains('show')) closeAccSheet(); else openAccSheet();
+  });
+  accOverlay.addEventListener('click', closeAccSheet);
+
+  function selectAccount(row){
+    accRowDemo.classList.remove('active');
+    accRowReal.classList.remove('active');
+    row.classList.add('active');
+    const isDemo = row === accRowDemo;
+    accLabel.textContent = row.getAttribute('data-acc');
+    balanceText.textContent = row.getAttribute('data-bal');
+    accBtn.classList.toggle('demo', isDemo);
+    closeAccSheet();
+  }
+  accRowDemo.addEventListener('click', ()=> selectAccount(accRowDemo));
+  accRowReal.addEventListener('click', ()=> selectAccount(accRowReal));
+
+  document.getElementById('depositBtn').addEventListener('click', ()=>{});
+
+  /* ---------- saldo virtual compartido (TradeLabSim) ---------- */
+  function syncSimBalances(){
+    const data = TradeLabSim.loadBalances();
+    const demoBal = TradeLabSim.formatMoney(data.demo) + ' USD';
+    const virtualBal = TradeLabSim.formatMoney(data.virtual) + ' USD';
+    accRowDemo.setAttribute('data-bal', demoBal);
+    accRowReal.setAttribute('data-bal', virtualBal);
+    accRowDemo.querySelector('.acc-row-balance').textContent = demoBal;
+    accRowReal.querySelector('.acc-row-balance').textContent = virtualBal;
+    const activeRow = accRowDemo.classList.contains('active') ? accRowDemo : accRowReal;
+    balanceText.textContent = activeRow.getAttribute('data-bal');
+  }
+  window.addEventListener('tradelab-sim:balances-updated', syncSimBalances);
+  window.addEventListener('storage', (e) => { if(e.key === TradeLabSim.STORAGE_KEY) syncSimBalances(); });
+  syncSimBalances();
+
+  /* ---------- checkboxes ---------- */
+  document.querySelectorAll('[data-check]').forEach(cb=>{
+    cb.addEventListener('click', ()=> cb.classList.toggle('checked'));
+  });
+
+  /* ---------- canvas pan + zoom (Quick strategy board) ---------- */
+  const viewport = document.getElementById('canvasViewport');
+  const pan = document.getElementById('canvasPan');
+  let tx = -20, ty = -10, scale = 1;
+  let dragging = false, startX = 0, startY = 0, startTx = 0, startTy = 0;
+
+  function applyTransform(smooth){
+    pan.style.transition = smooth ? 'transform .35s ease' : 'none';
+    pan.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  }
+  applyTransform(false);
+
+  function isInteractive(target){
+    return !!target.closest('select, input, button, .checkbox, .toggle-mini');
+  }
+
+  viewport.addEventListener('pointerdown', (e)=>{
+    if(isInteractive(e.target)) return;
+    dragging = true;
+    viewport.classList.add('grabbing');
+    startX = e.clientX; startY = e.clientY;
+    startTx = tx; startTy = ty;
+    viewport.setPointerCapture(e.pointerId);
+  });
+  viewport.addEventListener('pointermove', (e)=>{
+    if(!dragging) return;
+    tx = startTx + (e.clientX - startX);
+    ty = startTy + (e.clientY - startY);
+    applyTransform(false);
+  });
+  function endDrag(){
+    dragging = false;
+    viewport.classList.remove('grabbing');
+  }
+  viewport.addEventListener('pointerup', endDrag);
+  viewport.addEventListener('pointercancel', endDrag);
+
+  viewport.addEventListener('wheel', (e)=>{
+    e.preventDefault();
+    const rect = viewport.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+    const newScale = Math.min(1.8, Math.max(0.5, +(scale * zoomFactor).toFixed(3)));
+    tx = mouseX - (mouseX - tx) * (newScale / scale);
+    ty = mouseY - (mouseY - ty) * (newScale / scale);
+    scale = newScale;
+    applyTransform(false);
+  }, { passive:false });
+
+  document.getElementById('zoomInBtn').addEventListener('click', ()=>{
+    scale = Math.min(1.6, +(scale + 0.15).toFixed(2));
+    applyTransform(true);
+  });
+  document.getElementById('zoomOutBtn').addEventListener('click', ()=>{
+    scale = Math.max(0.5, +(scale - 0.15).toFixed(2));
+    applyTransform(true);
+  });
+  document.getElementById('toolRefresh').addEventListener('click', ()=>{
+    tx = -20; ty = -10; scale = 1;
+    applyTransform(true);
+  });
+  document.getElementById('quickStrategyBtn').addEventListener('click', ()=>{
+    tx = -20; ty = -10; scale = 1;
+    applyTransform(true);
+  });
+
+  /* ---------- view toggle: builder <-> summary drawer (smooth slide) ---------- */
+  const toolbarLeft = document.getElementById('toolbarLeft');
+  const drawerView = document.getElementById('drawerView');
+  const chevronUpRow = document.getElementById('chevronUpRow');
+
+  function showDrawer(){
+    drawerView.classList.add('open');
+    toolbarLeft.classList.add('collapsed');
+    chevronUpRow.style.opacity = '0';
+    chevronUpRow.style.pointerEvents = 'none';
+  }
+  function showBuilder(){
+    drawerView.classList.remove('open');
+    toolbarLeft.classList.remove('collapsed');
+    chevronUpRow.style.opacity = '';
+    chevronUpRow.style.pointerEvents = '';
+  }
+  document.getElementById('chevronUpBtn').addEventListener('click', showDrawer);
+  document.getElementById('chevronDownBtn').addEventListener('click', showBuilder);
+
+  /* ---------- tabs ---------- */
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('pane-' + btn.getAttribute('data-tab')).classList.add('active');
+    });
+  });
+
+  /* ---------- state + stats ---------- */
+  const state = { stake:0, payout:0, runs:0, lost:0, won:0, pl:0 };
+  const statStake = document.getElementById('statStake');
+  const statPayout = document.getElementById('statPayout');
+  const statRuns = document.getElementById('statRuns');
+  const statLost = document.getElementById('statLost');
+  const statWon = document.getElementById('statWon');
+  const statPL = document.getElementById('statPL');
+  const txRows = document.getElementById('txRows');
+  const journalList = document.getElementById('journalList');
+
+  function fmt(n){ return n.toFixed(2); }
+
+  function renderStats(){
+    statStake.textContent = fmt(state.stake) + ' USD';
+    statPayout.textContent = fmt(state.payout) + ' USD';
+    statRuns.textContent = state.runs;
+    statLost.textContent = state.lost;
+    statWon.textContent = state.won;
+    statPL.textContent = (state.pl>=0?'':'-') + fmt(Math.abs(state.pl)) + ' USD';
+    statPL.className = 'stat-val ' + (state.pl > 0 ? 'pos' : (state.pl < 0 ? 'neg' : ''));
+  }
+
+  function resetAll(){
+    state.stake=0; state.payout=0; state.runs=0; state.lost=0; state.won=0; state.pl=0;
+    renderStats();
+    txRows.innerHTML = '<div class="summary-empty" style="padding:40px 26px;">No transactions yet.</div>';
+    journalList.innerHTML = '<div class="summary-empty" style="padding:40px 26px;">No journal entries yet.</div>';
+  }
+  document.getElementById('resetBtn').addEventListener('click', resetAll);
+
+  function addJournal(text){
+    if(journalList.querySelector('.summary-empty')) journalList.innerHTML = '';
+    const time = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    const row = document.createElement('div');
+    row.className = 'journal-item';
+    row.innerHTML = `<span class="jt">${time}</span><span>${text}</span>`;
+    journalList.prepend(row);
+  }
+
+  function addTransactionRow(win, entrySpot, exitSpot, stake, profit){
+    if(txRows.querySelector('.summary-empty')) txRows.innerHTML = '';
+    const html = `
+      <div class="tx-row">
+        <div class="tx-type-icons">
+          <svg class="tx-icon" viewBox="0 0 24 24" fill="none"><path d="M4 18l4-9 4 5 4-11 4 8" stroke="#17a689" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg class="tx-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20" stroke="#ff444f" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="tx-spots">
+          <span class="tx-spot"><span class="spot-dot entry"></span>${entrySpot.toFixed(2)}</span>
+          <span class="tx-spot"><span class="spot-dot exit"></span>${exitSpot.toFixed(2)}</span>
+        </div>
+        <div class="tx-prices">
+          <span class="tx-buy">${fmt(stake)} USD</span>
+          <span class="tx-pl ${win?'win':'lose'}">${profit>=0?'+':''}${fmt(profit)} USD</span>
+        </div>
+      </div>`;
+    txRows.insertAdjacentHTML('afterbegin', html);
+  }
+
+  /* ---------- run simulation: 80% win / 20% lose ---------- */
+  const runBtn = document.getElementById('runBtn');
+  const runBtnText = document.getElementById('runBtnText');
+  const runStatusText = document.getElementById('runStatusText');
+  const progressFill = document.getElementById('progressFill');
+
+  let running = false;
+  let tradeTimeout = null;
+  let lastSpot = 723.64;
+
+  function currentMarket(){ return document.getElementById('marketSel').value; }
+  function currentStake(){
+    const v = parseFloat(document.getElementById('stakeVal').value);
+    return isNaN(v) || v <= 0 ? 1 : v;
+  }
+  function currentDuration(){
+    const v = document.getElementById('durationVal').value;
+    const t = document.getElementById('durationType').value;
+    return `${v} ${t}`;
+  }
+
+  const PAYOUT_MULTIPLIER = 1.95;
+
+  function setFill(pct, durationMs){
+    progressFill.style.transition = durationMs ? `width ${durationMs}ms linear` : 'none';
+    progressFill.style.width = pct + '%';
+  }
+
+  function runOneTrade(){
+    if(!running) return;
+    const market = currentMarket();
+    const stake = currentStake();
+    const purchase = document.getElementById('purchaseSel').value;
+
+    runStatusText.textContent = 'Bot is running · analizando ' + market;
+    addJournal(`Compra: ${purchase} en ${market} · duración ${currentDuration()} · stake ${fmt(stake)} USD`);
+
+    setFill(0, 0);
+    // fill from 0 to the midpoint (where the dot sits) — quick
+    requestAnimationFrame(()=> setFill(50, 250));
+
+    tradeTimeout = setTimeout(()=>{
+      if(!running) return;
+      // pause at the midpoint dot for 3 seconds
+      const pauseMs = 3000;
+      tradeTimeout = setTimeout(()=>{
+        if(!running) return;
+        // continue filling from the midpoint to the end — quick
+        setFill(100, 250);
+
+        tradeTimeout = setTimeout(()=>{
+          if(!running) return;
+
+          const win = Math.random() < 0.8;
+          const payout = win ? +(stake * PAYOUT_MULTIPLIER).toFixed(2) : 0;
+          const profit = +(payout - stake).toFixed(2);
+
+          const dir = purchase === 'Rise' ? 1 : -1;
+          const sign = win ? dir : -dir;
+          const entrySpot = lastSpot;
+          const exitSpot = +(entrySpot + sign * (Math.random()*0.15 + 0.02)).toFixed(2);
+          lastSpot = exitSpot;
+
+          state.stake += stake;
+          state.payout += payout;
+          state.runs += 1;
+          if(win) state.won += 1; else state.lost += 1;
+          state.pl = +(state.pl + profit).toFixed(2);
+          renderStats();
+
+          addTransactionRow(win, entrySpot, exitSpot, stake, profit);
+          addJournal(win
+            ? `Contrato vendido · resultado GANADO · payout ${fmt(payout)} USD`
+            : `Contrato vendido · resultado PERDIDO · payout 0.00 USD`);
+
+          runStatusText.textContent = win ? 'Bot is running · último resultado: ganado' : 'Bot is running · último resultado: perdido';
+
+          setFill(0, 0);
+          tradeTimeout = setTimeout(runOneTrade, 700);
+        }, 250);
+      }, pauseMs);
+    }, 250);
+  }
+
+  function startRun(){
+    running = true;
+    runBtn.classList.add('running');
+    runBtnText.textContent = 'Stop';
+    runBtn.querySelector('svg').innerHTML = '<rect x="5" y="5" width="14" height="14" rx="2"/>';
+    runStatusText.textContent = 'Bot is running';
+    runOneTrade();
+  }
+  function stopRun(){
+    running = false;
+    clearTimeout(tradeTimeout);
+    runBtn.classList.remove('running');
+    runBtnText.textContent = 'Run';
+    runBtn.querySelector('svg').innerHTML = '<path d="M6 4l14 8-14 8V4z"/>';
+    runStatusText.textContent = 'Bot is not running';
+    setFill(0, 0);
+  }
+  runBtn.addEventListener('click', ()=>{
+    if(running) stopRun(); else startRun();
+  });
+
+  renderStats();
+})();
+</script>
+
+</body>
+</html>

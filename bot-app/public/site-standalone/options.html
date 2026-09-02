@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TradeLab Sim — Options (simulador)</title>
+<style>
+  :root{
+    --bg: #181c25;
+    --card: #1c1c1c;
+    --text: #ffffff;
+    --text-dim: #9b9b9b;
+    --red: #ff444f;
+    --green: #4bd0a0;
+    --pink-loss: #ff4d6d;
+    --yellow: #ffd23f;
+    --border: #2a2a2a;
+    --sat: env(safe-area-inset-top);
+    --sab: env(safe-area-inset-bottom);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{ height:100%; width:100%; background:#ffffff; }
+  body{
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color:#14161a;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{
+    width:100%;
+    min-height:100dvh;
+    max-width:600px;
+    margin:0 auto;
+    background:#ffffff;
+    position:relative;
+    padding-bottom: calc(70px + var(--sab));
+  }
+
+  /* ---- Dark header card ---- */
+  .header-dark{
+    background:var(--bg);
+    color:var(--text);
+    border-bottom-left-radius:28px;
+    border-bottom-right-radius:28px;
+    padding-bottom:14px;
+    position:relative;
+    z-index:2;
+    box-shadow:0 8px 24px rgba(0,0,0,0.12);
+  }
+
+  /* ---- Top toggle ---- */
+  .topbar{
+    display:flex; justify-content:center; align-items:center; gap:6px;
+    padding:calc(16px + var(--sat)) 16px 10px; position:relative;
+  }
+  .toggle{ background:#fdfdfd0a; border-radius:20px; display:flex; padding:3px; width:180px; }
+  .toggle button{ flex:1; border:none; background:transparent; color:var(--text-dim); font-size:13px; font-weight:600; padding:7px 0; border-radius:16px; }
+  .toggle button.active{ background:#fcfcfc23; color:#fff; }
+  .icon-btn{ position:absolute; right:16px; top:calc(16px + var(--sat)); display:flex; align-items:center; gap:14px; color:#e6e6e6; }
+  .icon-btn .bell-wrap{ position:relative; display:flex; }
+  .icon-btn .badge-count{
+    position:absolute; top:-6px; right:-7px;
+    background:var(--red); color:#fff;
+    font-size:9px; font-weight:700;
+    min-width:15px; height:15px; border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    border:1.5px solid var(--bg);
+    padding:0 2px;
+  }
+
+  /* ---- Balance ---- */
+  .balance{ padding: 10px 20px 18px; }
+  .balance-label{ color:var(--text-dim); font-size:12.5px; display:flex; align-items:center; gap:6px; }
+  .balance-amount{ font-size:24px; font-weight:700; margin-top:4px; letter-spacing:0.2px; display:flex; align-items:center; gap:8px; }
+  .balance-amount .refresh-ic{ color:var(--text-dim); font-size:16px; font-weight:400; }
+  .updated{ color:var(--text-dim); font-size:12px; margin-top:4px; }
+
+  .actions{ display:flex; gap:200px; padding:10px 20px 4px; justify-content:center; }
+  .action{ display:flex; flex-direction:column; align-items:center; gap:8px; font-size:12.5px; color:#e2e2e2; font-weight:500; }
+  .action .circle{ width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+  .action.trade .circle{ background:var(--red); color:#fff; font-size:19px; }
+  .action.transfer .circle{ background:transparent; border:1.5px solid #4a4a4a; color:#fff; font-size:17px; }
+
+  /* ---- Section headers ---- */
+  .section{ padding: 20px 16px 4px; }
+  .section-title{ font-size:15px; font-weight:700; margin-bottom:12px; color:#14161a; }
+  .section-title.gold{ color:#000000; }
+  .view-all{ color:#c78a00; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px; }
+
+  /* ---- Market cards grid ---- */
+  .market-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; padding: 0 16px 6px; }
+  .market-card{ background:rgb(242, 241, 241); border-radius:14px; padding:12px 12px 10px; min-height:112px; display:flex; flex-direction:column; justify-content:space-between; }
+  .market-card.viewall-card{ display:flex; align-items:center; justify-content:center; gap:6px; color:var(--yellow); font-weight:600; font-size:13px; }
+  .market-icon-row{ display:flex; align-items:center; gap:6px; margin-bottom:2px; }
+  .badge{ width:16px;height:16px; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; font-size:8px; color:#fff; font-weight:800; }
+  .badge.blue{ background:linear-gradient(135deg,#4ba3ff,#1c5fd6); }
+  .badge.purple{ background:linear-gradient(135deg,#b06bff,#6a2fc9); }
+  .mini-bars{ display:flex; align-items:flex-end; gap:2px; height:12px; }
+  .mini-bars span{ width:2.5px; background:#4ba3ff; border-radius:1px; display:block; }
+  .market-name{ font-size:12px; color:#d6d6d6; margin-bottom:4px; }
+  .market-price{ font-size:16px; font-weight:700; margin-bottom:2px; font-variant-numeric: tabular-nums; }
+  .sparkline{ height:28px; margin: 2px 0 2px; width:100%; display:block; }
+  .market-change{ font-size:11px; font-weight:600; }
+  .market-change.down{ color:var(--pink-loss); }
+  .market-change.up{ color:var(--green); }
+  .market-change .tf{ color:var(--text-dim); font-weight:400; margin-left:2px;}
+
+  /* ---- Featured banner ---- */
+  .featured-card{ margin:6px 16px 4px; background:linear-gradient(180deg,#151515,#0a0a0a); border-radius:16px; overflow:hidden; border:1px solid #1f1f1f; }
+  .featured-visual{ height:150px; background:radial-gradient(circle at 60% 40%, #2a2a2a, #000 70%); position:relative; display:flex; align-items:center; justify-content:center; }
+  .coin{ width:70px;height:70px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fdfdfd, #b9b9b9 60%, #8f8f8f); box-shadow:0 8px 20px rgba(0,0,0,0.6); position:absolute; }
+  .coin.c1{ left:130px; top:38px; }
+  .coin.c2{ left:170px; top:62px; width:60px; height:60px; }
+  .arrow{ position:absolute; font-weight:800; font-size:20px; }
+  .arrow.up{ color:var(--green); left:150px; top:14px; }
+  .arrow.down{ color:var(--red); left:200px; top:88px; }
+  .progress-line{ position:absolute; top:0; left:0; right:0; height:2px; background:#333; }
+  .progress-line::after{ content:""; display:block; width:35%; height:100%; background:#666; }
+  .featured-body{ padding:14px 16px 16px; }
+  .featured-title{ font-size:16px; font-weight:700; margin-bottom:4px; }
+  .featured-desc{ font-size:12px; color:var(--text-dim); line-height:1.4; margin-bottom:12px; }
+  .featured-footer{ display:flex; align-items:center; justify-content:space-between; }
+  .featured-meta{ font-size:11px; color:var(--text-dim); }
+  .trade-now-btn{ background:transparent; border:1px solid #444; color:#fff; font-size:13px; font-weight:600; padding:8px 18px; border-radius:22px; }
+  .dots{ display:flex; justify-content:center; gap:5px; margin:10px 0 4px; }
+  .dots span{ width:6px;height:6px; border-radius:50%; background:#333; }
+  .dots span.active{ background:var(--yellow); width:14px; border-radius:3px; }
+
+  /* ---- Platforms ---- */
+  .platform-card{ display:flex; align-items:center; gap:12px; background:var(--card); border-radius:14px; padding:14px; margin-bottom:10px; }
+  .platform-logo{ width:44px;height:44px; border-radius:12px; background:var(--red); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex-shrink:0; }
+  .platform-logo.db{ background:#e6303f; }
+  .platform-logo.st{ background:#2b2f77; }
+  .platform-name{ font-size:14px; font-weight:700; margin-bottom:2px; }
+  .platform-desc{ font-size:12px; color:var(--text-dim); line-height:1.35; }
+
+  /* ---- Trade types ---- */
+  .pill-row{ display:flex; gap:8px; padding: 4px 16px 14px; overflow-x:auto; scrollbar-width:none;}
+  .pill-row::-webkit-scrollbar{ display:none; }
+  .pill{ background:var(--card); border-radius:20px; padding:8px 16px; font-size:13px; color:var(--text-dim); font-weight:600; flex-shrink:0; }
+  .pill.active{ background:#fff; color:#000; }
+  .trade-type-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; padding:0 16px 20px; }
+  .trade-type{ background:var(--card); border-radius:14px; aspect-ratio:1/0.95; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; font-size:11.5px; color:#e2e2e2; text-align:center; padding:8px; }
+  .tt-icon{ font-size:20px; line-height:1; }
+  .tt-icon.red{ color:var(--red); }
+  .tt-icon.green{ color:var(--green); }
+  .tt-icon.mixed span:first-child{ color:var(--green); }
+  .tt-icon.mixed span:last-child{ color:var(--red); }
+
+  /* ---- Bottom nav ---- */
+  .bottom-nav{ position:fixed; bottom:0; left:0; right:0; background:#0e0e0e; border-top:1px solid #1f1f1f; display:flex; justify-content:space-around; padding:10px 0 calc(10px + var(--sab)); max-width:600px; margin:0 auto; }
+  .nav-item{ display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10.5px; color:#8a8a8a; }
+  .nav-item.active{ color:var(--red); }
+  .nav-icon{ font-size:18px; }
+
+  .conn-indicator{ position:absolute; left:14px; top:calc(18px + var(--sat)); font-size:10px; color:var(--text-dim); display:flex; align-items:center; gap:5px; }
+  .conn-dot{ width:6px; height:6px; border-radius:50%; background:#555; }
+  .conn-dot.live{ background:var(--green); box-shadow:0 0 5px var(--green); }
+
+  svg{ display:block; }
+</style>
+</head>
+<body>
+<script src="assets/js/sim-shared.js"></script>
+<script>TradeLabSim.mountDisclaimerBanner();</script>
+<div class="app">
+
+  <div class="header-dark">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="toggle">
+        <button class="active">Virtual</button>
+        <button>Demo</button>
+      </div>
+      <div class="icon-btn">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <div class="bell-wrap">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span class="badge-count">6</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Balance -->
+    <div class="balance">
+      <div class="balance-label">Saldo virtual total</div>
+      <div class="balance-amount"><span id="optTotalBalance">0.00</span> USD (sim) <span class="refresh-ic">&#8635;</span></div>
+      <div class="updated" id="updatedTxt">Updated just now</div>
+    </div>
+
+    <div class="actions">
+      <div class="action trade">
+        <div class="circle">
+          <svg width="20" height="20" viewBox="0 5 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1.5 8.25v16.5A2.22 2.22 0 0 0 3.75 27h19.5c.375 0 .75.375.75.75 0 .422-.375.75-.75.75H3.75C1.64 28.5 0 26.86 0 24.75V8.25c0-.375.328-.75.75-.75.375 0 .75.375.75.75m13.5 0v2.297c.844.187 1.5.937 1.5 1.828v3.75c0 .938-.656 1.688-1.5 1.875v2.25c0 .422-.375.75-.75.75a.74.74 0 0 1-.75-.75V18c-.89-.187-1.5-.937-1.5-1.875v-3.75c0-.89.61-1.64 1.5-1.828V8.25c0-.375.328-.75.75-.75.375 0 .75.375.75.75M8.25 9c.375 0 .75.375.75.75v2.297c.844.187 1.5.937 1.5 1.828v5.25c0 .938-.656 1.688-1.5 1.875v2.25c0 .422-.375.75-.75.75a.74.74 0 0 1-.75-.75V21c-.89-.187-1.5-.937-1.5-1.875v-5.25c0-.89.61-1.64 1.5-1.828V9.75c0-.375.328-.75.75-.75M15 12.375a.4.4 0 0 0-.375-.375h-.75a.37.37 0 0 0-.375.375v3.75c0 .234.14.375.375.375h.75a.37.37 0 0 0 .375-.375zm4.875 4.125a.37.37 0 0 0-.375.375v2.25c0 .234.14.375.375.375h.75a.37.37 0 0 0 .375-.375v-2.25a.4.4 0 0 0-.375-.375zM19.5 15v-2.25c0-.375.328-.75.75-.75.375 0 .75.375.75.75v2.297c.844.187 1.5.937 1.5 1.828v2.25c0 .938-.656 1.688-1.5 1.875v2.25c0 .422-.375.75-.75.75a.74.74 0 0 1-.75-.75V21c-.89-.187-1.5-.937-1.5-1.875v-2.25c0-.89.61-1.64 1.5-1.828zM8.625 13.5h-.75a.37.37 0 0 0-.375.375v5.25c0 .234.14.375.375.375h.75A.37.37 0 0 0 9 19.125v-5.25a.4.4 0 0 0-.375-.375"/></svg>
+        </div>
+        <span>Trade</span>
+      </div>
+      <div class="action transfer">
+        <div class="circle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 8h13M17 4l3 4-3 4M17 16H4M7 20l-3-4 3-4"/></svg>
+        </div>
+        <span>Transfer</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Most traded markets -->
+  <div class="section">
+    <div class="section-title gold">Most traded markets</div>
+  </div>
+  <div class="market-grid" id="marketGrid"></div>
+
+  <!-- Featured -->
+  <div class="section" style="padding-bottom:0;">
+    <div class="section-title">Featured</div>
+  </div>
+  <div class="featured-card">
+    <div class="featured-visual">
+      <div class="progress-line"></div>
+      <div class="arrow up">&#8599;</div>
+      <div class="coin c1"></div>
+      <div class="coin c2"></div>
+      <div class="arrow down">&#8600;</div>
+    </div>
+    <div class="featured-body">
+      <div class="featured-title">Rise / Fall</div>
+      <div class="featured-desc">Predict whether the market price will rise or fall by the end of your contract.</div>
+      <div class="featured-footer">
+        <div class="featured-meta">100+ markets &nbsp;|&nbsp; From 1 USD</div>
+        <button class="trade-now-btn">Trade now</button>
+      </div>
+    </div>
+  </div>
+  <div class="dots"><span class="active"></span><span></span></div>
+
+  <!-- Platforms -->
+  <div class="section">
+    <div class="section-title">Platforms</div>
+
+    <div class="platform-card">
+      <div class="platform-logo">TP</div>
+      <div>
+        <div class="platform-name">Trader Panel</div>
+        <div class="platform-desc">Simulador de opciones sobre 100+ mercados. Fondos virtuales.</div>
+      </div>
+    </div>
+
+    <div class="platform-card" id="botBuilderCard" onclick="window.location.href='bot_builder.html'" style="cursor:pointer">
+      <div class="platform-logo db">BB</div>
+      <div>
+        <div class="platform-name">Bot Builder <span style="font-size:10px;font-weight:600;color:#ffd23f;">· Simulador</span></div>
+        <div class="platform-desc">Crea y ejecuta bots automatizados sobre una cuenta demo virtual, sin código.</div>
+        <div style="margin-top:6px;">
+          <a href="../bot-app/dist/index.html" style="font-size:11px;color:#8aa6ff;text-decoration:underline;" onclick="event.stopPropagation();">Abrir versión completa (requiere compilar bot-app primero) →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="platform-card">
+      <div class="platform-logo st">PA</div>
+      <div>
+        <div class="platform-name">Panel Avanzado</div>
+        <div class="platform-desc">Interfaz clásica para practicar estrategias de opciones.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trade types -->
+  <div class="section" style="padding-bottom:0;">
+    <div class="section-title">Trade types</div>
+  </div>
+  <div class="pill-row">
+    <div class="pill active">Trader Panel</div>
+    <div class="pill" onclick="window.location.href='bot_builder.html'" style="cursor:pointer">Bot Builder</div>
+    <div class="pill">Panel Avanzado</div>
+  </div>
+
+  <div class="trade-type-grid">
+    <div class="trade-type"><span class="tt-icon mixed"><span>&#8599;</span><span>&#8600;</span></span>Rise/Fall</div>
+    <div class="trade-type"><span class="tt-icon mixed"><span>&#8599;</span><span>&#8600;</span></span>Higher/Lower</div>
+    <div class="trade-type"><span class="tt-icon">&#10022;&#10022;</span>Matches/Di...</div>
+    <div class="trade-type"><span class="tt-icon">&#9632;&#9650;</span>Even/Odd</div>
+    <div class="trade-type"><span class="tt-icon">&#8776;</span>Accumulators</div>
+    <div class="trade-type"><span class="tt-icon mixed"><span>&#8599;</span><span>&#8600;</span></span>Over/Under</div>
+    <div class="trade-type"><span class="tt-icon mixed"><span>&#8599;</span><span>&#8600;</span></span>Multipliers</div>
+    <div class="trade-type"><span class="tt-icon mixed"><span>&#8599;</span><span>&#8600;</span></span>Touch/No T...</div>
+    <div class="trade-type"><span class="tt-icon mixed"><span>&#8599;</span><span>&#8600;</span></span>Vanillas</div>
+    <div class="trade-type"><span class="tt-icon mixed"><span>&#8599;</span><span>&#8600;</span></span>Turbos</div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="window.location.href='index.html'" style="cursor:pointer"><span class="nav-icon">&#8962;</span>Home</div>
+    <div class="nav-item"><span class="nav-icon">&#128179;</span>CFDs</div>
+    <div class="nav-item active"><span class="nav-icon">&#8599;</span>Options</div>
+    <div class="nav-item" onclick="window.location.href='bot_builder.html'" style="cursor:pointer"><span class="nav-icon">&#128188;</span>Portfolio</div>
+  </div>
+
+</div>
+
+<script>
+/* ================= Deriv WebSocket API — live line charts ================= */
+const APP_ID = 1089;
+const WS_URL = `wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`;
+
+// Exact 5 markets from the screenshots
+const MARKETS = [
+  { code:'R_75',    name:'Volatility 75 Index',       badge:'blue'   },
+  { code:'R_10',    name:'Volatility 10 Index',       badge:'blue'   },
+  { code:'1HZ75V',  name:'Volatility 75 (1s) Index',  badge:'purple' },
+  { code:'R_50',    name:'Volatility 50 Index',       badge:'blue'   },
+  { code:'1HZ100V', name:'Volatility 100 (1s) Index', badge:'purple' },
+];
+
+const history = {}; // code -> [{epoch, price}]
+let ws;
+
+function buildGrid(){
+  const grid = document.getElementById('marketGrid');
+  grid.innerHTML = MARKETS.map(m => `
+    <div class="market-card">
+      <div>
+        <div class="market-icon-row">
+          <span class="badge ${m.badge}">V</span>
+          <div class="mini-bars">
+            <span style="height:5px"></span><span style="height:9px"></span><span style="height:4px"></span><span style="height:11px"></span><span style="height:6px"></span>
+          </div>
+        </div>
+        <div class="market-name">${m.name}</div>
+      </div>
+      <div class="market-price" id="price-${m.code}">…</div>
+      <svg class="sparkline" id="spark-${m.code}" viewBox="0 0 100 30" preserveAspectRatio="none"></svg>
+      <div class="market-change" id="change-${m.code}">—</div>
+    </div>
+  `).join('') + `<div class="market-card viewall-card"><span>&#8594;</span><span>View all</span></div>`;
+}
+
+function connect(){
+  ws = new WebSocket(WS_URL);
+  ws.onopen = () => {
+    setConn(true);
+    MARKETS.forEach(m => {
+      ws.send(JSON.stringify({
+        ticks_history: m.code,
+        adjust_start_time: 1,
+        count: 60,
+        end: 'latest',
+        start: 1,
+        style: 'ticks',
+        subscribe: 1,
+        req_id: Date.now() % 100000
+      }));
+    });
+  };
+  ws.onclose = () => { setConn(false); setTimeout(connect, 3000); };
+  ws.onerror = () => setConn(false);
+  ws.onmessage = (msg) => handle(JSON.parse(msg.data));
+}
+
+function setConn(live){
+  document.getElementById('connDot').classList.toggle('live', live);
+  document.getElementById('connText').textContent = live ? 'Live' : 'Reconectando';
+  document.getElementById('updatedTxt').textContent = live ? 'Datos de mercado en vivo (API pública)' : 'Conectando…';
+}
+
+function handle(data){
+  if (data.error) { console.warn(data.error.message); return; }
+
+  if (data.msg_type === 'history'){
+    const code = data.echo_req.ticks_history;
+    const times = data.history.times;
+    const prices = data.history.prices;
+    history[code] = times.map((t,i)=>({ epoch:t, price: parseFloat(prices[i]) }));
+    render(code);
+  }
+
+  if (data.msg_type === 'tick'){
+    const t = data.tick;
+    const code = t.symbol;
+    if (!history[code]) history[code] = [];
+    history[code].push({ epoch: t.epoch, price: parseFloat(t.quote) });
+    if (history[code].length > 100) history[code].shift();
+    render(code);
+  }
+}
+
+function render(code){
+  const arr = history[code];
+  if (!arr || !arr.length) return;
+  const last = arr[arr.length-1].price;
+  const first = arr[0].price;
+  const change = ((last - first) / first) * 100;
+
+  const priceEl = document.getElementById(`price-${code}`);
+  const changeEl = document.getElementById(`change-${code}`);
+  if (priceEl) priceEl.textContent = last.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  if (changeEl){
+    changeEl.className = 'market-change ' + (change >= 0 ? 'up' : 'down');
+    changeEl.innerHTML = `${change>=0?'+':''}${change.toFixed(2)}% <span class="tf">(5m)</span>`;
+  }
+  drawSparkline(code, arr.slice(-40), change >= 0);
+}
+
+function drawSparkline(code, points, up){
+  const svg = document.getElementById(`spark-${code}`);
+  if (!svg || points.length < 2) return;
+  const w = 100, h = 30;
+  const prices = points.map(p=>p.price);
+  const max = Math.max(...prices), min = Math.min(...prices);
+  const range = (max - min) || 1;
+  const step = w / (points.length - 1);
+  const coords = points.map((p,i) => {
+    const x = i * step;
+    const y = h - ((p.price - min) / range) * h;
+    return `${x.toFixed(2)},${y.toFixed(2)}`;
+  }).join(' ');
+  const color = up ? '#4bd0a0' : '#ff4d6d';
+  svg.innerHTML = `<polyline points="${coords}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+
+buildGrid();
+connect();
+
+// ===== Saldo virtual (compartido con Home vía TradeLabSim) =====
+(function(){
+  function renderTotal(){
+    const data = TradeLabSim.loadBalances();
+    const el = document.getElementById('optTotalBalance');
+    if(el) el.textContent = TradeLabSim.formatMoney(data.virtual);
+  }
+  window.addEventListener('tradelab-sim:balances-updated', renderTotal);
+  window.addEventListener('storage', (e) => { if(e.key === TradeLabSim.STORAGE_KEY) renderTotal(); });
+  renderTotal();
+})();
+</script>
+</body>
+</html>
