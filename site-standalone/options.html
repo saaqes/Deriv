@@ -248,11 +248,8 @@
     <div class="platform-card" id="botBuilderCard" onclick="window.location.href=BOT_APP_URL" style="cursor:pointer">
       <div class="platform-logo db">BB</div>
       <div>
-        <div class="platform-name">Bot Builder <span style="font-size:10px;font-weight:600;color:#ffd23f;">· Simulador</span></div>
-        <div class="platform-desc">Crea y ejecuta bots automatizados sobre una cuenta demo virtual, sin código.</div>
-        <div style="margin-top:6px;">
-          <a href="../bot-app/dist/index.html" style="font-size:11px;color:#8aa6ff;text-decoration:underline;" onclick="event.stopPropagation();">Abrir versión completa (requiere compilar bot-app primero) →</a>
-        </div>
+        <div class="platform-name">Bot Builder</div>
+        <div class="platform-desc">Crea y ejecuta bots automatizados sobre tu cuenta de Deriv, sin código.</div>
       </div>
     </div>
 
@@ -300,10 +297,12 @@
 
 <script>
 /* ================= Enlace a la app real de bot-app ================= */
-// Cambia esto por la URL de tu bot-app ya desplegado (ej: 'https://tu-bot.onrender.com')
-// cuando subas ambos proyectos a producción. Mientras tanto usa la ruta relativa
-// de desarrollo local (carpeta bot-app compilada como hermana de site-standalone).
-const BOT_APP_URL = '../bot-app/dist/index.html';
+// site-standalone se despliega como sitio propio (ver render.yaml), separado
+// de bot-app. "Bot Builder" SIEMPRE debe salir de este sitio y llevar a la
+// URL pública real donde está desplegado bot-app — nunca a una página interna
+// de site-standalone. Reemplaza este valor por esa URL antes de publicar,
+// ej: 'https://tu-bot.onrender.com'
+const BOT_APP_URL = 'https://tu-bot-app.onrender.com';
 
 /* ================= Deriv WebSocket API — live line charts ================= */
 const APP_ID = 1089;
