@@ -245,7 +245,7 @@
       </div>
     </div>
 
-    <div class="platform-card" id="botBuilderCard" onclick="window.location.href=BOT_APP_URL" style="cursor:pointer">
+    <div class="platform-card" id="botBuilderCard" onclick="goToBotApp()" style="cursor:pointer">
       <div class="platform-logo db">BB</div>
       <div>
         <div class="platform-name">Bot Builder</div>
@@ -268,7 +268,7 @@
   </div>
   <div class="pill-row">
     <div class="pill active">Trader Panel</div>
-    <div class="pill" onclick="window.location.href=BOT_APP_URL" style="cursor:pointer">Bot Builder</div>
+    <div class="pill" onclick="goToBotApp()" style="cursor:pointer">Bot Builder</div>
     <div class="pill">Panel Avanzado</div>
   </div>
 
@@ -290,7 +290,7 @@
     <div class="nav-item" onclick="window.location.href='index.html'" style="cursor:pointer"><span class="nav-icon">&#8962;</span>Home</div>
     <div class="nav-item"><span class="nav-icon">&#128179;</span>CFDs</div>
     <div class="nav-item active"><span class="nav-icon">&#8599;</span>Options</div>
-    <div class="nav-item" onclick="window.location.href=BOT_APP_URL" style="cursor:pointer"><span class="nav-icon">&#128188;</span>Portfolio</div>
+    <div class="nav-item" onclick="goToBotApp()" style="cursor:pointer"><span class="nav-icon">&#128188;</span>Portfolio</div>
   </div>
 
 </div>
@@ -303,6 +303,31 @@
 // de site-standalone. Reemplaza este valor por esa URL antes de publicar,
 // ej: 'https://tu-bot.onrender.com'
 const BOT_APP_URL = 'https://tu-bot-app.onrender.com';
+
+/* ================= Traspaso del saldo configurado a bot-app =================
+ * site-standalone y bot-app viven en dominios distintos, así que el
+ * localStorage de este sitio ("tradelab-sim-balances" / "configuredBalance")
+ * no es visible para bot-app. En vez de tocar BOT_APP_URL, construimos la URL
+ * de salida añadiéndole el saldo "demo" actual como query param (?tlbal=...).
+ * bot-app lo lee una sola vez al cargar, lo valida y lo guarda en su propio
+ * localStorage (ver display-balance.ts), y limpia el parámetro de la barra
+ * de direcciones. Si algún día ambos proyectos comparten dominio, esto deja
+ * de ser necesario, pero no rompe nada si igual se envía.
+ */
+function goToBotApp() {
+  let url = BOT_APP_URL;
+  try {
+    const balances = TradeLabSim.loadBalances();
+    const demoBalance = Number(balances.demo);
+    if (Number.isFinite(demoBalance) && demoBalance >= 0) {
+      const separator = url.includes('?') ? '&' : '?';
+      url += `${separator}tlbal=${encodeURIComponent(demoBalance)}`;
+    }
+  } catch (err) {
+    console.warn('[TradeLab Sim] No se pudo adjuntar el saldo configurado a la URL de Bot Builder.', err);
+  }
+  window.location.href = url;
+}
 
 /* ================= Deriv WebSocket API — live line charts ================= */
 const APP_ID = 1089;
