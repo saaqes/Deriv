@@ -5,8 +5,10 @@ import { addComma, getCurrencyDisplayCode, getDecimalPlaces } from '@/components
 import Text from '@/components/shared_ui/text';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { isMockAccountId, switchMockAccount } from '@/external/deriv-core/auth/mock-login';
+import { formatConfiguredBalance } from '@/external/deriv-core/trading/display-balance';
 import { installFakeBroker } from '@/external/deriv-core/trading/fake-broker';
 import { useApiBase } from '@/hooks/useApiBase';
+import { useConfiguredBalance } from '@/hooks/useConfiguredBalance';
 import { useStore } from '@/hooks/useStore';
 import { isDemoAccount } from '@/utils/account-helpers';
 import { Localize } from '@deriv-com/translations';
@@ -19,6 +21,9 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const wrapperRef = useRef<HTMLDivElement>(null);
     const { accountList, activeLoginid } = useApiBase();
     const { client, run_panel } = useStore() ?? {};
+    // DEMO-only cosmetic override (see display-balance.ts). Never applied to
+    // real accounts — see `formattedAccounts` below.
+    const configuredBalance = useConfiguredBalance();
 
     const is_bot_running = run_panel?.is_running || api_base.is_running;
     const isSingleAccount = !accountList || accountList.length <= 1;
@@ -66,19 +71,31 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const formattedAccounts = useMemo(() => {
         if (!accountList) return [];
         return accountList
-            .map(account => ({
-                loginid: account.loginid,
-                currency: account.currency,
-                balance: addComma(Number(account.balance ?? 0).toFixed(getDecimalPlaces(account.currency))),
-                isVirtual: isDemoAccount(account.loginid),
-                isActive: account.loginid === activeLoginid,
-            }))
+            .map(account => {
+                const isVirtual = isDemoAccount(account.loginid);
+                const realBalance = addComma(Number(account.balance ?? 0).toFixed(getDecimalPlaces(account.currency)));
+                // Same rule as the active-account balance below: a configured
+                // (simulated) balance only ever overrides the display for a
+                // demo/virtual account, never a real one.
+                const displayBalance =
+                    isVirtual && configuredBalance !== null
+                        ? formatConfiguredBalance(configuredBalance, account.currency)
+                        : `${realBalance} ${getCurrencyDisplayCode(account.currency)}`;
+                return {
+                    loginid: account.loginid,
+                    currency: account.currency,
+                    balance: realBalance,
+                    displayBalance,
+                    isVirtual,
+                    isActive: account.loginid === activeLoginid,
+                };
+            })
             .sort((a, b) => (a.isActive ? -1 : b.isActive ? 1 : 0));
-    }, [accountList, activeLoginid]);
+    }, [accountList, activeLoginid, configuredBalance]);
 
     if (!activeAccount) return null;
 
-    const { currency, isVirtual, balance } = activeAccount;
+    const { currency, isVirtual, displayBalance } = activeAccount;
     const showChevron = !isSingleAccount && !is_bot_running;
 
     return (
@@ -131,7 +148,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                 </span>
                             )}
                         </div>
-                        {(typeof balance !== 'undefined' || !currency) && (
+                        {(typeof displayBalance !== 'undefined' || !currency) && (
                             <div className='acc-info__balance-section'>
                                 <p
                                     data-testid='dt_balance'
@@ -139,11 +156,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                         'acc-info__balance--no-currency': !currency && !isVirtual,
                                     })}
                                 >
-                                    {!currency ? (
-                                        <Localize i18n_default_text='No currency assigned' />
-                                    ) : (
-                                        `${balance} ${getCurrencyDisplayCode(currency)}`
-                                    )}
+                                    {!currency ? <Localize i18n_default_text='No currency assigned' /> : displayBalance}
                                 </p>
                             </div>
                         )}
@@ -184,7 +197,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                             </Text>
                             <Text size='xs' weight='bold' className='acc-dropdown__balance'>
                                 {account.currency ? (
-                                    `${account.balance} ${getCurrencyDisplayCode(account.currency)}`
+                                    account.displayBalance
                                 ) : (
                                     <Localize i18n_default_text='No currency assigned' />
                                 )}

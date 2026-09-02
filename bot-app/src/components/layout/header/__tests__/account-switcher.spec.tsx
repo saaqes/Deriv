@@ -60,6 +60,8 @@ const mockActiveAccount = {
     loginid: 'CR123',
     currency: 'USD',
     balance: '100.00',
+    displayBalance: '100.00 USD',
+    isSimulatedDisplay: false,
     isVirtual: false,
     is_virtual: 0,
     isActive: true,

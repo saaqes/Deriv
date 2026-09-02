@@ -3,8 +3,10 @@ import { useMemo } from 'react';
 import { isVirtualAccount } from '@/utils/account-helpers';
 /* [/AI] */
 import { CurrencyIcon } from '@/components/currency/currency-icon';
-import { addComma, getDecimalPlaces } from '@/components/shared';
+import { addComma, getCurrencyDisplayCode, getDecimalPlaces } from '@/components/shared';
+import { formatConfiguredBalance } from '@/external/deriv-core/trading/display-balance';
 import { useApiBase } from '@/hooks/useApiBase';
+import { useConfiguredBalance } from '@/hooks/useConfiguredBalance';
 import { Balance } from '@deriv/api-types';
 
 /** A custom hook that returns the account object for the current active account. */
@@ -16,6 +18,10 @@ const useActiveAccount = ({
     directBalance?: string;
 }) => {
     const { accountList, activeLoginid } = useApiBase();
+    // DEMO-only cosmetic override (see display-balance.ts). `null` when
+    // nothing has been configured from site-standalone, in which case the
+    // real balance is shown as before.
+    const configuredBalance = useConfiguredBalance();
 
     const activeAccount = useMemo(
         () => accountList?.find(account => account.loginid === activeLoginid),
@@ -30,20 +36,37 @@ const useActiveAccount = ({
         // Use centralized utility to determine if demo account
         const isVirtual = isVirtualAccount(activeAccount.loginid);
 
+        // realBalance: always the actual balance reported by Deriv over the
+        // WebSocket connection (or the last known value while a fresh
+        // balance update is in flight). Trading/order logic elsewhere reads
+        // this same data directly from the client store / api_base and is
+        // completely untouched by anything below.
+        const realBalance = currentBalanceData?.balance
+            ? addComma(currentBalanceData.balance.toFixed(getDecimalPlaces(currentBalanceData.currency)))
+            : directBalance
+              ? addComma(parseFloat(directBalance).toFixed(getDecimalPlaces(activeAccount.currency)))
+              : addComma(parseFloat('0').toFixed(getDecimalPlaces(activeAccount.currency)));
+
+        // displayBalance: what the UI should render. Only ever diverges from
+        // realBalance for a demo/virtual account with a configured balance
+        // set from site-standalone — real accounts always show realBalance.
+        const isSimulatedDisplay = isVirtual && configuredBalance !== null;
+        const displayBalance = isSimulatedDisplay
+            ? formatConfiguredBalance(configuredBalance as number, activeAccount.currency)
+            : `${realBalance} ${getCurrencyDisplayCode(activeAccount.currency)}`.trim();
+
         return {
             ...activeAccount,
-            balance: currentBalanceData?.balance
-                ? addComma(currentBalanceData.balance.toFixed(getDecimalPlaces(currentBalanceData.currency)))
-                : directBalance
-                  ? addComma(parseFloat(directBalance).toFixed(getDecimalPlaces(activeAccount.currency)))
-                  : addComma(parseFloat('0').toFixed(getDecimalPlaces(activeAccount.currency))),
+            balance: realBalance,
+            displayBalance,
+            isSimulatedDisplay,
             currencyLabel: isVirtual ? 'Demo' : activeAccount?.currency,
             icon: <CurrencyIcon currency={activeAccount?.currency?.toLowerCase()} isVirtual={isVirtual} />,
             isVirtual: isVirtual,
             isActive: activeAccount?.loginid === activeLoginid,
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeAccount, activeLoginid, allBalanceData, directBalance]);
+    }, [activeAccount, activeLoginid, allBalanceData, directBalance, configuredBalance]);
 
     return {
         /** User's current active account. */

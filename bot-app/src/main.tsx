@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { AuthWrapper } from './app/AuthWrapper';
 // Removed AnalyticsInitializer import - analytics dependency removed
 // See migrate-docs/ANALYTICS_IMPLEMENTATION_GUIDE.md for re-implementation
+import { captureConfiguredBalanceFromUrl } from './external/deriv-core/trading/display-balance';
 import {
     applyBrandFontFromConfig,
     applyDocumentTitle,
@@ -20,6 +21,11 @@ configure({ isolateGlobalState: true });
 
 // Perform version check FIRST - before any other operations
 performVersionCheck();
+
+// Pick up a DEMO-only display balance handed off from site-standalone via
+// ?tlbal=<amount> (see display-balance.ts). Purely cosmetic — never affects
+// the real Deriv balance, real accounts, or trading logic.
+captureConfiguredBalanceFromUrl();
 
 // Apply deploy-time document branding (tab title, favicon, web font, and primary color).
 applyDocumentTitle();
