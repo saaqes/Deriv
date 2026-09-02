@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: tradelab-bot
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NEXT_PUBLIC_DERIV_APP_ID
+        sync: false
+      - key: NEXT_PUBLIC_DERIV_APP_NAME
+        value: TradeLab Bot
+      - key: NEXT_PUBLIC_DERIV_ENV
+        value: production
+      - key: NEXT_PUBLIC_DERIV_REFERRAL_LINK
+        sync: false
+      - key: NEXT_PUBLIC_DERIV_OAUTH_SCOPES
+        value: trade
+    routes:
+      # SPA fallback: cualquier ruta que no sea un archivo real (home.html,
+      # options.html, assets/*, etc.) cae en la app de React.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN

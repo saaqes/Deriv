@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: tradelab-sim-standalone
+    runtime: static
+    buildCommand: "echo 'sin build, HTML puro'"
+    staticPublishPath: .
