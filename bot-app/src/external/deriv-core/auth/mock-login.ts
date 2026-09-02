@@ -1,5 +1,5 @@
 /**
- * Mock login — DEV ONLY.
+ * Simulated login.
  *
  * Skips the real Deriv OAuth redirect entirely and fills the same
  * observable streams that api-base.ts fills after a real `authorize` call,
@@ -11,13 +11,9 @@
  * session. Anything that actually talks to Deriv's API (running a bot,
  * loading real chart data behind auth, placing a trade, transfers, etc.)
  * will still fail or behave oddly, because there is no genuine session
- * behind the fake buttons. This is only meant for iterating on the UI
- * without clicking through login on every reload.
- *
- * Safety gate: `isMockLoginAvailable()` is only true when
- * `import.meta.env.DEV` is true. Rsbuild sets DEV to false in a production
- * build, so this bypass is compiled out / inert in anything you ship —
- * there's no runtime flag that can accidentally turn it on in prod.
+ * behind the fake buttons. This app is an educational simulator — see the
+ * "no es Deriv, no gestiona dinero real" disclaimer in the standalone
+ * pages — so the simulated login runs in every build, not just dev.
  */
 import { observer as globalObserver } from '@/external/bot-skeleton';
 import {
@@ -36,7 +32,7 @@ import type { TAccount } from '@/types/api-types';
 const MOCK_REAL_ACCOUNT: TAccount = {
     loginid: 'CR0000001',
     currency: 'USD',
-    balance: 0,
+    balance: 500,
     is_virtual: 0,
 };
 
@@ -54,8 +50,8 @@ const mockAccounts: Record<string, TAccount> = {
 };
 let activeMockLoginId: string | null = null;
 
-/** Only ever true in a dev build (`npm run dev`). */
-export const isMockLoginAvailable = (): boolean => Boolean(import.meta.env?.DEV);
+/** Always true — this app simulates login instead of the real Deriv OAuth. */
+export const isMockLoginAvailable = (): boolean => true;
 
 export const isMockAccountId = (loginid: string): boolean => loginid in mockAccounts;
 
