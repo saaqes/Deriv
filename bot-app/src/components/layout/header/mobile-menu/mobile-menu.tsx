@@ -4,7 +4,6 @@
 import { useState } from 'react';
 import classNames from 'classnames';
 import brandConfig from '@/../brand.config.json';
-import { standalone_routes } from '@/components/shared';
 import { DBOT_TABS } from '@/constants/bot-contents';
 import useModalManager from '@/hooks/useModalManager';
 // [AI] Import useStore to check if menu has items
@@ -84,8 +83,7 @@ const MobileMenu = ({ onLogout }: TMobileMenuProps) => {
             <nav className='mobile-bottom-nav'>
                 <a
                     className='mobile-bottom-nav__item'
-                    href={standalone_routes.traders_hub}
-                    rel='noopener noreferrer'
+                    href='/site-standalone/index.html'
                 >
                     <LegacyHomeNewIcon iconSize='xs' fill='var(--text-general)' />
                     <span>{localize('Home')}</span>
