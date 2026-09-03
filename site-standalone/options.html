@@ -243,7 +243,7 @@
       </div>
     </div>
 
-    <div class="platform-card" onclick="window.location.href='/#chart'" style="cursor:pointer">
+    <div class="platform-card" onclick="goToBotApp()" style="cursor:pointer">
       <div class="platform-logo db">DB</div>
       <div>
         <div class="platform-name">Deriv Bot</div>
@@ -266,7 +266,7 @@
   </div>
   <div class="pill-row">
     <div class="pill active">Deriv Trader</div>
-    <div class="pill" onclick="window.location.href='/#chart'" style="cursor:pointer">Deriv Bot</div>
+    <div class="pill" onclick="goToBotApp()" style="cursor:pointer">Deriv Bot</div>
     <div class="pill">SmartTrader</div>
   </div>
 
@@ -288,12 +288,44 @@
     <div class="nav-item" onclick="window.location.href='index.html'" style="cursor:pointer"><span class="nav-icon">&#8962;</span>Home</div>
     <div class="nav-item"><span class="nav-icon">&#128179;</span>CFDs</div>
     <div class="nav-item active"><span class="nav-icon">&#8599;</span>Options</div>
-    <div class="nav-item" onclick="window.location.href='/#chart'" style="cursor:pointer"><span class="nav-icon">&#128188;</span>Portfolio</div>
+    <div class="nav-item" onclick="goToBotApp()" style="cursor:pointer"><span class="nav-icon">&#128188;</span>Portfolio</div>
   </div>
 
 </div>
 
+<script src="assets/js/sim-shared.js"></script>
 <script>
+/* ================================================================
+ * Navegación al bot-app real ("Deriv Bot" / Portfolio)
+ * ----------------------------------------------------------------
+ * site-standalone y bot-app normalmente se despliegan como DOS
+ * servicios distintos en Render (dos dominios distintos), así que
+ * un simple `href="/#chart"` no funciona: ese hash no existe en
+ * este dominio, y aunque existiera, no hay ningún bot-app corriendo
+ * aquí. Hay que navegar a la URL real donde vive bot-app.
+ *
+ * IMPORTANTE: reemplaza el valor de BOT_APP_URL de abajo por la URL
+ * real de tu despliegue de bot-app en Render (ver bot-app/DEPLOY.md).
+ * Ejemplo: 'https://tradelab-bot.onrender.com'
+ * ================================================================ */
+const BOT_APP_URL = 'https://tradelab-bot.onrender.com'; // TODO: pon aquí tu URL real de bot-app
+
+function goToBotApp(){
+  try {
+    var balances = TradeLabSim.loadBalances();
+    var url = new URL(BOT_APP_URL);
+    if (typeof balances.demo === 'number' && isFinite(balances.demo)) {
+      url.searchParams.set('tlbal', balances.demo);
+    }
+    // El hash selecciona directamente la pestaña "Chart" dentro del bot-app.
+    url.hash = 'chart';
+    window.location.href = url.toString();
+  } catch (err) {
+    console.error('[TradeLab] No se pudo construir la URL del bot-app.', err);
+    window.location.href = BOT_APP_URL;
+  }
+}
+
 /* ================= Deriv WebSocket API — live line charts ================= */
 const APP_ID = 1089;
 const WS_URL = `wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`;
