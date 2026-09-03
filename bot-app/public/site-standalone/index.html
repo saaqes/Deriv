@@ -1353,6 +1353,18 @@
     const panel = document.getElementById('notifPanel');
     const backBtn = document.getElementById('notifBack');
 
+    function openBalancePanel(account){
+      panel.classList.add('open');
+      document.body.classList.add('panel-open');
+      refreshBalances();
+      const input = document.getElementById(account + 'AmountInput');
+      const card = input ? input.closest('.balance-manager-card') : null;
+      setTimeout(() => {
+        if(card) card.scrollIntoView({ behavior:'smooth', block:'center' });
+        if(input) input.focus();
+      }, 150);
+    }
+
     bellBtn.addEventListener('click', () => {
       panel.classList.add('open');
       document.body.classList.add('panel-open');
@@ -1362,6 +1374,17 @@
     backBtn.addEventListener('click', () => {
       panel.classList.remove('open');
       document.body.classList.remove('panel-open');
+    });
+
+    // Cualquier saldo visible en la página (Valor total, saldos de las
+    // cuentas de trading, etc.) abre el panel de saldos y salta directo
+    // a la tarjeta de la cuenta correspondiente (Real o Demo) para
+    // editarla al instante.
+    document.querySelectorAll('.balance-amount').forEach(el => {
+      const account = el.id === 'mt5TradingBalance' ? 'demo' : 'real';
+      const clickTarget = el.closest('.account-balance, .valor-total-amount') || el;
+      clickTarget.style.cursor = 'pointer';
+      clickTarget.addEventListener('click', () => openBalancePanel(account));
     });
 
     document.querySelectorAll('.bal-btn').forEach(btn => {
