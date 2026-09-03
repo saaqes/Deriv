@@ -38,6 +38,15 @@
   function saveBalances(data) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      // Espejo del saldo "demo" bajo una clave simple, pensado para que
+      // bot-app (u otro proyecto) pueda leerlo directamente cuando comparte
+      // origen con este sitio. Cuando NO comparte origen (caso normal, dos
+      // dominios distintos en Render), este valor no es alcanzable desde
+      // fuera y el traspaso real ocurre por query param — ver goToBotApp()
+      // en options.html y display-balance.ts en bot-app.
+      if (typeof data.demo === 'number' && isFinite(data.demo) && data.demo >= 0) {
+        localStorage.setItem('configuredBalance', String(data.demo));
+      }
       // Avisa a otras pestañas/páginas abiertas del mismo simulador.
       window.dispatchEvent(new CustomEvent('tradelab-sim:balances-updated', { detail: data }));
       return true;
