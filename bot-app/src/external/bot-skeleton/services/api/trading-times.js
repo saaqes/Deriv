@@ -2,6 +2,12 @@ import { getTradingTimes, TRADING_TIMES } from '../../../../components/shared/ut
 import PendingPromise from '../../utils/pending-promise';
 import { api_base } from './api-base';
 
+// If the WS request below never resolves (dropped/stale connection, e.g.
+// after resuming a session that was left open), this makes sure the app
+// falls back to local trading-times data instead of hanging forever on the
+// "Initializing..." screen. See TRADING_TIMES_TIMEOUT_MS usage below.
+const TRADING_TIMES_TIMEOUT_MS = 10000;
+
 export default class TradingTimes {
     constructor({ ws, server_time }) {
         this.init_promise = new PendingPromise();
@@ -81,8 +87,17 @@ export default class TradingTimes {
                 return;
             }
 
-            const response = await (api_base.api?.send({ trading_times: last_update_date }) ||
-                this.ws?.send({ trading_times: last_update_date }));
+            const sendPromise =
+                api_base.api?.send({ trading_times: last_update_date }) ||
+                this.ws?.send({ trading_times: last_update_date });
+
+            // Race against a timeout so a stalled/never-answered request can't
+            // block app-content.jsx's loading state indefinitely.
+            const timeoutPromise = new Promise(resolve =>
+                setTimeout(() => resolve({ error: { message: 'trading_times request timed out' } }), TRADING_TIMES_TIMEOUT_MS)
+            );
+
+            const response = await Promise.race([sendPromise, timeoutPromise]);
 
             if (response?.error) {
                 this.setTradingTimes();

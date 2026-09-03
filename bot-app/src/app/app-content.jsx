@@ -172,6 +172,25 @@ const AppContent = observer(() => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [is_api_initialized]);
 
+    // Safety net: if something in the active-symbols/trading-times chain
+    // above stalls for any reason (e.g. a stale session left over from a
+    // previous login), never leave the user stuck on the "Initializing..."
+    // screen forever.
+    React.useEffect(() => {
+        if (!is_loading) return undefined;
+
+        const timer = setTimeout(() => {
+            setIsLoading(current => {
+                if (current) {
+                    console.warn('[AppContent] Initialization safety-net timeout reached; releasing loader.');
+                }
+                return false;
+            });
+        }, 15000);
+
+        return () => clearTimeout(timer);
+    }, [is_loading]);
+
     React.useEffect(() => {
         if (client.is_logged_in && is_api_initialized) {
             changeActiveSymbolLoadingState();

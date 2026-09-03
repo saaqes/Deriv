@@ -259,7 +259,13 @@ class APIBase {
         setIsAuthorizing(true);
 
         try {
-            const { balance, error } = await this.api.balance();
+            // Guard against a stalled/never-answered balance() call (e.g. a
+            // stale account_id left in localStorage from a previous session)
+            // so this can never leave isAuthorizing stuck at true forever.
+            const timeout = new Promise(resolve =>
+                setTimeout(() => resolve({ error: { message: 'Authorization request timed out' } }), this.ACTIVE_SYMBOLS_TIMEOUT_MS)
+            );
+            const { balance, error } = await Promise.race([this.api.balance(), timeout]);
 
             if (error) {
                 const errorMessage = isBackendError(error)
