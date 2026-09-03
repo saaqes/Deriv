@@ -65,6 +65,20 @@ const AppHeader = observer(() => {
         }
     }, [setIsAuthorizing]);
 
+    // Auto-activate the simulated session on load so the app is always
+    // "logged in" (Real/Demo account switcher visible immediately) without
+    // requiring a manual "Log in" click. Skipped while a real OAuth
+    // callback is pending so it doesn't clobber that flow. See mock-login.ts.
+    useEffect(() => {
+        if (isOAuthPending) return;
+        if (isMockLoginAvailable() && !activeLoginid) {
+            setIsAuthorizing(true);
+            initiateMockLogin('real');
+            installFakeBroker();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOAuthPending, activeLoginid]);
+
     // Fallback timeout: show login button if auth never resolves.
     // Suppressed during the OAuth callback flow (isOAuthPending = true).
     useEffect(() => {
