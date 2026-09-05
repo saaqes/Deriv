@@ -15,6 +15,8 @@ import { DBOT_TABS, TAB_IDS } from '@/constants/bot-contents';
 import { api_base, updateWorkspaceName } from '@/external/bot-skeleton';
 import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { isDbotRTL } from '@/external/bot-skeleton/utils/workspace';
+import { initiateMockLogin, isMockLoginAvailable } from '@/external/deriv-core/auth/mock-login';
+import { installFakeBroker } from '@/external/deriv-core/trading/fake-broker';
 import { useApiBase } from '@/hooks/useApiBase';
 import { useStore } from '@/hooks/useStore';
 import {
@@ -358,6 +360,14 @@ const AppWrapper = observer(() => {
 
     // [AI]
     const handleLoginGeneration = async () => {
+        // This app is an educational simulator — this button must log the
+        // user straight in instead of sending them to Deriv's real OAuth
+        // permission screen. See mock-login.ts.
+        if (isMockLoginAvailable()) {
+            initiateMockLogin('real');
+            installFakeBroker();
+            return;
+        }
         const oauthUrl = await generateOAuthURL();
         if (oauthUrl) {
             window.location.replace(oauthUrl);
