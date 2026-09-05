@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { clearAuthInfo } from '@/external/deriv-core';
+import { getActiveMockAccount, isMockLoginAvailable } from '@/external/deriv-core/auth/mock-login';
 import { observer as globalObserver } from '@/external/bot-skeleton/utils/observer';
 import { ErrorLogger } from '@/utils/error-logger';
 import { reloadPage, replaceUrl } from '@/utils/navigation-utils';
@@ -15,6 +16,12 @@ import { reloadPage, replaceUrl } from '@/utils/navigation-utils';
  */
 export const useInvalidTokenHandler = (): { unregisterHandler: () => void } => {
     const handleInvalidToken = async () => {
+        // This app is an educational simulator — while a simulated session
+        // is active there's no real token to invalidate, so this must never
+        // wipe the mock session or redirect to Deriv's real OAuth login.
+        if (isMockLoginAvailable() && getActiveMockAccount()) {
+            return;
+        }
         try {
             // Clear invalid auth token via vendored deriv-core
             clearAuthInfo();
