@@ -141,6 +141,54 @@ export function setConfiguredBalance(rawValue: unknown): boolean {
     return true;
 }
 
+/** Same as `setConfiguredBalance`, but for the mock "Real" account channel. */
+export function setConfiguredRealBalance(rawValue: unknown): boolean {
+    const value = parseConfiguredBalance(rawValue);
+    if (value === null) return false;
+    try {
+        localStorage.setItem(CONFIGURED_REAL_BALANCE_LEGACY_KEY, String(value));
+    } catch {
+        return false;
+    }
+    window.dispatchEvent(new CustomEvent(CONFIGURED_REAL_BALANCE_EVENT, { detail: value }));
+    return true;
+}
+
+/**
+ * Applies a win/loss (or buy-price deduction) delta directly on top of
+ * whatever configured balance is currently showing, so each trade result
+ * moves the number the user sees instead of leaving it frozen at whatever
+ * was last set from home.html. No-op if nothing has been configured yet —
+ * in that case the account's real mock balance is shown instead (see
+ * useActiveAccount.tsx), which already moves correctly on its own.
+ */
+function applyDelta(
+    getter: () => number | null,
+    legacyKey: string,
+    eventName: string,
+    delta: number
+): void {
+    const current = getter();
+    if (current === null) return;
+    const next = Math.max(0, Math.round((current + delta) * 100) / 100);
+    try {
+        localStorage.setItem(legacyKey, String(next));
+    } catch {
+        return;
+    }
+    window.dispatchEvent(new CustomEvent(eventName, { detail: next }));
+}
+
+/** Applies a balance delta to the mock DEMO account's configured display balance. */
+export function applyConfiguredBalanceDelta(delta: number): void {
+    applyDelta(getConfiguredBalance, CONFIGURED_BALANCE_LEGACY_KEY, CONFIGURED_BALANCE_EVENT, delta);
+}
+
+/** Applies a balance delta to the mock REAL account's configured display balance. */
+export function applyConfiguredRealBalanceDelta(delta: number): void {
+    applyDelta(getConfiguredRealBalance, CONFIGURED_REAL_BALANCE_LEGACY_KEY, CONFIGURED_REAL_BALANCE_EVENT, delta);
+}
+
 /**
  * One-time bootstrap: if the current URL carries a `tlbal` query param
  * (set by site-standalone when linking to BOT_APP_URL), validate it,
@@ -192,15 +240,18 @@ export function subscribeToConfiguredBalance(callback: (value: number | null) =>
  * #chart in another) via the native `storage` event.
  */
 export function subscribeToConfiguredRealBalance(callback: (value: number | null) => void): () => void {
+    const handleCustomEvent = () => callback(getConfiguredRealBalance());
     const handleStorageEvent = (event: StorageEvent) => {
         if (event.key === CONFIGURED_REAL_BALANCE_LEGACY_KEY) {
             callback(getConfiguredRealBalance());
         }
     };
 
+    window.addEventListener(CONFIGURED_REAL_BALANCE_EVENT, handleCustomEvent);
     window.addEventListener('storage', handleStorageEvent);
 
     return () => {
+        window.removeEventListener(CONFIGURED_REAL_BALANCE_EVENT, handleCustomEvent);
         window.removeEventListener('storage', handleStorageEvent);
     };
 }
