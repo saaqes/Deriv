@@ -58,9 +58,20 @@ export default class ActiveSymbols {
             if (!api_base.active_symbols_promise) {
                 api_base.active_symbols_promise = api_base.getActiveSymbols();
             }
-            // Wait for the promise and use its resolved value
-            const symbols = await api_base.active_symbols_promise;
-            this.active_symbols = symbols ?? api_base?.active_symbols ?? [];
+            // Wait for the promise and use its resolved value. A prefetch
+            // started earlier (e.g. in parallel with authorization) can
+            // reject — without this catch that rejection would propagate
+            // out of this function uncaught and leave the caller (chart /
+            // dashboard init) stuck waiting forever. Falling through here
+            // lets the "no symbols found" retry below fetch fresh instead.
+            try {
+                const symbols = await api_base.active_symbols_promise;
+                this.active_symbols = symbols ?? api_base?.active_symbols ?? [];
+            } catch (error) {
+                console.warn('Prefetched active_symbols failed, will retry with a fresh fetch:', error);
+                api_base.active_symbols_promise = null;
+                this.active_symbols = [];
+            }
         }
 
         // If still no symbols after waiting, try one more time with a fresh fetch
