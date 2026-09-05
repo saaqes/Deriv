@@ -12,20 +12,6 @@
         width: 100%;
     }
 
-    &--inactive {
-        color: var(--text-general);
-        font-size: 14px;
-        justify-content: center;
-        margin: auto;
-        text-align: center;
-        line-height: 2rem;
-        padding: 0 3rem;
-
-        & .dc-text {
-            text-align: center;
-        }
-    }
-
     &--completed {
         border: 1px solid var(--general-main-1);
 
