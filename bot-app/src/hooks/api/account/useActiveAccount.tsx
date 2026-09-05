@@ -4,9 +4,10 @@ import { isVirtualAccount } from '@/utils/account-helpers';
 /* [/AI] */
 import { CurrencyIcon } from '@/components/currency/currency-icon';
 import { addComma, getCurrencyDisplayCode, getDecimalPlaces } from '@/components/shared';
+import { isMockAccountId } from '@/external/deriv-core/auth/mock-login';
 import { formatConfiguredBalance } from '@/external/deriv-core/trading/display-balance';
 import { useApiBase } from '@/hooks/useApiBase';
-import { useConfiguredBalance } from '@/hooks/useConfiguredBalance';
+import { useConfiguredBalance, useConfiguredRealBalance } from '@/hooks/useConfiguredBalance';
 import { Balance } from '@deriv/api-types';
 
 /** A custom hook that returns the account object for the current active account. */
@@ -22,6 +23,8 @@ const useActiveAccount = ({
     // nothing has been configured from site-standalone, in which case the
     // real balance is shown as before.
     const configuredBalance = useConfiguredBalance();
+    // Same idea, for the mock "Real" account (CR0000001) instead.
+    const configuredRealBalance = useConfiguredRealBalance();
 
     const activeAccount = useMemo(
         () => accountList?.find(account => account.loginid === activeLoginid),
@@ -47,12 +50,16 @@ const useActiveAccount = ({
               ? addComma(parseFloat(directBalance).toFixed(getDecimalPlaces(activeAccount.currency)))
               : addComma(parseFloat('0').toFixed(getDecimalPlaces(activeAccount.currency)));
 
-        // displayBalance: what the UI should render. Only ever diverges from
-        // realBalance for a demo/virtual account with a configured balance
-        // set from site-standalone — real accounts always show realBalance.
-        const isSimulatedDisplay = isVirtual && configuredBalance !== null;
+        // displayBalance: what the UI should render. Diverges from
+        // realBalance only for one of this simulator's two MOCK accounts
+        // (see mock-login.ts) that has a configured balance set from
+        // home.html — a genuine real Deriv account (real OAuth login,
+        // not `isMockAccountId`) always shows realBalance, no exceptions.
+        const isMockAccount = isMockAccountId(activeAccount.loginid);
+        const configuredValue = isVirtual ? configuredBalance : configuredRealBalance;
+        const isSimulatedDisplay = isMockAccount && configuredValue !== null;
         const displayBalance = isSimulatedDisplay
-            ? formatConfiguredBalance(configuredBalance as number, activeAccount.currency)
+            ? formatConfiguredBalance(configuredValue as number, activeAccount.currency)
             : `${realBalance} ${getCurrencyDisplayCode(activeAccount.currency)}`.trim();
 
         return {
@@ -66,7 +73,7 @@ const useActiveAccount = ({
             isActive: activeAccount?.loginid === activeLoginid,
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeAccount, activeLoginid, allBalanceData, directBalance, configuredBalance]);
+    }, [activeAccount, activeLoginid, allBalanceData, directBalance, configuredBalance, configuredRealBalance]);
 
     return {
         /** User's current active account. */
