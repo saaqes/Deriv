@@ -83,7 +83,7 @@ const MobileMenu = ({ onLogout }: TMobileMenuProps) => {
             <nav className='mobile-bottom-nav'>
                 <a
                     className='mobile-bottom-nav__item'
-                    href='/site-standalone/index.html'
+                    href='/home.html'
                 >
                     <LegacyHomeNewIcon iconSize='xs' fill='var(--text-general)' />
                     <span>{localize('Home')}</span>
