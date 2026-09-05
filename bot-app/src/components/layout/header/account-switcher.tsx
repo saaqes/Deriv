@@ -8,7 +8,7 @@ import { isMockAccountId, switchMockAccount } from '@/external/deriv-core/auth/m
 import { formatConfiguredBalance } from '@/external/deriv-core/trading/display-balance';
 import { installFakeBroker } from '@/external/deriv-core/trading/fake-broker';
 import { useApiBase } from '@/hooks/useApiBase';
-import { useConfiguredBalance } from '@/hooks/useConfiguredBalance';
+import { useConfiguredBalance, useConfiguredRealBalance } from '@/hooks/useConfiguredBalance';
 import { useStore } from '@/hooks/useStore';
 import { isDemoAccount } from '@/utils/account-helpers';
 import { Localize } from '@deriv-com/translations';
@@ -22,8 +22,10 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const { accountList, activeLoginid } = useApiBase();
     const { client, run_panel } = useStore() ?? {};
     // DEMO-only cosmetic override (see display-balance.ts). Never applied to
-    // real accounts — see `formattedAccounts` below.
+    // a genuine real account — see `formattedAccounts` below.
     const configuredBalance = useConfiguredBalance();
+    // Same idea, for the mock "Real" account (CR0000001).
+    const configuredRealBalance = useConfiguredRealBalance();
 
     const is_bot_running = run_panel?.is_running || api_base.is_running;
     const isSingleAccount = !accountList || accountList.length <= 1;
@@ -75,11 +77,14 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                 const isVirtual = isDemoAccount(account.loginid);
                 const realBalance = addComma(Number(account.balance ?? 0).toFixed(getDecimalPlaces(account.currency)));
                 // Same rule as the active-account balance below: a configured
-                // (simulated) balance only ever overrides the display for a
-                // demo/virtual account, never a real one.
+                // (simulated) balance only ever overrides the display for one
+                // of this simulator's two MOCK accounts, never a genuine
+                // real Deriv account.
+                const isMockAccount = isMockAccountId(account.loginid);
+                const configuredValue = isVirtual ? configuredBalance : configuredRealBalance;
                 const displayBalance =
-                    isVirtual && configuredBalance !== null
-                        ? formatConfiguredBalance(configuredBalance, account.currency)
+                    isMockAccount && configuredValue !== null
+                        ? formatConfiguredBalance(configuredValue)
                         : `${realBalance} ${getCurrencyDisplayCode(account.currency)}`;
                 return {
                     loginid: account.loginid,
@@ -91,7 +96,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                 };
             })
             .sort((a, b) => (a.isActive ? -1 : b.isActive ? 1 : 0));
-    }, [accountList, activeLoginid, configuredBalance]);
+    }, [accountList, activeLoginid, configuredBalance, configuredRealBalance]);
 
     if (!activeAccount) return null;
 
