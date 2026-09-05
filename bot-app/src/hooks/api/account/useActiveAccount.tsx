@@ -59,7 +59,7 @@ const useActiveAccount = ({
         const configuredValue = isVirtual ? configuredBalance : configuredRealBalance;
         const isSimulatedDisplay = isMockAccount && configuredValue !== null;
         const displayBalance = isSimulatedDisplay
-            ? formatConfiguredBalance(configuredValue as number, activeAccount.currency)
+            ? formatConfiguredBalance(configuredValue as number)
             : `${realBalance} ${getCurrencyDisplayCode(activeAccount.currency)}`.trim();
 
         return {
