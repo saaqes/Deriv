@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client';
 import { AuthWrapper } from './app/AuthWrapper';
 // Removed AnalyticsInitializer import - analytics dependency removed
 // See migrate-docs/ANALYTICS_IMPLEMENTATION_GUIDE.md for re-implementation
-import { getAuthInfo } from './external/deriv-core';
 import { initiateMockLogin } from './external/deriv-core/auth/mock-login';
 import { installFakeBroker } from './external/deriv-core/trading/fake-broker';
 import { captureConfiguredBalanceFromUrl } from './external/deriv-core/trading/display-balance';
@@ -36,12 +35,11 @@ captureConfiguredBalanceFromUrl();
 // simulated session, but only once it mounts and its effect runs; doing it
 // here too, synchronously before React even renders, closes the race where
 // a fast click on Run lands before that effect has had a chance to fire.
-// Skipped only if the user already has a genuine real Deriv OAuth session,
-// so a real login is never silently overwritten with fake mock data.
-if (!getAuthInfo()) {
-    initiateMockLogin('demo');
-    installFakeBroker();
-}
+// Unconditional on purpose: stale/incomplete real-auth data left over in
+// localStorage from an earlier attempt must never be able to block the
+// simulator from working.
+initiateMockLogin('demo');
+installFakeBroker();
 
 // Apply deploy-time document branding (tab title, favicon, web font, and primary color).
 applyDocumentTitle();
