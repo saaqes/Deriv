@@ -206,16 +206,8 @@ export function subscribeToConfiguredRealBalance(callback: (value: number | null
 }
 
 /** Formats a configured/display balance as currency, e.g. 10000 -> "$10,000.00". */
-export function formatConfiguredBalance(value: number, currency = 'USD'): string {
-    try {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency,
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(value);
-    } catch {
-        // Unknown/invalid currency code — fall back to a plain number.
-        return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
+export function formatConfiguredBalance(value: number): string {
+    // Plain number only — no "$"/currency symbol, matching what was
+    // requested for the simulated balance display.
+    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
