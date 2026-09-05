@@ -65,7 +65,7 @@ export const platformsConfig: PlatformsConfig[] = [
 
 export const TRADERS_HUB_LINK_CONFIG = {
     as: 'a',
-    href: '/site-standalone/index.html',
+    href: '/home.html',
     icon: <TradershubLogo iconSize='xs' />,
     label: 'Home',
 };
