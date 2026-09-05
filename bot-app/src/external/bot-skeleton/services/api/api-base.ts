@@ -19,7 +19,7 @@ import {
     setIsAuthorizing,
 } from './observables/connection-status-stream';
 import ApiHelpers from './api-helpers';
-import { generateDerivApiInstance, V2GetActiveAccountId } from './appId';
+import { generateDerivApiInstance } from './appId';
 import chart_api from './chart-api';
 
 type CurrentSubscription = {
@@ -188,9 +188,15 @@ class APIBase {
             }
         }
 
-        const hasAccountID = V2GetActiveAccountId();
-
-        if (!this.has_active_symbols && !hasAccountID) {
+        // Kick off active_symbols as soon as the socket exists, in parallel
+        // with authorizeAndSubscribe() below (triggered separately by the
+        // 'open' event). This call needs no authorization, so there is no
+        // reason to wait for login/balance to finish first — doing so was
+        // adding a full sequential round-trip (OTP fetch + WS auth + balance,
+        // THEN active_symbols) to every fresh page load of the Chart tab.
+        // authorizeAndSubscribe() below already reuses this same promise
+        // instead of firing a second request once it completes.
+        if (!this.has_active_symbols && !this.active_symbols_promise) {
             this.active_symbols_promise = this.getActiveSymbols().then(() => undefined);
         }
 
@@ -359,7 +365,9 @@ class APIBase {
 
             if (this.has_active_symbols) {
                 this.toggleRunButton(false);
-            } else {
+            } else if (!this.active_symbols_promise) {
+                // Only fire this if init() didn't already start the prefetch
+                // in parallel with this authorization call.
                 this.active_symbols_promise = this.getActiveSymbols();
             }
             this.subscribe();
