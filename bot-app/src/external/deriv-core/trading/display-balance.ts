@@ -46,6 +46,15 @@ const CONFIGURED_BALANCE_LEGACY_KEY = 'configuredBalance';
 export const CONFIGURED_BALANCE_URL_PARAM = 'tlbal';
 export const CONFIGURED_BALANCE_EVENT = 'tradelab:configured-balance-updated';
 
+// Second, independent channel for the mock/simulated "Real" account
+// (CR0000001 in mock-login.ts — NOT a genuine Deriv real-money account).
+// Mirrors home.html's "Cuenta Virtual" panel (TradeLabSim's `virtual`
+// balance) the same way CONFIGURED_BALANCE_LEGACY_KEY mirrors "Cuenta
+// Demo". Kept fully separate from the demo channel above so the two
+// account cards in home.html can be set to different numbers.
+const CONFIGURED_REAL_BALANCE_LEGACY_KEY = 'configuredRealBalance';
+export const CONFIGURED_REAL_BALANCE_EVENT = 'tradelab:configured-real-balance-updated';
+
 type StoredConfiguredBalance = {
     value: number;
     updatedAt: number;
@@ -93,6 +102,23 @@ export function getConfiguredBalance(): number | null {
         // Corrupt/inaccessible storage.
     }
 
+    return null;
+}
+
+/**
+ * Same as `getConfiguredBalance`, but for the mock "Real" account
+ * (CR0000001) instead of the mock "Demo" account. Reads the balance
+ * home.html's "Cuenta Virtual" panel keeps in `configuredRealBalance`.
+ */
+export function getConfiguredRealBalance(): number | null {
+    try {
+        const legacy = localStorage.getItem(CONFIGURED_REAL_BALANCE_LEGACY_KEY);
+        if (legacy !== null) {
+            return parseConfiguredBalance(legacy);
+        }
+    } catch {
+        // Corrupt/inaccessible storage.
+    }
     return null;
 }
 
@@ -156,6 +182,25 @@ export function subscribeToConfiguredBalance(callback: (value: number | null) =>
 
     return () => {
         window.removeEventListener(CONFIGURED_BALANCE_EVENT, handleCustomEvent);
+        window.removeEventListener('storage', handleStorageEvent);
+    };
+}
+
+/**
+ * Same as `subscribeToConfiguredBalance`, but for the mock "Real" account
+ * channel. Cross-tab sync (home.html "Cuenta Virtual" panel in one tab,
+ * #chart in another) via the native `storage` event.
+ */
+export function subscribeToConfiguredRealBalance(callback: (value: number | null) => void): () => void {
+    const handleStorageEvent = (event: StorageEvent) => {
+        if (event.key === CONFIGURED_REAL_BALANCE_LEGACY_KEY) {
+            callback(getConfiguredRealBalance());
+        }
+    };
+
+    window.addEventListener('storage', handleStorageEvent);
+
+    return () => {
         window.removeEventListener('storage', handleStorageEvent);
     };
 }
