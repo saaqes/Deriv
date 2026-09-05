@@ -7,6 +7,8 @@ import { contract_stages, TContractStage } from '@/constants/contract-stage';
 import { run_panel } from '@/constants/run-panel';
 import { ErrorTypes, MessageTypes, observer, unrecoverable_errors } from '@/external/bot-skeleton';
 import { getSelectedTradeType } from '@/external/bot-skeleton/scratch/utils';
+import { initiateMockLogin, isMockLoginAvailable } from '@/external/deriv-core/auth/mock-login';
+import { installFakeBroker } from '@/external/deriv-core/trading/fake-broker';
 import { handleBackendError, isBackendError } from '@/utils/error-handler';
 // import { journalError, switch_account_notification } from '@/utils/bot-notifications';
 import GTM from '@/utils/gtm';
@@ -370,12 +372,25 @@ export default class RunPanelStore {
     showLoginDialog = () => {
         // Only allow closing through the buttons
         this.onOkButtonClick = () => {
+            // This app is an educational simulator — log the user straight
+            // in instead of sending them to Deriv's real OAuth permission
+            // screen. See mock-login.ts.
+            if (isMockLoginAvailable()) {
+                initiateMockLogin('real');
+                installFakeBroker();
+                this.is_dialog_open = false;
+                return;
+            }
             generateOAuthURL('registration').then(url => {
                 if (url) window.location.replace(url);
             });
             this.is_dialog_open = false;
         };
         this.onCancelButtonClick = () => {
+            if (isMockLoginAvailable()) {
+                initiateMockLogin('real');
+                installFakeBroker();
+            }
             this.is_dialog_open = false;
         };
         this.dialog_options = {
