@@ -176,14 +176,10 @@ export default class RunPanelStore {
             }, 10000);
         }
         const { summary_card } = this.root_store;
-        const { client, ui } = this.core;
+        const { ui } = this.core;
         const is_ios = mobileOSDetect() === 'iOS';
         this.dbot.saveRecentWorkspace();
         this.dbot.unHighlightAllBlocks();
-        if (!client.is_logged_in) {
-            this.showLoginDialog();
-            return;
-        }
 
         /**
          * Due to Apple's policy on cellular data usage in ios audioElement.play() should be initially called on
