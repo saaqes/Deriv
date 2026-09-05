@@ -2,11 +2,9 @@
 import React from 'react';
 import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
-import Text from '@/components/shared_ui/text';
 import { getContractTypeDisplay } from '@/constants/contract';
 import { useStore } from '@/hooks/useStore';
 import { getSymbolDisplayNameSync } from '@/utils/symbol-display-name';
-import { localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 import ContractCardLoader from '../contract-card-loading';
 import { getCardLabels } from '../shared';
@@ -15,8 +13,7 @@ import { TSummaryCardProps } from './summary-card.types';
 
 const SummaryCard = observer(({ contract_info, is_contract_loading, is_bot_running }: TSummaryCardProps) => {
     const { summary_card, run_panel, ui, common } = useStore();
-    const { is_contract_completed, is_contract_inactive, is_multiplier, is_accumulator, setIsBotRunning } =
-        summary_card;
+    const { is_contract_completed, is_multiplier, is_accumulator, setIsBotRunning } = summary_card;
     const { onClickSell, is_sell_requested, contract_stage } = run_panel;
     const { addToast, current_focus, removeToast, setCurrentFocus } = ui;
     const { server_time } = common;
@@ -85,7 +82,6 @@ const SummaryCard = observer(({ contract_info, is_contract_loading, is_bot_runni
         <div
             className={classNames('db-summary-card', {
                 'db-summary-card--mobile': !isDesktop,
-                'db-summary-card--inactive': is_contract_inactive && !is_contract_loading && !contract_info,
                 'db-summary-card--completed': is_contract_completed,
                 'db-summary-card--completed-mobile': is_contract_completed && !isDesktop,
                 'db-summary-card--delayed-loading': is_bot_running,
@@ -111,13 +107,6 @@ const SummaryCard = observer(({ contract_info, is_contract_loading, is_bot_runni
                         {contract_el}
                     </div>
                 </ContractCard>
-            )}
-            {!is_contract_loading && !contract_info && !is_bot_running && (
-                <Text as='p' align='center' lineHeight='s' size='xs'>
-                    {localize('When you’re ready to trade, hit ')}
-                    <strong className='summary-panel-inactive__strong'>{localize('Run')}</strong>
-                    {localize('. You’ll be able to track your bot’s performance here.')}
-                </Text>
             )}
         </div>
     );
