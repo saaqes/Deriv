@@ -188,6 +188,12 @@ const AppWrapper = observer(() => {
                 api_base.setIsRunning(false);
                 setWebSocketState(false);
             }
+        } else {
+            // Connection is back up — dismiss the "You're back online" dialog
+            // automatically instead of forcing the user through a full page
+            // reload just to close it (it previously never got reset back
+            // to true after reconnecting, so it stayed stuck until reload).
+            setWebSocketState(true);
         }
     }, [clear, connectionStatus, setWebSocketState, stopBot]);
 
