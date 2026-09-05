@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client';
 import { AuthWrapper } from './app/AuthWrapper';
 // Removed AnalyticsInitializer import - analytics dependency removed
 // See migrate-docs/ANALYTICS_IMPLEMENTATION_GUIDE.md for re-implementation
+import { getAuthInfo } from './external/deriv-core';
+import { initiateMockLogin } from './external/deriv-core/auth/mock-login';
+import { installFakeBroker } from './external/deriv-core/trading/fake-broker';
 import { captureConfiguredBalanceFromUrl } from './external/deriv-core/trading/display-balance';
 import {
     applyBrandFontFromConfig,
@@ -26,6 +29,19 @@ performVersionCheck();
 // ?tlbal=<amount> (see display-balance.ts). Purely cosmetic — never affects
 // the real Deriv balance, real accounts, or trading logic.
 captureConfiguredBalanceFromUrl();
+
+// This app is an educational simulator (see mock-login.ts) — clicking "Run"
+// must never be blocked by "Please log in." (fake-broker.ts rejects a buy
+// when no mock account is active yet). header.tsx also auto-activates the
+// simulated session, but only once it mounts and its effect runs; doing it
+// here too, synchronously before React even renders, closes the race where
+// a fast click on Run lands before that effect has had a chance to fire.
+// Skipped only if the user already has a genuine real Deriv OAuth session,
+// so a real login is never silently overwritten with fake mock data.
+if (!getAuthInfo()) {
+    initiateMockLogin('demo');
+    installFakeBroker();
+}
 
 // Apply deploy-time document branding (tab title, favicon, web font, and primary color).
 applyDocumentTitle();
