@@ -2,7 +2,7 @@ import React from 'react';
 import { observer } from 'mobx-react-lite';
 import Text from '@/components/shared_ui/text';
 import { useStore } from '@/hooks/useStore';
-import { navigateToUrl, reloadPage } from '@/utils/navigation-utils';
+import { navigateToUrl } from '@/utils/navigation-utils';
 import { generateUrlWithRedirect } from '@/utils/url-redirect-utils';
 import { LegacyClose1pxIcon } from '@deriv/quill-icons/Legacy';
 import { Localize, localize } from '@deriv-com/translations';
@@ -11,9 +11,13 @@ import { standalone_routes } from './shared';
 
 const BotStopped = observer(() => {
     const { dashboard } = useStore();
-    const { is_web_socket_intialised } = dashboard;
+    const { is_web_socket_intialised, setWebSocketState } = dashboard;
+    // Dismiss directly instead of forcing a full page reload — the
+    // connection-status effect in main.tsx already clears this flag on its
+    // own as soon as the WebSocket reopens, so a reload isn't actually
+    // needed just to close this notice.
     const onClickClose = () => {
-        reloadPage();
+        setWebSocketState(true);
     };
     return (
         <Dialog
@@ -23,7 +27,7 @@ const BotStopped = observer(() => {
             cancel_button_text={localize('Go to Reports')}
             confirm_button_text={localize('Back to Bot')}
             onCancel={() => navigateToUrl(generateUrlWithRedirect(standalone_routes.positions))}
-            onConfirm={reloadPage}
+            onConfirm={onClickClose}
             login={() => {}} // Empty function as login is not needed for this dialog
         >
             <div className='dc-dialog__content__header'>
