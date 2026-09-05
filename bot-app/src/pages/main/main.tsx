@@ -12,12 +12,10 @@ import Tabs from '@/components/shared_ui/tabs/tabs';
 import TradeTypeConfirmationModal from '@/components/trade-type-confirmation-modal';
 import TradingViewModal from '@/components/trading-view-chart/trading-view-modal';
 import { DBOT_TABS, TAB_IDS } from '@/constants/bot-contents';
-import { api_base, updateWorkspaceName } from '@/external/bot-skeleton';
-import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
+import { updateWorkspaceName } from '@/external/bot-skeleton';
 import { isDbotRTL } from '@/external/bot-skeleton/utils/workspace';
 import { initiateMockLogin, isMockLoginAvailable } from '@/external/deriv-core/auth/mock-login';
 import { installFakeBroker } from '@/external/deriv-core/trading/fake-broker';
-import { useApiBase } from '@/hooks/useApiBase';
 import { useStore } from '@/hooks/useStore';
 import {
     disableUrlParameterApplication,
@@ -50,8 +48,7 @@ const ChartWrapper = lazy(() => import('../chart/chart-wrapper'));
 const Tutorial = lazy(() => import('../tutorials'));
 
 const AppWrapper = observer(() => {
-    const { connectionStatus } = useApiBase();
-    const { dashboard, load_modal, run_panel, quick_strategy, summary_card, blockly_store } = useStore();
+    const { dashboard, load_modal, run_panel, quick_strategy, blockly_store } = useStore();
     const { is_loading } = blockly_store;
     const {
         active_tab,
@@ -59,7 +56,6 @@ const AppWrapper = observer(() => {
         is_chart_modal_visible,
         is_trading_view_modal_visible,
         setActiveTab,
-        setWebSocketState,
         setActiveTour,
         setTourDialogVisibility,
     } = dashboard;
@@ -71,13 +67,11 @@ const AppWrapper = observer(() => {
         onCancelButtonClick,
         onCloseDialog,
         onOkButtonClick,
-        stopBot,
     } = run_panel;
     const { is_open } = quick_strategy;
     const { cancel_button_text, ok_button_text, title, message, dismissable, is_closed_on_cancel } = dialog_options as {
         [key: string]: string;
     };
-    const { clear } = summary_card;
     const { DASHBOARD, BOT_BUILDER } = DBOT_TABS;
     const init_render = React.useRef(true);
     const hash = ['dashboard', 'bot_builder', 'chart', 'tutorial'];
@@ -179,23 +173,11 @@ const AppWrapper = observer(() => {
         observer_tutorial.observe(el_tutorial);
     });
 
-    React.useEffect(() => {
-        if (connectionStatus !== CONNECTION_STATUS.OPENED) {
-            const is_bot_running = document.getElementById('db-animation__stop-button') !== null;
-            if (is_bot_running) {
-                clear();
-                stopBot();
-                api_base.setIsRunning(false);
-                setWebSocketState(false);
-            }
-        } else {
-            // Connection is back up — dismiss the "You're back online" dialog
-            // automatically instead of forcing the user through a full page
-            // reload just to close it (it previously never got reset back
-            // to true after reconnecting, so it stayed stuck until reload).
-            setWebSocketState(true);
-        }
-    }, [clear, connectionStatus, setWebSocketState, stopBot]);
+    // Deliberately no longer auto-stopping the bot or showing a blocking
+    // "You're back online" dialog on a connection status blip — this is a
+    // simulator (fake-broker.ts), so a brief real-market-data hiccup should
+    // never interrupt the user. is_web_socket_intialised stays at its
+    // default (true) forever now, so that dialog never appears.
 
     // Update tab shadows height to match bot builder height
     const updateTabShadowsHeight = () => {
