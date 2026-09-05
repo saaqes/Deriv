@@ -17,8 +17,8 @@
  * those endpoints don't need a token, so market data stays real. No request
  * that could touch a real account (buy/sell/balance) ever reaches Deriv.
  *
- * Settlement: every contract, of any type, resolves with a fixed 90% win /
- * 10% loss probability — not based on real market movement. The exit price
+ * Settlement: every contract, of any type, resolves with a fixed 92.3% win /
+ * 7.7% loss probability — not based on real market movement. The exit price
  * shown on the contract card is still fetched for display purposes, but it
  * has no bearing on the outcome. This fixed win rate is intentional and
  * fine for a dev-only sandbox, but it must never be exposed to end users or
@@ -84,52 +84,8 @@ async function fetchRealSpot(symbol: string): Promise<number | undefined> {
     return undefined;
 }
 
-function lastDigit(price: number, pipSize = 2): number {
-    const str = Number(price).toFixed(pipSize);
-    return Number(str[str.length - 1]);
-}
-
-/**
- * Real-market outcome for the contract types bot strategies use most often
- * (Rise/Fall, Digits). Returns `undefined` when the contract type isn't
- * modeled here (e.g. touch/no-touch, Asians, reset calls) or when a real
- * exit price couldn't be fetched — the caller falls back to the
- * probability-weighted settlement in that case, same as before.
- */
-function resolveRealOutcome(c: Record<string, any>, exit: number | undefined): boolean | undefined {
-    if (exit === undefined) return undefined;
-    const entry = Number(c.entry_tick);
-    if (!Number.isFinite(entry)) return undefined;
-
-    const pip_size = api_base?.pip_sizes?.[c.underlying] ?? 2;
-    const barrier = c.barrier !== undefined && c.barrier !== null ? Number(c.barrier) : undefined;
-    const digit = lastDigit(exit, pip_size);
-
-    switch (c.contract_type) {
-        case 'CALL':
-            return exit > entry;
-        case 'PUT':
-            return exit < entry;
-        case 'DIGITEVEN':
-            return digit % 2 === 0;
-        case 'DIGITODD':
-            return digit % 2 !== 0;
-        case 'DIGITMATCH':
-            return barrier !== undefined ? digit === barrier : undefined;
-        case 'DIGITDIFF':
-            return barrier !== undefined ? digit !== barrier : undefined;
-        case 'DIGITOVER':
-            return barrier !== undefined ? digit > barrier : undefined;
-        case 'DIGITUNDER':
-            return barrier !== undefined ? digit < barrier : undefined;
-        default:
-            return undefined;
-    }
-}
-
-/** Fallback fixed win rate, used only when a contract type isn't modeled
- * against real market movement above (see resolveRealOutcome). */
-const WIN_PROBABILITY = 0.9;
+/** Fixed win rate applied to every contract's outcome (92.3% win / 7.7% loss). */
+const WIN_PROBABILITY = 0.923;
 const rollWin = (): boolean => Math.random() < WIN_PROBABILITY;
 
 function pushOpenContractMessage(contract: Record<string, unknown>): void {
@@ -148,13 +104,11 @@ async function settleContract(contract_id: string): Promise<void> {
     const c = openContracts.get(contract_id);
     if (!c || c.is_sold) return;
 
-    // Fetch the real exit price and use it to determine the actual outcome
-    // (Rise/Fall, Digits) based on genuine market movement. Only falls back
-    // to the fixed 90%/10% probability for contract types not modeled in
-    // resolveRealOutcome, or if real market data couldn't be fetched.
+    // Still fetch a real exit price so the contract card shows a genuine,
+    // plausible market number — but the win/loss outcome itself now always
+    // follows the fixed 92.3% win rate below, regardless of contract type.
     const exit = await fetchRealSpot(c.underlying);
-    const real_outcome = resolveRealOutcome(c, exit);
-    const won = real_outcome !== undefined ? real_outcome : rollWin();
+    const won = rollWin();
 
     const sell_price = won ? c.payout : 0;
 
@@ -321,10 +275,9 @@ async function handleSell(data: any): Promise<any> {
         return Promise.resolve({ msg_type: 'sell', sell: { sold_for: c.sell_price } });
     }
 
-    // Early/manual sell — based on real market movement since entry rather
-    // than a coin flip, same as the scheduled settlement in
-    // settleContract(). Multipliers get a proportional mark-to-market P/L;
-    // everything else reuses resolveRealOutcome's win/lose rule.
+    // Early/manual sell. Multipliers get a proportional mark-to-market P/L
+    // based on real market movement; everything else follows the fixed
+    // 92.3% win rate below, same as scheduled settlement in settleContract().
     const exit = await fetchRealSpot(c.underlying);
     const entry = Number(c.entry_tick);
     const isMultiplier = c.contract_type === 'MULTUP' || c.contract_type === 'MULTDOWN';
@@ -337,8 +290,7 @@ async function handleSell(data: any): Promise<any> {
         const profit = c.buy_price * multiplier * directional_move;
         sell_price = Math.max(0, Math.round((c.buy_price + profit) * 100) / 100);
     } else {
-        const real_outcome = resolveRealOutcome(c, exit);
-        const won = real_outcome !== undefined ? real_outcome : rollWin();
+        const won = rollWin();
         sell_price = won ? Math.round(c.payout * 100) / 100 : 0;
     }
 
