@@ -30,6 +30,7 @@
  */
 import { Subject } from 'rxjs';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
+import { CONNECTION_STATUS, connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { applyMockBalanceDelta, getActiveMockAccount, isMockLoginAvailable } from '@/external/deriv-core/auth/mock-login';
 
 let patchedApiRef: any = null;
@@ -38,6 +39,16 @@ let realSend: ((data: unknown) => Promise<any>) | null = null;
 const fakeMessages$ = new Subject<{ data: any }>();
 const proposalCache = new Map<string, any>();
 const openContracts = new Map<string, any>();
+
+// Re-patch the instant the WebSocket actually opens (fresh connection or
+// reconnect), instead of only relying on the slower interval watcher below.
+// Without this, a buy attempt that lands in the window right after a
+// reconnect (api_base.api swapped for a new, unpatched instance) would fall
+// through to the real API and come back with a real "Please log in."
+// (AuthorizationRequired) instead of being handled by the fake broker.
+connectionStatus$.subscribe(status => {
+    if (status === CONNECTION_STATUS.OPENED) installFakeBroker();
+});
 
 const APPROX_TICK_MS = 2000; // rough interval between synthetic-index ticks
 
