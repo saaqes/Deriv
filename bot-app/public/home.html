@@ -2,6 +2,15 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<!-- Acelera la navegación hacia el bot-app (pestaña Chart): abre de una vez
+     la conexión con la API de Deriv y empieza a precargar la página raíz
+     (bundle de React) para que, al tocar "Deriv Bot"/Portfolio, gran parte
+     del trabajo de red ya esté hecho. -->
+<link rel="preconnect" href="https://api.derivws.com" crossorigin>
+<link rel="dns-prefetch" href="https://api.derivws.com">
+<link rel="preconnect" href="https://auth.deriv.com">
+<link rel="dns-prefetch" href="https://auth.deriv.com">
+<link rel="prefetch" href="/">
 <script src="https://kit.fontawesome.com/69112f3248.js" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TradeLab Sim — Simulador educativo de trading (no oficial)</title>
