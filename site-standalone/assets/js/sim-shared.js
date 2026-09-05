@@ -47,6 +47,12 @@
       if (typeof data.demo === 'number' && isFinite(data.demo) && data.demo >= 0) {
         localStorage.setItem('configuredBalance', String(data.demo));
       }
+      // Mismo espejo, para la cuenta "Virtual" — bot-app la usa para su
+      // cuenta simulada "Real" (CR0000001, ver mock-login.ts; no es una
+      // cuenta real de Deriv con dinero real).
+      if (typeof data.virtual === 'number' && isFinite(data.virtual) && data.virtual >= 0) {
+        localStorage.setItem('configuredRealBalance', String(data.virtual));
+      }
       // Avisa a otras pestañas/páginas abiertas del mismo simulador.
       window.dispatchEvent(new CustomEvent('tradelab-sim:balances-updated', { detail: data }));
       return true;
