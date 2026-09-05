@@ -5,6 +5,7 @@ import { toMoment } from '@/components/shared';
 import { FORM_ERROR_MESSAGES } from '@/components/shared/constants/form-error-messages';
 import { initFormErrorMessages } from '@/components/shared/utils/validation/declarative-validation-rules';
 import { api_base } from '@/external/bot-skeleton';
+import { getActiveMockAccount, isMockLoginAvailable } from '@/external/deriv-core/auth/mock-login';
 import { useApiBase } from '@/hooks/useApiBase';
 import { useLogout } from '@/hooks/useLogout';
 import { useStore } from '@/hooks/useStore';
@@ -123,10 +124,20 @@ const CoreStoreProvider: React.FC<{ children: React.ReactNode }> = observer(({ c
 
             // Handle auth errors by calling client.logout() directly instead of useLogout hook
             // This prevents redundant logout operations since useLogout internally calls client.logout()
+            //
+            // This app is an educational simulator (see mock-login.ts): while a
+            // simulated session is active, a stray AuthorizationRequired/
+            // InvalidToken error from a public real-API call (e.g. fetching a
+            // real spot price for the fake broker) must never log the user out
+            // and reset the whole connection — there's no real session to
+            // invalidate. Only real accounts (no active mock account) still go
+            // through the normal logout flow here.
+            const isSimulatedSession = isMockLoginAvailable() && !!getActiveMockAccount();
             if (
-                error?.code === 'AuthorizationRequired' ||
-                error?.code === 'DisabledClient' ||
-                error?.code === 'InvalidToken'
+                !isSimulatedSession &&
+                (error?.code === 'AuthorizationRequired' ||
+                    error?.code === 'DisabledClient' ||
+                    error?.code === 'InvalidToken')
             ) {
                 // Clear all URL query parameters for these auth errors
                 clearInvalidTokenParams();
