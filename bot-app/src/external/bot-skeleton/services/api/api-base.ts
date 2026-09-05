@@ -19,7 +19,7 @@ import {
     setIsAuthorizing,
 } from './observables/connection-status-stream';
 import ApiHelpers from './api-helpers';
-import { generateDerivApiInstance, V2GetActiveAccountId } from './appId';
+import { generateDerivApiInstance } from './appId';
 import chart_api from './chart-api';
 
 type CurrentSubscription = {
@@ -188,10 +188,24 @@ class APIBase {
             }
         }
 
-        const hasAccountID = V2GetActiveAccountId();
-
-        if (!this.has_active_symbols && !hasAccountID) {
-            this.active_symbols_promise = this.getActiveSymbols().then(() => undefined);
+        // Kick off active_symbols as soon as the socket exists, in parallel
+        // with authorizeAndSubscribe() below (triggered separately by the
+        // 'open' event) instead of only for guest/no-account sessions. This
+        // call needs no authorization, so there is no reason to wait for
+        // login/balance to finish first — doing so was adding a full
+        // sequential round-trip (OTP fetch + WS auth + balance, THEN
+        // active_symbols) to every fresh page load of the Chart tab.
+        // If it fails, clear the promise so the next caller (see
+        // active-symbols.js / authorizeAndSubscribe below) retries with a
+        // fresh fetch instead of getting stuck on a dead rejected promise.
+        if (!this.has_active_symbols && !this.active_symbols_promise) {
+            this.active_symbols_promise = this.getActiveSymbols()
+                .then(() => undefined)
+                .catch(error => {
+                    console.warn('[APIBase] active_symbols prefetch failed, will retry later:', error);
+                    this.active_symbols_promise = null;
+                    return undefined;
+                });
         }
 
         this.initEventListeners();
@@ -359,8 +373,16 @@ class APIBase {
 
             if (this.has_active_symbols) {
                 this.toggleRunButton(false);
-            } else {
-                this.active_symbols_promise = this.getActiveSymbols();
+            } else if (!this.active_symbols_promise) {
+                // Only fire this if init() didn't already start the prefetch
+                // in parallel with this authorization call.
+                this.active_symbols_promise = this.getActiveSymbols()
+                    .then(symbols => symbols)
+                    .catch(error => {
+                        console.warn('[APIBase] active_symbols fetch failed, will retry later:', error);
+                        this.active_symbols_promise = null;
+                        return undefined;
+                    });
             }
             this.subscribe();
         } catch (e) {
