@@ -27,6 +27,10 @@ import {
     setIsAuthorized,
     setIsAuthorizing,
 } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
+import {
+    applyConfiguredBalanceDelta,
+    applyConfiguredRealBalanceDelta,
+} from '@/external/deriv-core/trading/display-balance';
 import type { TAccount } from '@/types/api-types';
 
 const MOCK_REAL_ACCOUNT: TAccount = {
@@ -145,6 +149,14 @@ export function applyMockBalanceDelta(loginid: string, delta: number): void {
     const acc = mockAccounts[loginid];
     if (!acc) return;
     acc.balance = Math.max(0, Math.round((acc.balance + delta) * 100) / 100);
+    // Keep the configured/display balance (see display-balance.ts) moving in
+    // sync with every buy, win, and loss — not just whatever was last typed
+    // into home.html's balance manager.
+    if (loginid === MOCK_DEMO_ACCOUNT.loginid) {
+        applyConfiguredBalanceDelta(delta);
+    } else if (loginid === MOCK_REAL_ACCOUNT.loginid) {
+        applyConfiguredRealBalanceDelta(delta);
+    }
     if (loginid === activeMockLoginId) pushAuthState();
 }
 
