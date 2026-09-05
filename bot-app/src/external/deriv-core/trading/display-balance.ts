@@ -65,25 +65,35 @@ export function parseConfiguredBalance(raw: unknown): number | null {
 
 /** Reads and validates the currently stored configured (demo/display) balance. */
 export function getConfiguredBalance(): number | null {
+    // Same-origin key first: home.html / options.html (sim-shared.js) write
+    // this every time the user changes the "Cuenta Demo" balance, and now
+    // that they're served by bot-app itself (same origin), this is always
+    // the freshest value. Checking it first means a one-off value captured
+    // long ago from the old cross-origin `?tlbal=` handoff (below) can never
+    // permanently shadow a newer balance set from home.html.
+    try {
+        const legacy = localStorage.getItem(CONFIGURED_BALANCE_LEGACY_KEY);
+        if (legacy !== null) {
+            const valid = parseConfiguredBalance(legacy);
+            if (valid !== null) return valid;
+        }
+    } catch {
+        // Corrupt/inaccessible storage — fall through to the URL-handoff key.
+    }
+
+    // Fallback: value captured from a `?tlbal=` URL param (used only when
+    // site-standalone is deployed on a different origin than bot-app).
     try {
         const raw = localStorage.getItem(CONFIGURED_BALANCE_STORAGE_KEY);
         if (raw) {
             const parsed: StoredConfiguredBalance = JSON.parse(raw);
-            const valid = parseConfiguredBalance(parsed?.value);
-            if (valid !== null) return valid;
+            return parseConfiguredBalance(parsed?.value);
         }
     } catch {
-        // Corrupt/inaccessible storage — fall through to legacy key.
+        // Corrupt/inaccessible storage.
     }
 
-    // Same-origin fallback: read site-standalone's key directly, in case
-    // both apps happen to share an origin.
-    try {
-        const legacy = localStorage.getItem(CONFIGURED_BALANCE_LEGACY_KEY);
-        return parseConfiguredBalance(legacy);
-    } catch {
-        return null;
-    }
+    return null;
 }
 
 /**
