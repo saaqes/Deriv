@@ -67,7 +67,11 @@ body.bf-active .notif-panel{
    simplemente dos hijos consecutivos del mismo flujo normal: es
    estructuralmente imposible que se superpongan. */
 .bf-bottom{
-  position: static;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5000;
   box-sizing: border-box;
   width: 100%;
   background: #f2f2f2;
@@ -75,6 +79,23 @@ body.bf-active .notif-panel{
   border-top: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
+}
+
+/* Dentro de .bf-safari-stack (páginas estáticas) deja de ser fixed
+   por su cuenta — el contenedor padre ya es el único elemento fixed. */
+.bf-safari-stack .bf-bottom{
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+}
+
+/* Caso app React: el menú (.mobile-bottom-nav / .app-footer) sigue
+   siendo fixed tal cual ya era — solo se le calcula dónde termina la
+   barra Safari (también fixed, independiente) para que quede justo
+   encima sin superponerse. Nada de su DOM se mueve. */
+.bf-nav-offset{
+  bottom: var(--browser-frame-bottom-height) !important;
 }
 
 /* El único elemento fixed del lado inferior en modo Safari: agrupa,
