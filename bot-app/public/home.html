@@ -2,6 +2,15 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#f73b3b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TradeLab Bot">
 <!-- Acelera la navegación hacia el bot-app (pestaña Chart): abre de una vez
      la conexión con la API de Deriv y empieza a precargar la página raíz
      (bundle de React) para que, al tocar "Deriv Bot"/Portfolio, gran parte
@@ -12,7 +21,7 @@
 <link rel="dns-prefetch" href="https://auth.deriv.com">
 <link rel="prefetch" href="/">
 <script src="https://kit.fontawesome.com/69112f3248.js" crossorigin="anonymous"></script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>TradeLab Sim — Simulador educativo de trading (no oficial)</title>
 <meta name="description" content="Simulador educativo independiente. No es Deriv ni ninguna plataforma de trading real, y no gestiona dinero real.">
 <style>
@@ -43,6 +52,7 @@
     margin:0 auto;
     background:var(--bg-white);
     min-height:100vh;
+    min-height:100dvh;
     position:relative;
     padding-bottom:64px;
   }
@@ -91,13 +101,10 @@
   }
 
   .ask-amy{
-    font-size:13px;
-    padding:6px 14px;
-    border-radius:20px;
-    display:flex;
-    align-items:center;
-    gap:6px;
-    font-weight:500;
+    height:28px;
+    width:auto;
+    display:block;
+    border-radius:16px;
   }
 
   .header-icons{
@@ -684,6 +691,7 @@
     justify-content:space-around;
     align-items:center;
     padding:10px 0 10px max(8px, env(safe-area-inset-bottom));
+    z-index:1000;
   }
   .nav-item{
     display:flex;
@@ -729,7 +737,7 @@
 
   @media (max-width: 390px){
     .header-top{ margin-bottom:16px; }
-    .ask-amy{ font-size:12px; padding:5px 12px; }
+    .ask-amy{ height:24px; }
     .header-icons{ gap:12px; }
     .header-text h1{ font-size:15px; }
     .progress-bar{ width:60px; }
@@ -947,7 +955,7 @@
   <header class="header">
     <div class="header-top">
       <div class="avatar">JR</div>
-      <div class="ask-amy">💬 Ayuda</div>
+      <img class="ask-amy" src="assets/sim/img/ask_amy_mobile.svg" alt="Ask Amy">
       <div class="header-icons">
         <div class="icon-btn" id="eyeToggle"><i class="fa-regular fa-eye" id="eyeIcon"></i></div>
         <div class="icon-btn" id="bellToggle"><i class="fa-regular fa-bell"></i> <span class="badge">5</span></div>
@@ -963,13 +971,13 @@
         </div>
         <div class="valor-total-updated">Actualizado ahora</div>
       </div>
-      <button class="deposit-btn">+ Fondos virtuales</button>
+      <button class="deposit-btn">Deposit</button>
     </div>
   </header>
 
   <!-- TRADING ACCOUNTS CAROUSEL -->
   <section class="section">
-    <div class="section-title">Mis cuentas simuladas</div>
+    <div class="section-title">my trading account</div>
     <div class="accounts-scroll">
       <div class="account-card">
         <div class="account-icon icon-tv" style="background:#2e8de0;color:#fff;font-size:16px;"><img src="assets/sim/img/TradingView.webp" alt="TradingView"></div>
@@ -1024,7 +1032,7 @@
 
   <!-- EXPLORE (simulador) -->
   <section class="section">
-    <div class="section-title">Explorar el simulador</div>
+    <div class="section-title">Explore Deriv</div>
     <div class="explore-grid">
       <div class="explore-item">
         <div class="explore-icon mts-icon" style="font-size:24px;"><img src="assets/sim/img/MT5.webp" alt="MT5"></div>
@@ -1164,7 +1172,7 @@
 
       <div class="balance-manager-card">
         <div class="balance-manager-header">
-          <span class="balance-manager-name">Cuenta Virtual</span>
+          <span class="balance-manager-name">Cuenta Real</span>
           <span class="balance-manager-current"><span id="virtualCurrentBalance">0.00</span> <small>USD (sim)</small></span>
         </div>
         <input type="number" inputmode="decimal" min="0" step="0.01" class="balance-input" id="virtualAmountInput" placeholder="Monto virtual">
@@ -1174,7 +1182,6 @@
           <button class="bal-btn bal-btn-set" data-account="virtual" data-action="fijar">Fijar</button>
         </div>
         <div class="balance-manager-feedback" id="virtualFeedback"></div>
-        <div style="margin-top:8px; font-size:11px; color:var(--text-muted);">Esta cuenta es 100% simulada. No representa dinero real ni está conectada a ninguna cuenta bancaria o de bróker.</div>
       </div>
     </div>
   </div>
