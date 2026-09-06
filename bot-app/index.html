@@ -27,6 +27,7 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="TradeLab Bot" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <link rel="stylesheet" href="/assets/sim/css/browser-frame.css" />
         <meta name="title" content="Automate Your Trades | TradeLab Bot" />
         <meta
             name="description"
@@ -60,6 +61,12 @@
         <div id="modal_root" class="modal-root"></div>
         <div id="popup_root" class="popup-root"></div>
         <div id="root"></div>
+        <!-- Marco visual Chrome/Safari (decorativo, ver browser-frame.js).
+             Vive fuera de #root a propósito: React solo controla lo que
+             hay dentro de #root, así que este marco nunca se desmonta ni
+             se duplica sin importar qué pestaña/hash esté activo. -->
+        <script src="/assets/sim/js/browser-frame.js"></script>
+        <script>BrowserFrame.init();</script>
         <!-- LiveChat script -->
         <script type="text/javascript" defer>
             window.__lc = window.__lc || {};
