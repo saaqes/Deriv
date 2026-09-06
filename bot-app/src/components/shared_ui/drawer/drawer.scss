@@ -27,6 +27,13 @@
         // sits directly above the Run status bar again — both used to be
         // flush against the viewport bottom before the bottom nav existed.
         height: calc(100% - 16.1rem) !important;
+        // Tope real: nunca más alto que el espacio que queda debajo del
+        // header/saldo (--app-header-height, medido en vivo por
+        // browser-frame.js). Como al abrirse este panel se desplaza hacia
+        // arriba una distancia igual a su propia altura menos 3.6rem,
+        // limitar la altura también limita ese recorrido — así no puede
+        // llegar por encima del header sin importar el modo de aspecto.
+        max-height: calc(100dvh - var(--app-header-height, 8rem));
         top: calc(100% - 15.8rem) !important;
     }
 
