@@ -98,6 +98,22 @@ body.bf-active .notif-panel{
   bottom: var(--browser-frame-bottom-height) !important;
 }
 
+/* Estos dos elementos de la app React tienen su `bottom` calculado a
+   mano relativo a la posición ORIGINAL del menú (6rem / 15.7rem desde
+   el borde real de pantalla) — ver run-panel.scss. No sabían nada de
+   la barra Safari, así que cuando el menú sube en modo Safari, estos
+   se quedaban en su sitio original y terminaban ocultos detrás de
+   ella: el botón Run/Stop (.controls__section) y el contenido móvil
+   de Transactions/Summary (.run-panel-tab__content--mobile). Se les
+   suma la altura real de la barra para que sigan justo encima de ella,
+   igual que ya le pasa al menú. */
+body.bf-safari .controls__section{
+  bottom: calc(6rem + var(--browser-frame-bottom-height)) !important;
+}
+body.bf-safari .run-panel-tab__content--mobile{
+  bottom: calc(15.7rem + var(--browser-frame-bottom-height)) !important;
+}
+
 /* El único elemento fixed del lado inferior en modo Safari: agrupa,
    EN ESTE ORDEN, el menú real de la app y la barra Safari debajo. */
 .bf-safari-stack{
