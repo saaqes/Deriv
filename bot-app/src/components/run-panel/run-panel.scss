@@ -159,12 +159,21 @@
             overflow-y: auto;
 
             &--no-stat {
-                height: var(--drawer-content-height-no-stat);
+                height: var(--drawer-content-height-no-stat, auto);
             }
 
             &--mobile {
                 display: flex;
-                height: var(--drawer-content-height-mobile);
+                flex-direction: column;
+                /* --drawer-content-height-mobile nunca se define en ningún
+                   JS/TS del proyecto — sin este respaldo, la propiedad se
+                   ignora por completo y la altura queda sin control real
+                   (la causa de que se vea "desorganizado"). Este respaldo
+                   limita el crecimiento a como máximo la mitad del alto de
+                   pantalla, dejando siempre espacio libre arriba para el
+                   header/saldo, con scroll interno si el contenido no cabe. */
+                height: var(--drawer-content-height-mobile, min(50vh, 50dvh));
+                overflow-y: auto;
                 position: fixed;
                 bottom: 15.7rem;
                 width: 100vw;
