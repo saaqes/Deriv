@@ -28,15 +28,6 @@ body.bf-active{
   padding-bottom: max(var(--browser-frame-bottom-height), env(safe-area-inset-bottom));
 }
 
-/* La navegación inferior PROPIA de la app (misma clase en home.html
-   y options.html) es position:fixed;bottom:0 — en modo Safari debe
-   subir para no quedar debajo del marco Safari. En Chrome no hay
-   barra inferior, así que se queda donde ya estaba. */
-body.bf-safari .bottom-nav,
-body.bf-safari .app-footer{
-  bottom: max(var(--browser-frame-bottom-height), env(safe-area-inset-bottom));
-}
-
 /* .header-top (home.html) es la barra fija con avatar/notificaciones,
    también position:fixed;top:0 — debe respetar como mínimo el notch/
    Dynamic Island siempre (con o sin barra Chrome visible encima). */
@@ -53,33 +44,65 @@ body.bf-active .notif-panel{
   height: calc(100dvh - max(var(--browser-frame-top-height), env(safe-area-inset-top)));
 }
 
-.bf-top, .bf-bottom{
+.bf-top{
   position: fixed;
   left: 0;
   right: 0;
   z-index: 5000;
-  display: flex;
-  flex-direction: column;
   box-sizing: border-box;
   width: 100%;
   background: #f2f2f2;
-}
-
-.bf-top{
   top: 0;
   padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
   border-bottom: 1px solid #e0e0e0;
-}
-.bf-top{
+  display: flex;
   flex-direction: row;
   align-items: center;
   gap: 8px;
 }
 
+/* La barra Safari YA NO es fixed por su cuenta — vive dentro de
+   .bf-safari-stack (ver abajo), que es el único elemento fixed del
+   lado inferior. Así el menú de la app y la barra Safari son
+   simplemente dos hijos consecutivos del mismo flujo normal: es
+   estructuralmente imposible que se superpongan. */
 .bf-bottom{
-  bottom: 0;
+  position: static;
+  box-sizing: border-box;
+  width: 100%;
+  background: #f2f2f2;
   padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
   border-top: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* El único elemento fixed del lado inferior en modo Safari: agrupa,
+   EN ESTE ORDEN, el menú real de la app y la barra Safari debajo. */
+.bf-safari-stack{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+/* Neutraliza el position:fixed/centrado propio que ya tenía el menú
+   de la app (.bottom-nav / .mobile-bottom-nav / .app-footer) para que
+   pase a ser un hijo normal del flujo dentro de .bf-safari-stack, sin
+   tocar sus colores, iconos ni tamaños — solo su posicionamiento. */
+.bf-nav-in-stack{
+  position: static !important;
+  top: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  margin: 0 auto !important;
 }
 
 .bf-safari-addr-row{
@@ -143,7 +166,7 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
 @media (min-width: 701px){
   body.bf-active.bf-static-page{ background:#e9e9ec; }
 
-  body.bf-static-page .bf-top, body.bf-static-page .bf-bottom{
+  body.bf-static-page .bf-top, body.bf-static-page .bf-safari-stack{
     left: 50%;
     right: auto;
     width: var(--bf-frame-width);
@@ -153,8 +176,9 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
     border-radius: 22px 22px 0 0;
     box-shadow: 0 -6px 24px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08);
   }
-  body.bf-static-page .bf-bottom{
+  body.bf-static-page .bf-safari-stack{
     border-radius: 0 0 22px 22px;
+    overflow: hidden;
     box-shadow: 0 6px 24px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08);
   }
   /* Costados verticales del "dispositivo", de borde a borde de la
