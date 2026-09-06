@@ -110,12 +110,32 @@ section {
 
 html {
     height: 100%;
+    /* Arregla el clásico problema de altura de iOS (Safari normal y,
+       sobre todo, PWA instalada vía "Agregar a pantalla de inicio"):
+       height:100% puede quedar corto o largo según el estado de la
+       ventana. -webkit-fill-available y 100dvh son más confiables ahí;
+       se aplican solo si el navegador los soporta (@supports), así que
+       nunca rompen nada donde no existan. */
     font-size: 10px;
+}
+
+@supports (height: 100dvh) {
+    html { height: 100dvh; }
+}
+@supports (height: -webkit-fill-available) {
+    html { height: -webkit-fill-available; }
 }
 
 body {
     line-height: 1;
     height: 100%;
+}
+
+@supports (height: 100dvh) {
+    body { height: 100dvh; }
+}
+@supports (height: -webkit-fill-available) {
+    body { height: -webkit-fill-available; }
 }
 
 ol,
