@@ -32,7 +32,8 @@ body.bf-active{
    y options.html) es position:fixed;bottom:0 — en modo Safari debe
    subir para no quedar debajo del marco Safari. En Chrome no hay
    barra inferior, así que se queda donde ya estaba. */
-body.bf-safari .bottom-nav{
+body.bf-safari .bottom-nav,
+body.bf-safari .app-footer{
   bottom: var(--browser-frame-bottom-height);
 }
 
@@ -134,30 +135,31 @@ body.bf-chrome .notif-panel{
 /* ---- Modo Safari: dirección centrada en su fila propia ---- */
 body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align:center; margin:0 auto; }
 
-/* ---- Escritorio: silueta tipo mockup de dispositivo — costados
-   visibles de borde a borde y esquinas redondeadas SOLO en el
-   extremo donde exista una barra (arriba en Chrome, abajo en
-   Safari); el otro extremo conserva el borde natural de la app. ---- */
+/* ---- Escritorio: silueta tipo mockup de dispositivo — SOLO en las
+   páginas estáticas (home.html/options.html) que agregan la clase
+   bf-static-page. La app React (Chart, Bot Builder, Dashboard) sigue
+   usando barras a todo lo ancho en escritorio: no tiene sentido
+   encogerla a un ancho de móvil ahí, necesita todo el espacio. ---- */
 @media (min-width: 701px){
-  body.bf-active{ background:#e9e9ec; }
+  body.bf-active.bf-static-page{ background:#e9e9ec; }
 
-  .bf-top, .bf-bottom{
+  body.bf-static-page .bf-top, body.bf-static-page .bf-bottom{
     left: 50%;
     right: auto;
     width: var(--bf-frame-width);
     transform: translateX(-50%);
   }
-  .bf-top{
+  body.bf-static-page .bf-top{
     border-radius: 22px 22px 0 0;
     box-shadow: 0 -6px 24px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08);
   }
-  .bf-bottom{
+  body.bf-static-page .bf-bottom{
     border-radius: 0 0 22px 22px;
     box-shadow: 0 6px 24px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08);
   }
   /* Costados verticales del "dispositivo", de borde a borde de la
      ventana, para cerrar la silueta sin tocar el DOM de la app. */
-  body.bf-active::before, body.bf-active::after{
+  body.bf-active.bf-static-page::before, body.bf-active.bf-static-page::after{
     content: "";
     position: fixed;
     top: 0;
@@ -167,8 +169,8 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
     pointer-events: none;
     box-shadow: 0 0 24px rgba(0,0,0,.12);
   }
-  body.bf-active::before{ left: calc(50vw - var(--bf-frame-width) / 2 - 1px); border-left:1px solid rgba(0,0,0,.08); }
-  body.bf-active::after{ left: calc(50vw + var(--bf-frame-width) / 2); border-right:1px solid rgba(0,0,0,.08); }
+  body.bf-active.bf-static-page::before{ left: calc(50vw - var(--bf-frame-width) / 2 - 1px); border-left:1px solid rgba(0,0,0,.08); }
+  body.bf-active.bf-static-page::after{ left: calc(50vw + var(--bf-frame-width) / 2); border-right:1px solid rgba(0,0,0,.08); }
 }
 
 /* ================================================================
