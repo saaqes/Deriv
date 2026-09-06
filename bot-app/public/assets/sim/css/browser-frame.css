@@ -5,20 +5,51 @@
  * NO falsifica dominios ni certificados. La dirección que muestra
  * viene de window.location.hostname (ver browser-frame.js), es
  * decir, siempre es la dirección REAL donde corre la app.
+ *
+ * REGLA CLAVE: el frame RESERVA espacio, nunca se superpone.
+ * --browser-frame-top-height / --browser-frame-bottom-height los
+ * fija browser-frame.js midiendo el alto real ya renderizado (no
+ * son valores fijos aquí) — 0px en el lado donde no hay barra.
+ * Chrome  -> solo barra superior  (top-height > 0, bottom-height = 0)
+ * Safari  -> solo barra inferior  (bottom-height > 0, top-height = 0)
  * ================================================================ */
 
 :root{
-  --bf-top-h: 44px;
-  --bf-bottom-h: 46px;
-  --bf-frame-width: 480px; /* overridden per page (e.g. options.html uses 600px) */
+  --browser-frame-top-height: 0px;
+  --browser-frame-bottom-height: 0px;
+  --bf-frame-width: 480px; /* overridden per page (e.g. options.html usa 600px) */
 }
 
-/* Reserva espacio para el marco superior/inferior sin tapar contenido */
+/* Reserva el espacio real del frame — el resto de la app (header,
+   contenido, navegación) se desplaza automáticamente, nunca queda
+   detrás del marco. */
 body.bf-active{
-  padding-top: calc(var(--bf-top-h) + env(safe-area-inset-top));
+  padding-top: var(--browser-frame-top-height);
+  padding-bottom: var(--browser-frame-bottom-height);
 }
-body.bf-active .app{
-  padding-bottom: calc(64px + var(--bf-bottom-h) + env(safe-area-inset-bottom));
+
+/* La navegación inferior PROPIA de la app (misma clase en home.html
+   y options.html) es position:fixed;bottom:0 — en modo Safari debe
+   subir para no quedar debajo del marco Safari. En Chrome no hay
+   barra inferior, así que se queda donde ya estaba. */
+body.bf-safari .bottom-nav{
+  bottom: var(--browser-frame-bottom-height);
+}
+
+/* .header-top (home.html) es la barra fija con avatar/notificaciones,
+   también position:fixed;top:0 — en modo Chrome debía bajar para no
+   quedar detrás del marco. Esto es lo que reportaste como "tapado". */
+body.bf-chrome .header-top{
+  top: var(--browser-frame-top-height);
+}
+
+/* El panel de notificaciones de home.html es un overlay a pantalla
+   completa (top:0). En modo Chrome debe empezar debajo del marco,
+   no detrás de él. */
+body.bf-chrome .notif-panel{
+  top: var(--browser-frame-top-height);
+  height: calc(100vh - var(--browser-frame-top-height));
+  height: calc(100dvh - var(--browser-frame-top-height));
 }
 
 .bf-top, .bf-bottom{
@@ -27,26 +58,40 @@ body.bf-active .app{
   right: 0;
   z-index: 5000;
   display: flex;
-  align-items: center;
-  background: #f2f2f2;
+  flex-direction: column;
   box-sizing: border-box;
   width: 100%;
+  background: #f2f2f2;
 }
 
 .bf-top{
   top: 0;
-  height: calc(var(--bf-top-h) + env(safe-area-inset-top));
-  padding: env(safe-area-inset-top) 10px 0;
-  gap: 8px;
+  padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
   border-bottom: 1px solid #e0e0e0;
+}
+.bf-top{
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 }
 
 .bf-bottom{
   bottom: 0;
-  height: calc(var(--bf-bottom-h) + env(safe-area-inset-bottom));
-  padding: 0 18px env(safe-area-inset-bottom);
-  justify-content: space-between;
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
   border-top: 1px solid #e0e0e0;
+}
+
+.bf-safari-addr-row{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 6px;
+}
+.bf-safari-controls-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
 }
 
 .bf-address{
@@ -86,10 +131,13 @@ body.bf-active .app{
 }
 .bf-aspect-btn{ color:#ff444f; }
 
-/* ---- Escritorio: el marco se ve como un mockup de dispositivo móvil,
-   centrado, con el mismo ancho que el contenido de la app y bordes
-   que unen visualmente barra-superior + contenido + barra-inferior
-   en una sola pieza. ---- */
+/* ---- Modo Safari: dirección centrada en su fila propia ---- */
+body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align:center; margin:0 auto; }
+
+/* ---- Escritorio: silueta tipo mockup de dispositivo — costados
+   visibles de borde a borde y esquinas redondeadas SOLO en el
+   extremo donde exista una barra (arriba en Chrome, abajo en
+   Safari); el otro extremo conserva el borde natural de la app. ---- */
 @media (min-width: 701px){
   body.bf-active{ background:#e9e9ec; }
 
@@ -98,7 +146,6 @@ body.bf-active .app{
     right: auto;
     width: var(--bf-frame-width);
     transform: translateX(-50%);
-    box-shadow: 0 0 0 1px rgba(0,0,0,.08);
   }
   .bf-top{
     border-radius: 22px 22px 0 0;
@@ -108,32 +155,21 @@ body.bf-active .app{
     border-radius: 0 0 22px 22px;
     box-shadow: 0 6px 24px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08);
   }
-  /* Bordes laterales visibles del "dispositivo", del alto exacto del
-     contenido (entre las dos barras), para cerrar la silueta completa
-     sin tocar el DOM ni el posicionamiento de la app. */
+  /* Costados verticales del "dispositivo", de borde a borde de la
+     ventana, para cerrar la silueta sin tocar el DOM de la app. */
   body.bf-active::before, body.bf-active::after{
     content: "";
     position: fixed;
-    top: calc(var(--bf-top-h) + env(safe-area-inset-top));
-    bottom: calc(var(--bf-bottom-h) + env(safe-area-inset-bottom));
+    top: 0;
+    bottom: 0;
     width: 1px;
     z-index: 4999;
     pointer-events: none;
+    box-shadow: 0 0 24px rgba(0,0,0,.12);
   }
   body.bf-active::before{ left: calc(50vw - var(--bf-frame-width) / 2 - 1px); border-left:1px solid rgba(0,0,0,.08); }
   body.bf-active::after{ left: calc(50vw + var(--bf-frame-width) / 2); border-right:1px solid rgba(0,0,0,.08); }
 }
-
-/* ---- Modo Chrome: pastilla de dirección + icono menú/pestañas arriba,
-   barra de iconos de navegación abajo ---- */
-body.bf-chrome .bf-top{ border-radius: 0; }
-body.bf-chrome .bf-bottom{ justify-content: space-around; }
-
-/* ---- Modo Safari: barra de dirección centrada arriba (compacta),
-   controles clásicos de Safari abajo (atrás/adelante/compartir/pestañas/libro) ---- */
-body.bf-safari .bf-top{ justify-content: center; }
-body.bf-safari .bf-top .bf-address{ max-width: 480px; justify-content:center; text-align:center; }
-body.bf-safari .bf-bottom{ justify-content: space-between; }
 
 /* ================================================================
  * Selector de "Aspecto" (Chrome / Safari)
