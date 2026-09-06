@@ -3,8 +3,18 @@
  * ----------------------------------------------------------------
  * Decorativo únicamente. No toca el navegador real ni sus APIs de
  * seguridad. La "dirección" que se muestra es SIEMPRE
- * window.location.hostname (o .href) — la dirección real donde
- * está corriendo la app en ese momento, nunca un dominio inventado.
+ * window.location.hostname — la dirección real donde está corriendo
+ * la app, nunca un dominio inventado.
+ *
+ * Comportamiento:
+ * - Chrome  -> solo barra SUPERIOR. El resto de la app (header,
+ *   contenido, navegación) se desplaza hacia abajo automáticamente.
+ * - Safari  -> solo barra INFERIOR. El contenido y la navegación
+ *   propia de la app se acomodan encima de ella automáticamente.
+ * El marco NUNCA se superpone: reserva su espacio real (medido con
+ * getBoundingClientRect, no un valor fijo) mediante las variables
+ * CSS --browser-frame-top-height / --browser-frame-bottom-height,
+ * que el resto del CSS (ver browser-frame.css) usa para su padding.
  *
  * Uso: incluir este script (y browser-frame.css) en cualquier
  * página y llamar BrowserFrame.init() al final del <body>.
@@ -14,12 +24,12 @@
 
   var STORAGE_KEY = 'browserAppearance';
   var DEFAULT_MODE = 'chrome';
+  var root = document.documentElement;
 
   function getRealAddress() {
     try {
       var host = window.location.hostname;
-      if (!host || host === '') return 'localhost';
-      return host;
+      return host && host !== '' ? host : 'localhost';
     } catch (err) {
       return 'localhost';
     }
@@ -52,50 +62,59 @@
       tabs: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="4"/></svg>',
       reload: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg>',
       lock: '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2a4 4 0 0 0-4 4v3H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a4 4 0 0 0-4-4m0 2a2 2 0 0 1 2 2v3H10V6a2 2 0 0 1 2-2"/></svg>',
-      /* Icono "Aspecto": círculo mitad claro / mitad oscuro (selector
-         de apariencia), para el botón siempre visible en la barra. */
       aspect: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>',
     };
     return icons[name] || '';
   }
 
-  function buildFrame(mode) {
-    var host = getRealAddress();
-    var aspectBtn = '<button class="bf-icon-btn bf-aspect-btn" aria-label="Aspecto" title="Aspecto" onclick="BrowserFrame.openSelector()">' + svgIcon('aspect') + '</button>';
+  var aspectBtnHtml =
+    '<button class="bf-icon-btn bf-aspect-btn" aria-label="Aspecto" title="Aspecto" onclick="BrowserFrame.openSelector()">' +
+    svgIcon('aspect') +
+    '</button>';
 
+  function buildTopBar() {
+    var host = getRealAddress();
     var top = document.createElement('div');
     top.className = 'bf-top';
+    top.innerHTML =
+      aspectBtnHtml +
+      '<div class="bf-address"><span class="bf-lock">' + svgIcon('lock') + '</span>' +
+      '<span class="bf-host">' + host + '</span></div>' +
+      '<button class="bf-icon-btn" aria-label="Menú">' + svgIcon('menu') + '</button>';
+    return top;
+  }
 
+  function buildBottomBar() {
+    var host = getRealAddress();
     var bottom = document.createElement('div');
     bottom.className = 'bf-bottom';
+    bottom.innerHTML =
+      '<div class="bf-safari-addr-row">' +
+      aspectBtnHtml +
+      '<div class="bf-address"><span class="bf-lock">' + svgIcon('lock') + '</span>' +
+      '<span class="bf-host">' + host + '</span>' +
+      '<span class="bf-icon-btn" style="width:14px;height:14px;opacity:.6">' + svgIcon('reload') + '</span></div>' +
+      '<span style="width:28px;flex:0 0 auto"></span>' +
+      '</div>' +
+      '<div class="bf-safari-controls-row">' +
+      '<button class="bf-icon-btn" aria-label="Atrás">' + svgIcon('back') + '</button>' +
+      '<button class="bf-icon-btn" aria-label="Adelante">' + svgIcon('fwd') + '</button>' +
+      '<button class="bf-icon-btn" aria-label="Compartir">' + svgIcon('share') + '</button>' +
+      '<button class="bf-icon-btn" aria-label="Marcadores">' + svgIcon('book') + '</button>' +
+      '<button class="bf-icon-btn" aria-label="Pestañas">' + svgIcon('tabs') + '</button>' +
+      '</div>';
+    return bottom;
+  }
 
-    if (mode === 'safari') {
-      top.innerHTML =
-        aspectBtn +
-        '<div class="bf-address"><span class="bf-lock">' + svgIcon('lock') + '</span>' +
-        '<span class="bf-host">' + host + '</span>' +
-        '<span class="bf-icon-btn" style="width:14px;height:14px;opacity:.6">' + svgIcon('reload') + '</span></div>' +
-        '<span style="width:28px;flex:0 0 auto"></span>';
-      bottom.innerHTML =
-        '<button class="bf-icon-btn" aria-label="Atrás">' + svgIcon('back') + '</button>' +
-        '<button class="bf-icon-btn" aria-label="Adelante">' + svgIcon('fwd') + '</button>' +
-        '<button class="bf-icon-btn" aria-label="Compartir">' + svgIcon('share') + '</button>' +
-        '<button class="bf-icon-btn" aria-label="Marcadores">' + svgIcon('book') + '</button>' +
-        '<button class="bf-icon-btn" aria-label="Pestañas">' + svgIcon('tabs') + '</button>';
-    } else {
-      top.innerHTML =
-        aspectBtn +
-        '<div class="bf-address"><span class="bf-lock">' + svgIcon('lock') + '</span>' +
-        '<span class="bf-host">' + host + '</span></div>' +
-        '<button class="bf-icon-btn" aria-label="Menú">' + svgIcon('menu') + '</button>';
-      bottom.innerHTML =
-        '<button class="bf-icon-btn" aria-label="Atrás">' + svgIcon('back') + '</button>' +
-        '<button class="bf-icon-btn" aria-label="Compartir">' + svgIcon('share') + '</button>' +
-        '<button class="bf-icon-btn" aria-label="Pestañas">1</button>' +
-        '<button class="bf-icon-btn" aria-label="Menú">' + svgIcon('menu') + '</button>';
-    }
-
-    return { top: top, bottom: bottom };
+  /** Mide el frame real (no un valor fijo) y actualiza las variables CSS
+   * que el resto de la app usa para reservar su espacio. */
+  function measureAndSetVars() {
+    var top = document.querySelector('.bf-top');
+    var bottom = document.querySelector('.bf-bottom');
+    var topH = top ? top.getBoundingClientRect().height : 0;
+    var bottomH = bottom ? bottom.getBoundingClientRect().height : 0;
+    root.style.setProperty('--browser-frame-top-height', topH + 'px');
+    root.style.setProperty('--browser-frame-bottom-height', bottomH + 'px');
   }
 
   function apply(mode) {
@@ -109,9 +128,21 @@
     body.classList.remove('bf-chrome', 'bf-safari');
     body.classList.add(mode === 'safari' ? 'bf-safari' : 'bf-chrome');
 
-    var frame = buildFrame(mode);
-    body.insertBefore(frame.top, body.firstChild);
-    body.appendChild(frame.bottom);
+    // Chrome: solo barra superior. Safari: solo barra inferior.
+    // El frame nunca cubre ambos lados a la vez.
+    if (mode === 'safari') {
+      body.appendChild(buildBottomBar());
+    } else {
+      body.insertBefore(buildTopBar(), body.firstChild);
+    }
+
+    // Medir tras el próximo frame de pintado, para tomar la altura real
+    // ya renderizada (incluye safe-area-inset en dispositivos con notch).
+    requestAnimationFrame(measureAndSetVars);
+  }
+
+  function handleViewportChange() {
+    requestAnimationFrame(measureAndSetVars);
   }
 
   /* ---- Selector "Aspecto" (sheet inferior con overlay) ---- */
@@ -129,12 +160,12 @@
       '  <h3>Aspecto</h3>' +
       '  <div class="bf-option chrome-preview" data-mode="chrome">' +
       '    <div class="bf-preview"><div class="bf-preview-top"></div><div class="bf-preview-body"></div><div class="bf-preview-bottom"></div></div>' +
-      '    <div class="bf-option-info"><div class="bf-option-name">Chrome</div><div class="bf-option-desc">Distribución tipo Chrome móvil</div></div>' +
+      '    <div class="bf-option-info"><div class="bf-option-name">Chrome</div><div class="bf-option-desc">Barra de navegador arriba</div></div>' +
       '    <div class="bf-radio">✓</div>' +
       '  </div>' +
       '  <div class="bf-option safari-preview" data-mode="safari">' +
       '    <div class="bf-preview"><div class="bf-preview-top"></div><div class="bf-preview-body"></div><div class="bf-preview-bottom"></div></div>' +
-      '    <div class="bf-option-info"><div class="bf-option-name">Safari</div><div class="bf-option-desc">Distribución tipo Safari móvil</div></div>' +
+      '    <div class="bf-option-info"><div class="bf-option-name">Safari</div><div class="bf-option-desc">Barra de navegador abajo</div></div>' +
       '    <div class="bf-radio">✓</div>' +
       '  </div>' +
       '  <button class="bf-save-btn" id="bfSaveBtn">GUARDAR</button>' +
@@ -181,7 +212,18 @@
   }
 
   function init() {
+    root.style.setProperty('--browser-frame-top-height', '0px');
+    root.style.setProperty('--browser-frame-bottom-height', '0px');
     apply(getMode());
+
+    // Recalcular ante cualquier cambio real de layout: resize, cambio de
+    // orientación, o cuando el navegador muestra/oculta su propia UI
+    // (barra de direcciones móvil) y el viewport visual cambia de alto.
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('orientationchange', handleViewportChange);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+    }
   }
 
   window.BrowserFrame = {
