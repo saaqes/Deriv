@@ -2,10 +2,11 @@
 @use 'components/shared/styles/mixins' as *;
 
 .app-footer {
-    height: 3.6rem;
+    box-sizing: border-box;
+    height: calc(3.6rem + env(safe-area-inset-bottom));
     display: flex;
     flex-direction: row-reverse;
-    padding: 0 1rem;
+    padding: 0 1rem env(safe-area-inset-bottom);
     align-items: center;
     position: fixed;
     bottom: 0;
