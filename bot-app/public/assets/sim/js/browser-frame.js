@@ -281,9 +281,26 @@
     if (overlay) overlay.classList.remove('open');
   }
 
+  /** window.matchMedia('(display-mode: standalone)') cubre PWA
+   * instaladas en Android/desktop; navigator.standalone es el
+   * equivalente específico de iOS Safari. */
+  function isRunningAsPwa() {
+    try {
+      if (window.navigator.standalone === true) return true;
+      return window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function applyPwaClass() {
+    document.body.classList.toggle('bf-pwa-standalone', isRunningAsPwa());
+  }
+
   function init() {
     root.style.setProperty('--browser-frame-top-height', '0px');
     root.style.setProperty('--browser-frame-bottom-height', '0px');
+    applyPwaClass();
     apply(getMode());
 
     // Recalcular ante cualquier cambio real de layout: resize, cambio de
@@ -293,6 +310,13 @@
     window.addEventListener('orientationchange', handleViewportChange);
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleViewportChange);
+    }
+    if (window.matchMedia) {
+      try {
+        window.matchMedia('(display-mode: standalone)').addEventListener('change', applyPwaClass);
+      } catch (err) {
+        /* Safari antiguo sin addEventListener en MediaQueryList — no crítico. */
+      }
     }
   }
 
