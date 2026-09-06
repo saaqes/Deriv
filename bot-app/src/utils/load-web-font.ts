@@ -12,6 +12,7 @@ const SUPPORTED_FONTS = new Set([
     'Montserrat',
     'Raleway',
     'Source Sans 3',
+    'IBM Plex Sans',
 ]);
 
 const loaded = new Set<string>();
