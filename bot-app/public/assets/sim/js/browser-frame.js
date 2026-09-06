@@ -106,32 +106,81 @@
     return bottom;
   }
 
+  var APP_NAV_SELECTORS = ['.bottom-nav', '.mobile-bottom-nav', '.app-footer'];
+  var STACK_ID = 'bfSafariStack';
+
+  function findAppNav() {
+    for (var i = 0; i < APP_NAV_SELECTORS.length; i++) {
+      var el = document.querySelector(APP_NAV_SELECTORS[i]);
+      if (el) return el;
+    }
+    return null;
+  }
+
+  /** Saca el menú inferior PROPIO de la app de su position:fixed y lo
+   * mueve, en el DOM real, al mismo contenedor apilado (flex-column)
+   * que la barra Safari — en ese orden: menú primero, Safari después.
+   * Así es imposible que se superpongan: son hijos consecutivos del
+   * mismo flujo normal, no dos elementos fixed calculados por separado. */
+  function stackNavAboveSafariBar(safariBar) {
+    var stack = document.createElement('div');
+    stack.id = STACK_ID;
+    stack.className = 'bf-safari-stack';
+
+    var nav = findAppNav();
+    if (nav) {
+      nav.classList.add('bf-nav-in-stack');
+      stack.appendChild(nav); // lo saca de donde estaba y lo mete aquí, EN ESE ORDEN
+    }
+    stack.appendChild(safariBar); // Safari va DESPUÉS del menú, nunca antes
+
+    document.body.appendChild(stack);
+  }
+
+  /** Deshace lo anterior: devuelve el menú a su position:fixed normal
+   * (usado en modo Chrome, donde no hace falta coordinarlo con nada). */
+  function unstackNav() {
+    var nav = document.querySelector('.bf-nav-in-stack');
+    if (nav) {
+      nav.classList.remove('bf-nav-in-stack');
+      document.body.appendChild(nav);
+    }
+    var stack = document.getElementById(STACK_ID);
+    if (stack) stack.remove();
+  }
+
   /** Mide el frame real (no un valor fijo) y actualiza las variables CSS
    * que el resto de la app usa para reservar su espacio. */
   function measureAndSetVars() {
     var top = document.querySelector('.bf-top');
-    var bottom = document.querySelector('.bf-bottom');
+    var stack = document.getElementById(STACK_ID);
     var topH = top ? top.getBoundingClientRect().height : 0;
-    var bottomH = bottom ? bottom.getBoundingClientRect().height : 0;
+    var stackH = stack ? stack.getBoundingClientRect().height : 0;
     root.style.setProperty('--browser-frame-top-height', topH + 'px');
-    root.style.setProperty('--browser-frame-bottom-height', bottomH + 'px');
+    // En Safari, lo que hay que reservarle al contenido es la altura de
+    // TODO el bloque apilado (menú + barra Safari juntos), porque ahora
+    // ambos ocupan espacio real del documento como una sola pieza.
+    root.style.setProperty('--browser-frame-bottom-height', stackH + 'px');
   }
 
   function apply(mode) {
     var body = document.body;
     var existingTop = document.querySelector('.bf-top');
-    var existingBottom = document.querySelector('.bf-bottom');
     if (existingTop) existingTop.remove();
+    unstackNav();
+    var existingBottom = document.querySelector('.bf-bottom');
     if (existingBottom) existingBottom.remove();
 
     body.classList.add('bf-active');
     body.classList.remove('bf-chrome', 'bf-safari');
     body.classList.add(mode === 'safari' ? 'bf-safari' : 'bf-chrome');
 
-    // Chrome: solo barra superior. Safari: solo barra inferior.
-    // El frame nunca cubre ambos lados a la vez.
+    // Chrome: solo barra superior (el menú de la app se queda donde
+    // siempre estuvo, fixed, no hace falta tocarlo).
+    // Safari: solo barra inferior, apilada DEBAJO del menú real en el
+    // mismo contenedor de flujo — nunca fixed+offset calculado.
     if (mode === 'safari') {
-      body.appendChild(buildBottomBar());
+      stackNavAboveSafariBar(buildBottomBar());
     } else {
       body.insertBefore(buildTopBar(), body.firstChild);
     }
