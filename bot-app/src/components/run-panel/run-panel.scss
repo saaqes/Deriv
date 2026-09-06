@@ -154,6 +154,7 @@
     &-tab {
         &__content {
             height: calc(100vh - 42rem);
+            height: calc(100dvh - 42rem);
             overflow: hidden;
 
             &--no-stat {
@@ -374,6 +375,7 @@
 
         .db-self-exclusion {
             height: calc(100vh - 40px);
+            height: calc(100dvh - 40px);
             display: flex;
             justify-content: space-between;
             flex-direction: column;
@@ -411,6 +413,7 @@
 
         &-body {
             height: calc(100vh - 40.6rem);
+            height: calc(100dvh - 40.6rem);
             min-height: 10rem;
             max-height: 45rem;
 
