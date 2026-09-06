@@ -106,47 +106,66 @@
     return bottom;
   }
 
-  var APP_NAV_SELECTORS = ['.bottom-nav', '.mobile-bottom-nav', '.app-footer'];
+  // Solo el menú de las páginas estáticas (home.html/options.html) se
+  // mueve realmente en el DOM — ahí lo controlo por completo y es
+  // seguro. El menú de la app React (.mobile-bottom-nav / .app-footer)
+  // NO se mueve: esa app calcula alturas internas (el panel de Run,
+  // el dashboard) asumiendo que su menú es position:fixed y no ocupa
+  // espacio de flujo: moverlo rompía esos cálculos (Run/Reset se
+  // cortaban). Para esos casos se usa un desplazamiento calculado en
+  // su lugar, sin tocar el DOM.
+  var REAL_MOVE_SELECTOR = '.bottom-nav';
+  var OFFSET_ONLY_SELECTORS = ['.mobile-bottom-nav', '.app-footer'];
   var STACK_ID = 'bfSafariStack';
 
-  function findAppNav() {
-    for (var i = 0; i < APP_NAV_SELECTORS.length; i++) {
-      var el = document.querySelector(APP_NAV_SELECTORS[i]);
+  function findOffsetOnlyNav() {
+    for (var i = 0; i < OFFSET_ONLY_SELECTORS.length; i++) {
+      var el = document.querySelector(OFFSET_ONLY_SELECTORS[i]);
       if (el) return el;
     }
     return null;
   }
 
-  /** Saca el menú inferior PROPIO de la app de su position:fixed y lo
+  /** Caso "página estática": saca el menú de su position:fixed y lo
    * mueve, en el DOM real, al mismo contenedor apilado (flex-column)
    * que la barra Safari — en ese orden: menú primero, Safari después.
-   * Así es imposible que se superpongan: son hijos consecutivos del
-   * mismo flujo normal, no dos elementos fixed calculados por separado. */
-  function stackNavAboveSafariBar(safariBar) {
-    var stack = document.createElement('div');
-    stack.id = STACK_ID;
-    stack.className = 'bf-safari-stack';
+   * Caso "app React": el menú se queda donde está (fixed); solo se le
+   * calcula un `bottom` para que la barra Safari (también fixed,
+   * independiente) quede justo debajo sin superponerse. */
+  function placeSafariBar(safariBar) {
+    var realMoveNav = document.querySelector(REAL_MOVE_SELECTOR);
 
-    var nav = findAppNav();
-    if (nav) {
-      nav.classList.add('bf-nav-in-stack');
-      stack.appendChild(nav); // lo saca de donde estaba y lo mete aquí, EN ESE ORDEN
+    if (realMoveNav) {
+      var stack = document.createElement('div');
+      stack.id = STACK_ID;
+      stack.className = 'bf-safari-stack';
+      realMoveNav.classList.add('bf-nav-in-stack');
+      stack.appendChild(realMoveNav); // lo saca de donde estaba y lo mete aquí, EN ESE ORDEN
+      stack.appendChild(safariBar); // Safari va DESPUÉS del menú, nunca antes
+      document.body.appendChild(stack);
+      return;
     }
-    stack.appendChild(safariBar); // Safari va DESPUÉS del menú, nunca antes
 
-    document.body.appendChild(stack);
+    // App React: no mover nada del DOM existente, solo agregar la
+    // barra Safari como su propio elemento fixed independiente.
+    var offsetNav = findOffsetOnlyNav();
+    if (offsetNav) offsetNav.classList.add('bf-nav-offset');
+    document.body.appendChild(safariBar);
   }
 
-  /** Deshace lo anterior: devuelve el menú a su position:fixed normal
-   * (usado en modo Chrome, donde no hace falta coordinarlo con nada). */
+  /** Deshace lo anterior (modo Chrome, donde no hace falta coordinar
+   * nada con una barra inferior porque no existe). */
   function unstackNav() {
-    var nav = document.querySelector('.bf-nav-in-stack');
-    if (nav) {
-      nav.classList.remove('bf-nav-in-stack');
-      document.body.appendChild(nav);
+    var stackedNav = document.querySelector('.bf-nav-in-stack');
+    if (stackedNav) {
+      stackedNav.classList.remove('bf-nav-in-stack');
+      document.body.appendChild(stackedNav);
     }
     var stack = document.getElementById(STACK_ID);
     if (stack) stack.remove();
+
+    var offsetNav = document.querySelector('.bf-nav-offset');
+    if (offsetNav) offsetNav.classList.remove('bf-nav-offset');
   }
 
   /** Mide el frame real (no un valor fijo) y actualiza las variables CSS
@@ -154,13 +173,14 @@
   function measureAndSetVars() {
     var top = document.querySelector('.bf-top');
     var stack = document.getElementById(STACK_ID);
+    var bar = document.querySelector('.bf-bottom');
     var topH = top ? top.getBoundingClientRect().height : 0;
-    var stackH = stack ? stack.getBoundingClientRect().height : 0;
+    // Caso página estática: el bloque apilado completo (menú + barra).
+    // Caso app React: la barra Safari sola (el menú no se movió, se le
+    // aplica su propio offset — ver CSS .bf-nav-offset).
+    var bottomH = stack ? stack.getBoundingClientRect().height : bar ? bar.getBoundingClientRect().height : 0;
     root.style.setProperty('--browser-frame-top-height', topH + 'px');
-    // En Safari, lo que hay que reservarle al contenido es la altura de
-    // TODO el bloque apilado (menú + barra Safari juntos), porque ahora
-    // ambos ocupan espacio real del documento como una sola pieza.
-    root.style.setProperty('--browser-frame-bottom-height', stackH + 'px');
+    root.style.setProperty('--browser-frame-bottom-height', bottomH + 'px');
   }
 
   function apply(mode) {
@@ -180,7 +200,7 @@
     // Safari: solo barra inferior, apilada DEBAJO del menú real en el
     // mismo contenedor de flujo — nunca fixed+offset calculado.
     if (mode === 'safari') {
-      stackNavAboveSafariBar(buildBottomBar());
+      placeSafariBar(buildBottomBar());
     } else {
       body.insertBefore(buildTopBar(), body.firstChild);
     }
