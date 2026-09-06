@@ -136,9 +136,10 @@
       body.insertBefore(buildTopBar(), body.firstChild);
     }
 
-    // Medir tras el próximo frame de pintado, para tomar la altura real
-    // ya renderizada (incluye safe-area-inset en dispositivos con notch).
-    requestAnimationFrame(measureAndSetVars);
+    // Medir de inmediato (getBoundingClientRect fuerza un reflow síncrono
+    // con el valor ya correcto) — así no hay ni un frame de solapamiento
+    // entre insertar la barra y reservarle su espacio real.
+    measureAndSetVars();
   }
 
   function handleViewportChange() {
