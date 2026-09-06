@@ -114,6 +114,22 @@ body.bf-safari .run-panel-tab__content--mobile{
   bottom: calc(15.7rem + var(--browser-frame-bottom-height)) !important;
 }
 
+/* El propio drawer de Summary/Transactions (.dc-drawer) tiene, en
+   móvil, un `top` fijo (calc(100% - 15.8rem)) calibrado a mano para
+   que su botón/pestaña de apertura quede justo encima de
+   .controls__section (ver comentario en drawer.scss). Como ese botón
+   ahora sube en modo Safari, el drawer entero (con su botón de
+   Transactions dentro) tiene que subir la misma cantidad, o el botón
+   queda desalineado/oculto y aparece un hueco entre Run y el menú.
+   Acotado al mismo breakpoint (<1280px) que la regla original: en
+   escritorio este drawer es un panel lateral distinto y no debe
+   tocarse. */
+@media (max-width: 1279px){
+  body.bf-safari .dc-drawer{
+    top: calc(100% - 15.8rem - var(--browser-frame-bottom-height)) !important;
+  }
+}
+
 /* El único elemento fixed del lado inferior en modo Safari: agrupa,
    EN ESTE ORDEN, el menú real de la app y la barra Safari debajo. */
 .bf-safari-stack{
