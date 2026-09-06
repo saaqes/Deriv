@@ -181,6 +181,14 @@
     var bottomH = stack ? stack.getBoundingClientRect().height : bar ? bar.getBoundingClientRect().height : 0;
     root.style.setProperty('--browser-frame-top-height', topH + 'px');
     root.style.setProperty('--browser-frame-bottom-height', bottomH + 'px');
+
+    // Altura real del header propio de la app (donde está el saldo,
+    // .app-header en la app React / .header-top en home.html), para
+    // que ningún panel/contenido pueda crecer por encima de él, sin
+    // importar el modo de aspecto seleccionado.
+    var appHeader = document.querySelector('.app-header') || document.querySelector('.header-top');
+    var appHeaderH = appHeader ? appHeader.getBoundingClientRect().height : 0;
+    root.style.setProperty('--app-header-height', appHeaderH + 'px');
   }
 
   function apply(mode) {
@@ -300,6 +308,7 @@
   function init() {
     root.style.setProperty('--browser-frame-top-height', '0px');
     root.style.setProperty('--browser-frame-bottom-height', '0px');
+    root.style.setProperty('--app-header-height', '0px');
     applyPwaClass();
     apply(getMode());
 
@@ -317,6 +326,24 @@
       } catch (err) {
         /* Safari antiguo sin addEventListener en MediaQueryList — no crítico. */
       }
+    }
+
+    // La app React (.app-header) todavía no existe cuando este script
+    // corre — React la monta después. Un MutationObserver recalcula en
+    // cuanto aparece (y ante cualquier cambio posterior de su tamaño,
+    // p.ej. si el header cambia de alto entre pestañas), sin depender
+    // de ganchos específicos de React.
+    if (window.MutationObserver) {
+      var pending = false;
+      var observer = new MutationObserver(function () {
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(function () {
+          pending = false;
+          measureAndSetVars();
+        });
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
     }
   }
 
