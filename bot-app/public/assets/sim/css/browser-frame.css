@@ -84,6 +84,7 @@ body.bf-active .app{
   border: none;
   padding: 0;
 }
+.bf-aspect-btn{ color:#ff444f; }
 
 /* ---- Escritorio: el marco se ve como un mockup de dispositivo móvil,
    centrado, con el mismo ancho que el contenido de la app y bordes
