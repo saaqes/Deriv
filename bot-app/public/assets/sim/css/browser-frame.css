@@ -24,8 +24,8 @@
    contenido, navegación) se desplaza automáticamente, nunca queda
    detrás del marco. */
 body.bf-active{
-  padding-top: var(--browser-frame-top-height);
-  padding-bottom: var(--browser-frame-bottom-height);
+  padding-top: max(var(--browser-frame-top-height), env(safe-area-inset-top));
+  padding-bottom: max(var(--browser-frame-bottom-height), env(safe-area-inset-bottom));
 }
 
 /* La navegación inferior PROPIA de la app (misma clase en home.html
@@ -34,23 +34,23 @@ body.bf-active{
    barra inferior, así que se queda donde ya estaba. */
 body.bf-safari .bottom-nav,
 body.bf-safari .app-footer{
-  bottom: var(--browser-frame-bottom-height);
+  bottom: max(var(--browser-frame-bottom-height), env(safe-area-inset-bottom));
 }
 
 /* .header-top (home.html) es la barra fija con avatar/notificaciones,
-   también position:fixed;top:0 — en modo Chrome debía bajar para no
-   quedar detrás del marco. Esto es lo que reportaste como "tapado". */
-body.bf-chrome .header-top{
-  top: var(--browser-frame-top-height);
+   también position:fixed;top:0 — debe respetar como mínimo el notch/
+   Dynamic Island siempre (con o sin barra Chrome visible encima). */
+body.bf-active .header-top{
+  top: max(var(--browser-frame-top-height), env(safe-area-inset-top));
 }
 
 /* El panel de notificaciones de home.html es un overlay a pantalla
-   completa (top:0). En modo Chrome debe empezar debajo del marco,
-   no detrás de él. */
-body.bf-chrome .notif-panel{
-  top: var(--browser-frame-top-height);
-  height: calc(100vh - var(--browser-frame-top-height));
-  height: calc(100dvh - var(--browser-frame-top-height));
+   completa (top:0). Debe empezar debajo del marco Y del notch/Dynamic
+   Island, lo que sea mayor — nunca detrás de ninguno de los dos. */
+body.bf-active .notif-panel{
+  top: max(var(--browser-frame-top-height), env(safe-area-inset-top));
+  height: calc(100vh - max(var(--browser-frame-top-height), env(safe-area-inset-top)));
+  height: calc(100dvh - max(var(--browser-frame-top-height), env(safe-area-inset-top)));
 }
 
 .bf-top, .bf-bottom{
