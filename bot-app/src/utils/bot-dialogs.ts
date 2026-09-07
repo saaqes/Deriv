@@ -1,4 +1,3 @@
-```ts
 export const DIALOG_LABEL = 'bot.deriv.me dice:';
 
 function createDialog(
@@ -130,4 +129,4 @@ export function showBotPrompt(
         defaultValue
     );
 }
-```
+
