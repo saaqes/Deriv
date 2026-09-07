@@ -11,7 +11,7 @@
  * simulator, not the real Deriv platform.
  */
 
-export const DIALOG_LABEL = 'bot.deriv.me dice:';
+export const DIALOG_LABEL = 'Simulador Deriv (demo) dice:';
 
 let overlayEl: HTMLDivElement | null = null;
 
@@ -168,4 +168,3 @@ export function showBotPrompt(msg?: unknown, defaultValue = ''): Promise<string 
         input.focus();
     });
 }
-
