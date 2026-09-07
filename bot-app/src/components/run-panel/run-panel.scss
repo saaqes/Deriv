@@ -66,6 +66,14 @@
         @include mobile-or-tablet-screen {
             margin: 0;
             position: fixed;
+            // Antes no tenía ningún punto de referencia (ni top ni
+            // bottom) — el navegador lo colocaba de forma impredecible,
+            // desconectado visualmente del resto del panel. Ahora
+            // queda pegado justo encima de los controles de Run.
+            left: 0;
+            right: 0;
+            width: 100%;
+            bottom: 6rem;
 
             /* Fix for iOS devices to prevent stats panel overlap */
             @supports (-webkit-touch-callout: none) {
