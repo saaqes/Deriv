@@ -62,7 +62,16 @@
             transition: transform 0.25s ease;
 
             @include mobile-screen {
-                bottom: 80px;
+                // Antes: bottom: 80px, que caía en medio de la barra de
+                // navegación inferior (6rem) y la barra Run/Stop (otro 6rem
+                // encima de esa) — los íconos quedaban flotando sin relación
+                // visual con ninguna de las dos. Ahora se apoya justo encima
+                // de la barra Run/Stop, con un pequeño margen.
+                bottom: calc(12rem + 0.8rem);
+
+                @supports (-webkit-touch-callout: none) {
+                    bottom: calc(12rem + 0.8rem + env(safe-area-inset-bottom, 0));
+                }
             }
 
             .app-contents .ciq-menu {
