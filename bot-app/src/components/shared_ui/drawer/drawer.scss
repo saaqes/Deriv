@@ -38,7 +38,14 @@
         // Cerrado: solo se ve el alto del botón/flecha.
         height: 3.6rem !important;
         overflow: hidden;
-        flex-direction: column !important;
+        // En el DOM real, .dc-drawer__toggle es el PRIMER hijo y
+        // .dc-drawer__container (con el contenido) es el segundo. Con
+        // "column" normal eso ponía el toggle ARRIBA (cerca del saldo
+        // al abrir) y el contenido ABAJO — al revés de lo que se
+        // necesita. "column-reverse" invierte el orden VISUAL sin
+        // tocar el DOM real: el toggle queda siempre abajo, fijo cerca
+        // de Run, y el contenido aparece por encima de él al abrir.
+        flex-direction: column-reverse !important;
     }
 
     &__container {
