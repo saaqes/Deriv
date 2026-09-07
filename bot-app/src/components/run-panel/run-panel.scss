@@ -14,11 +14,18 @@
 
         &--mobile {
             position: absolute;
-            top: 0;
+            // Antes: top:0 — cubría TODA la pantalla, incluido el
+            // header/saldo, con z-index:5 (--zindex-drawer, definido
+            // en app.scss) que es mayor al z-index interno del header
+            // (1). Resultado: cuando el drawer se abre, esta capa se
+            // pintaba ENCIMA del header y lo tapaba visualmente. Nunca
+            // necesita cubrir esa zona — todo lo que contiene (drawer,
+            // controles de Run) vive cerca del borde inferior.
+            top: var(--app-header-height, 8rem);
             left: 0;
             width: 100vw;
             z-index: var(--zindex-drawer);
-            height: calc(100% - env(safe-area-inset-bottom, 0));
+            height: calc(100% - var(--app-header-height, 8rem) - env(safe-area-inset-bottom, 0));
             padding-bottom: env(safe-area-inset-bottom, 0);
 
             &-closed {
@@ -66,14 +73,15 @@
         @include mobile-or-tablet-screen {
             margin: 0;
             position: fixed;
-            // Antes no tenía ningún punto de referencia (ni top ni
-            // bottom) — el navegador lo colocaba de forma impredecible,
-            // desconectado visualmente del resto del panel. Ahora
-            // queda pegado justo encima de los controles de Run.
+            // Antes tenía el MISMO bottom:6rem que .controls__section
+            // (el botón Run) — quedaban exactamente superpuestos. Ahora
+            // se suma también la altura del propio botón Run (6rem)
+            // para que las estadísticas queden pegadas justo ENCIMA de
+            // él, no encima de su misma posición.
             left: 0;
             right: 0;
             width: 100%;
-            bottom: 6rem;
+            bottom: 12rem;
 
             /* Fix for iOS devices to prevent stats panel overlap */
             @supports (-webkit-touch-callout: none) {
@@ -223,7 +231,9 @@
         width: 100%;
         background-color: var(--general-main-1);
         border-top: solid 2px var(--general-section-1);
-        z-index: 8;
+        // Variable centralizada en browser-frame.css (--z-run: 8) —
+        // con respaldo por si esa hoja no llegara a cargar.
+        z-index: var(--z-run, 8);
 
         /* Fix for iOS devices to respect safe area */
         @supports (-webkit-touch-callout: none) {
