@@ -117,6 +117,9 @@ body.bf-safari .controls__section{
      el hueco extra. */
   padding-bottom: 0 !important;
 }
+body.bf-safari .run-panel__stat{
+  bottom: calc(6rem + var(--browser-frame-bottom-height)) !important;
+}
 body.bf-safari .run-panel-tab__content--mobile{
   bottom: calc(15.7rem + var(--browser-frame-bottom-height)) !important;
 }
