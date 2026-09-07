@@ -8,6 +8,11 @@
     will-change: transform;
     transition: transform 0.3s ease;
     background: var(--general-main-2);
+    // .controls__section (la barra de Run) tiene z-index:8 — sin esto,
+    // el drawer (y su botón/flecha) queda pintado DEBAJO de esa barra
+    // sólida y se ve invisible en cualquier modo (Ninguno, Chrome,
+    // Safari), no solo en Safari.
+    z-index: var(--z-drawer, 9);
 
     &--left {
         display: flex;
