@@ -6,6 +6,19 @@
 .run-panel {
     height: 0;
 
+    @include mobile-or-tablet-screen {
+        // En escritorio sigue en 0 (todo dentro es absolute/fixed y no
+        // necesita espacio propio). En móvil ahora sí necesita altura
+        // real: el toggle, el contenido, las estadísticas y el botón
+        // Run son bloques normales que deben reservar su espacio.
+        height: auto;
+        // El menú inferior (Home/Dashboard/etc.) sigue siendo fixed —
+        // sin este espacio de más al final, el botón Run (ahora en
+        // flujo normal, lo último de este bloque) quedaría tapado
+        // debajo de ese menú fijo.
+        padding-bottom: 6rem;
+    }
+
     &__container {
         height: var(--bot-content-height) !important;
         top: 10.4rem !important;
@@ -13,12 +26,21 @@
         right: 0;
 
         &--mobile {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            z-index: var(--zindex-drawer);
-            height: calc(100% - env(safe-area-inset-bottom, 0));
+            // Antes: position:absolute;top:0;left:0;width:100vw cubría
+            // toda la pantalla como un overlay cada vez que el drawer
+            // se abría en móvil — eso hacía inútil que sus hijos
+            // (.dc-drawer, .controls__section, etc.) fluyeran normal,
+            // porque el propio contenedor volvía a comportarse como
+            // una capa flotante encima de todo. Ahora es un bloque
+            // normal también: el orden Header → Toggle → Content →
+            // Stat → Run queda garantizado por el HTML real, abierto
+            // o cerrado.
+            position: relative;
+            top: auto;
+            left: auto;
+            width: 100%;
+            z-index: auto;
+            height: auto;
             padding-bottom: env(safe-area-inset-bottom, 0);
 
             &-closed {
@@ -65,12 +87,8 @@
 
         @include mobile-or-tablet-screen {
             margin: 0;
-            position: fixed;
-
-            /* Fix for iOS devices to prevent stats panel overlap */
-            @supports (-webkit-touch-callout: none) {
-                padding-bottom: env(safe-area-inset-bottom, 0);
-            }
+            width: 100%;
+            padding-bottom: env(safe-area-inset-bottom, 0);
         }
 
         &--info {
@@ -165,24 +183,17 @@
             &--mobile {
                 display: flex;
                 flex-direction: column;
-                /* --drawer-content-height-mobile nunca se define en ningún
-                   JS/TS del proyecto — sin este respaldo, la propiedad se
-                   ignora por completo y la altura queda sin control real
-                   (la causa de que se vea "desorganizado"). Este respaldo
-                   limita el crecimiento a como máximo la mitad del alto de
-                   pantalla, dejando siempre espacio libre arriba para el
-                   header/saldo, con scroll interno si el contenido no cabe. */
-                height: var(--drawer-content-height-mobile, min(50vh, 50dvh));
-                overflow-y: auto;
-                position: fixed;
-                bottom: 15.7rem;
-                width: 100vw;
+                // Ya no necesita su propia altura/posición fija — vive
+                // dentro de .dc-drawer__container (drawer.scss), que ya
+                // se encarga del tope de altura y el scroll interno.
+                // Fluye normal, ocupando el ancho disponible. Se anula
+                // el max-height/overflow heredado de la regla base
+                // (pensada para escritorio) para que no compita con el
+                // contenedor exterior.
+                width: 100%;
                 padding: 0.4rem 0;
-
-                /* Fix for iOS devices to prevent tab content overlap with bottom controls */
-                @supports (-webkit-touch-callout: none) {
-                    bottom: calc(15.7rem + env(safe-area-inset-bottom, 0));
-                }
+                max-height: none;
+                overflow-y: visible;
             }
 
             &--summary-tab {
@@ -207,27 +218,18 @@
         @include flex-center(space-between);
 
         flex-direction: column;
-        position: fixed;
-        // Sits just above the fixed bottom nav bar (Home/Dashboard/Bot
-        // builder/Chart/Menu, 6rem tall) instead of being hidden behind it —
-        // this used to collide with it at bottom:0 on every mobile tab.
-        bottom: 6rem;
+        // Antes: position:fixed;bottom:6rem, con desplazamientos
+        // calculados a mano para coordinarlo con el menú inferior y
+        // la barra Safari (y otro tanto para el safe-area de iOS).
+        // Este componente (MobileDrawerFooter) solo se renderiza en
+        // móvil (ver run-panel.tsx: `{!isDesktop && <MobileDrawerFooter />}`),
+        // así que puede fluir normalmente en el documento — queda
+        // automáticamente justo después del drawer de Transactions y
+        // antes del menú inferior, sin necesitar ningún cálculo.
         width: 100%;
         background-color: var(--general-main-1);
         border-top: solid 2px var(--general-section-1);
-        z-index: 8;
-
-        /* Fix for iOS devices to respect safe area */
-        @supports (-webkit-touch-callout: none) {
-            bottom: calc(6rem + env(safe-area-inset-bottom, 0));
-            padding-bottom: env(safe-area-inset-bottom, 0);
-        }
-
-        /* Additional class for iOS detection via JS */
-        &.ios-device {
-            bottom: calc(6rem + env(safe-area-inset-bottom, 0));
-            padding-bottom: env(safe-area-inset-bottom, 0);
-        }
+        padding-bottom: env(safe-area-inset-bottom, 0);
     }
 
     &__buttons {
