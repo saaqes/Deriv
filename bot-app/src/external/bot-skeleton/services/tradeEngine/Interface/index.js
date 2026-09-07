@@ -1,3 +1,4 @@
+import { showBotAlert, showBotPrompt } from '../../../../../utils/bot-dialogs';
 import TradeEngine from '../trade';
 import getBotInterface from './BotInterface';
 import getTicksInterface from './TicksInterface';
@@ -25,8 +26,11 @@ const Interface = $scope => {
             getTicksInterface: getTicksInterface(tradeEngine),
             watch: (...args) => tradeEngine.watch(...args),
             sleep: (...args) => sleep(observer, ...args),
-            alert: (...args) => alert(...args), // eslint-disable-line no-alert
-            prompt: (...args) => prompt(...args), // eslint-disable-line no-alert
+            // Custom in-page dialogs instead of the native browser alert/prompt,
+            // so the dialog is clearly labelled as the demo simulator instead of
+            // showing the app's hosting domain. See utils/bot-dialogs.ts.
+            alert: (...args) => showBotAlert(...args),
+            prompt: (...args) => showBotPrompt(...args),
             console: {
                 log(...args) {
                     // eslint-disable-next-line no-console
