@@ -100,8 +100,11 @@ const Interpreter = () => {
         const ticks_interface = getTicksInterface;
 
         js_interpreter.setProperty(scope, 'console', js_interpreter.nativeToPseudo(custom_console));
-        js_interpreter.setProperty(scope, 'alert', js_interpreter.nativeToPseudo(alert));
-        js_interpreter.setProperty(scope, 'prompt', js_interpreter.nativeToPseudo(prompt));
+        // alert/prompt now show a custom in-page modal (see utils/bot-dialogs.ts)
+        // instead of the native browser dialog, so they must be wired up as async
+        // (like sleep below) to keep pausing the strategy until dismissed.
+        js_interpreter.setProperty(scope, 'alert', createAsync(js_interpreter, alert));
+        js_interpreter.setProperty(scope, 'prompt', createAsync(js_interpreter, prompt));
         js_interpreter.setProperty(
             scope,
             'getPurchaseReference',
