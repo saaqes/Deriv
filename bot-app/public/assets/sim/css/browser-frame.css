@@ -109,6 +109,13 @@ body.bf-active .notif-panel{
    igual que ya le pasa al menú. */
 body.bf-safari .controls__section{
   bottom: calc(6rem + var(--browser-frame-bottom-height)) !important;
+  /* La regla específica de iOS (ios-device / @supports) le suma también
+     padding-bottom: env(safe-area-inset-bottom) — eso duplicaba el
+     espacio de zona segura, porque --browser-frame-bottom-height (la
+     barra Safari) ya incluye esa misma zona segura en su propia altura.
+     Se anula aquí para que Run quede pegado justo encima del menú, sin
+     el hueco extra. */
+  padding-bottom: 0 !important;
 }
 body.bf-safari .run-panel-tab__content--mobile{
   bottom: calc(15.7rem + var(--browser-frame-bottom-height)) !important;
