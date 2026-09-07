@@ -98,38 +98,12 @@ body.bf-active .notif-panel{
   bottom: var(--browser-frame-bottom-height) !important;
 }
 
-/* Estos dos elementos de la app React tienen su `bottom` calculado a
-   mano relativo a la posición ORIGINAL del menú (6rem / 15.7rem desde
-   el borde real de pantalla) — ver run-panel.scss. No sabían nada de
-   la barra Safari, así que cuando el menú sube en modo Safari, estos
-   se quedaban en su sitio original y terminaban ocultos detrás de
-   ella: el botón Run/Stop (.controls__section) y el contenido móvil
-   de Transactions/Summary (.run-panel-tab__content--mobile). Se les
-   suma la altura real de la barra para que sigan justo encima de ella,
-   igual que ya le pasa al menú. */
-body.bf-safari .controls__section{
-  bottom: calc(6rem + var(--browser-frame-bottom-height)) !important;
-  /* La regla específica de iOS (ios-device / @supports) le suma también
-     padding-bottom: env(safe-area-inset-bottom) — eso duplicaba el
-     espacio de zona segura, porque --browser-frame-bottom-height (la
-     barra Safari) ya incluye esa misma zona segura en su propia altura.
-     Se anula aquí para que Run quede pegado justo encima del menú, sin
-     el hueco extra. */
-  padding-bottom: 0 !important;
-}
-body.bf-safari .run-panel-tab__content--mobile{
-  bottom: calc(15.7rem + var(--browser-frame-bottom-height)) !important;
-}
-
-/* El drawer de Summary/Transactions/Journal (.dc-drawer, ver
-   drawer.scss) ahora se ancla por su borde inferior en vez de por
-   arriba — mucho más simple y confiable: solo hay que subirlo la
-   misma cantidad que el botón Run, en vez de recalcular un `top`
-   complejo. El botón/flecha (su último hijo) queda siempre pegado a
-   ese borde, visible sin importar el estado abierto/cerrado. */
+/* En modo Safari, el menú (.bf-nav-offset) sube un poco más — el
+   espacio reservado al final del panel de Run debe crecer la misma
+   cantidad para que el botón Run no quede tapado. */
 @media (max-width: 1279px){
-  body.bf-safari .dc-drawer{
-    bottom: calc(6rem + var(--browser-frame-bottom-height)) !important;
+  body.bf-safari .run-panel{
+    padding-bottom: calc(6rem + var(--browser-frame-bottom-height)) !important;
   }
 }
 
