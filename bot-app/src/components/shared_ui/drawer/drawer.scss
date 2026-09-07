@@ -30,11 +30,15 @@
         // Ancla por el borde INFERIOR (no top) — así el botón/flecha
         // (.dc-drawer__toggle, el último hijo, 3.6rem) siempre cae en
         // una posición fija y predecible, sin importar cuánto crezca
-        // el contenido de arriba. bottom:6rem coincide con donde ya
-        // arranca .controls__section (el botón Run) — ver
-        // run-panel.scss — así el toggle queda pegado justo encima.
+        // el contenido de arriba.
+        // .controls__section (el botón Run, ver run-panel.scss) también
+        // arranca en bottom:6rem pero mide 6rem de alto — o sea que va
+        // de 6rem a 12rem. Poner este drawer en bottom:6rem lo dejaba
+        // TAPADO por el propio botón Run (mismo rango vertical), por
+        // eso la flechita no se veía. Ahora ancla en bottom:12rem, justo
+        // encima del borde superior de esa barra.
         top: auto !important;
-        bottom: 6rem !important;
+        bottom: 12rem !important;
         // Cerrado: solo se ve el alto del botón/flecha.
         height: 3.6rem !important;
         overflow: hidden;
@@ -153,15 +157,20 @@
             // "deslizamiento" relativo a la propia altura de la caja,
             // muy sensible a que top/height estuvieran calibrados al
             // pixel. Ahora la caja está anclada por su borde inferior
-            // (bottom:6rem, ver arriba) y simplemente crece hacia
+            // (bottom:12rem, ver arriba) y simplemente crece hacia
             // arriba aumentando su altura — el botón/flecha, anclado
             // al mismo borde inferior, nunca se mueve ni desaparece.
             // Tope real: nunca llega por encima del header/saldo
             // (--app-header-height, medido en vivo por
-            // browser-frame.js), con scroll interno si el contenido
-            // de Summary/Transactions/Journal no cabe.
-            height: min(70vh, calc(100dvh - var(--app-header-height, 8rem))) !important;
-            height: min(70dvh, calc(100dvh - var(--app-header-height, 8rem))) !important;
+            // browser-frame.js). Como la caja arranca en bottom:12rem
+            // (no en 0), ese mismo 12rem hay que restarlo del alto
+            // máximo disponible o el contenido se metería debajo del
+            // header — antes faltaba este descuento y por eso la
+            // flecha para cerrar podía llegar hasta encima del menú de
+            // saldo. Con scroll interno si el contenido de
+            // Summary/Transactions/Journal no cabe.
+            height: min(70vh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
+            height: min(70dvh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
         }
     }
 }
