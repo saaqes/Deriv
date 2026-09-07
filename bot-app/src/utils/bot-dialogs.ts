@@ -11,7 +11,7 @@
  * simulator, not the real Deriv platform.
  */
 
-export const DIALOG_LABEL = 'Simulador Deriv (demo) dice:';
+export const DIALOG_LABEL = 'bot.deriv.me dice:';
 
 let overlayEl: HTMLDivElement | null = null;
 
