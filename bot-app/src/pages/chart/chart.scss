@@ -1,155 +1,176 @@
-@use 'components/shared/styles/mixins' as *;
+@use 'components/shared/styles/devices' as *;
 
-.bot {
-    &__chart-container {
-        position: relative;
-        top: 0;
+/** @define dc-drawer */
+.dc-drawer {
+    $toggler-width: 16px;
 
-        &-wrapper {
-            position: absolute;
-            top: 0;
-            width: 100vw;
-            background-color: var(--general-main-1);
+    position: fixed;
+    will-change: transform;
+    transition: transform 0.3s ease;
+    background: var(--general-main-2);
+
+    &--left {
+        display: flex;
+        flex-direction: row-reverse;
+        right: calc(100vw - 16px);
+    }
+
+    &--right {
+        display: flex;
+        flex-direction: row;
+        left: calc(100vw - 16px);
+    }
+
+    @include mobile-or-tablet-screen {
+        width: 100vw !important;
+        // Antes el abrir/cerrar animaba con `transform`; ahora anima
+        // con `height` (ver más abajo), así que la transición debe
+        // seguir esa propiedad en móvil para que siga viéndose suave.
+        transition: height 0.3s ease !important;
+        // Ancla por el borde INFERIOR (no top) — así el botón/flecha
+        // (.dc-drawer__toggle, el último hijo, 3.6rem) siempre cae en
+        // una posición fija y predecible, sin importar cuánto crezca
+        // el contenido de arriba.
+        // .controls__section (el botón Run, ver run-panel.scss) también
+        // arranca en bottom:6rem pero mide 6rem de alto — o sea que va
+        // de 6rem a 12rem. Poner este drawer en bottom:6rem lo dejaba
+        // TAPADO por el propio botón Run (mismo rango vertical), por
+        // eso la flechita no se veía. Ahora ancla en bottom:12rem, justo
+        // encima del borde superior de esa barra.
+        top: auto !important;
+        bottom: 12rem !important;
+        // Cerrado: solo se ve el alto del botón/flecha.
+        height: 3.6rem !important;
+        overflow: hidden;
+        // En el DOM real, .dc-drawer__toggle es el PRIMER hijo y
+        // .dc-drawer__container (con el contenido) es el segundo. Con
+        // "column" normal eso ponía el toggle ARRIBA (cerca del saldo
+        // al abrir) y el contenido ABAJO — al revés de lo que se
+        // necesita. "column-reverse" invierte el orden VISUAL sin
+        // tocar el DOM real: el toggle queda siempre abajo, fijo cerca
+        // de Run, y el contenido aparece por encima de él al abrir.
+        flex-direction: column-reverse !important;
+    }
+
+    &__container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        width: 100%;
+
+        &--left {
+            padding-inline-end: $toggler-width;
+        }
+
+        &--right {
+            padding-inline-start: $toggler-width;
+        }
+
+        @include mobile-or-tablet-screen {
+            height: calc(100% - 3.6rem);
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
         }
     }
 
-    .ciq-chart {
-        .cq-top-ui-widgets,
-        & .info-box {
-            transition: transform 0.25s ease;
+    &__header {
+        border-bottom: 1px solid var(--general-section-1);
+        line-height: 40px;
+        font-weight: 700;
+        font-size: 1.6em;
+    }
 
-            .cq-symbols-display {
-                z-index: 1;
+    &__content {
+        flex-grow: 1;
+        overflow: auto;
+    }
 
-                &.ciq-disabled {
-                    display: none;
-                }
+    &__footer {
+        background-color: var(--general-main-2);
+        border-top: 1px solid var(--general-section-1);
+        line-height: 40px;
+        font-weight: 700;
+        font-size: 1.6em;
+        align-items: center;
+    }
 
-                @include mobile-screen {
-                    width: auto;
-                    padding: 10px;
+    &__toggle {
+        align-items: center;
+        border-left: 1px solid var(--border-disabled);
+        border-right: 1px solid var(--border-disabled);
+        display: flex;
+        position: absolute;
+        width: $toggler-width;
+        height: 100%;
+        background-color: var(--general-section-5);
+        cursor: pointer;
 
-                    .cq-menu-btn {
-                        padding: 0.2rem;
-                    }
+        svg {
+            fill: var(--text-general);
+        }
 
-                    .cq-symbol-select-btn {
-                        margin: 0.2rem;
+        &-icon {
+            transition: 0.25s ease;
 
-                        .cq-symbol-dropdown {
-                            transform: scale(1);
-                            margin-left: auto;
-                        }
+            &--left {
+                transform: rotate(0);
+            }
 
-                        .cq-symbol {
-                            font-size: 1.4rem;
-                        }
-                    }
-                }
+            &--right {
+                transform: rotate(180deg);
             }
         }
 
-        .cq-top-ui-widgets {
-            align-items: center;
-            display: flex;
-            flex-wrap: wrap;
-            position: absolute;
-            top: 0;
+        &--open > &-icon {
+            &--left {
+                transform: rotate(180deg);
+            }
+
+            &--right {
+                transform: rotate(0);
+            }
+
+            @include mobile-or-tablet-screen {
+                transform: rotate(180deg);
+            }
+        }
+
+        @include mobile-or-tablet-screen {
+            position: unset;
             width: 100%;
-        }
+            height: 3.6rem;
+            flex: 0 0 3.6rem;
+            justify-content: center;
+            background-color: var(--general-main-1);
+            border-top: solid 1px var(--general-section-1);
 
-        .sc-toolbar-widget {
-            transition: transform 0.25s ease;
-
-            @include mobile-screen {
-                // Antes: bottom: 80px, que caía en medio de la barra de
-                // navegación inferior (6rem) y la barra Run/Stop (otro 6rem
-                // encima de esa) — los íconos quedaban flotando sin relación
-                // visual con ninguna de las dos. Ahora se apoya justo encima
-                // de la barra Run/Stop, con un pequeño margen.
-                bottom: calc(12rem + 0.8rem);
-
-                @supports (-webkit-touch-callout: none) {
-                    bottom: calc(12rem + 0.8rem + env(safe-area-inset-bottom, 0));
-                }
-            }
-
-            .app-contents .ciq-menu {
-                margin: 0;
+            svg {
+                fill: var(--text-general);
             }
         }
     }
 
-    .smartcharts-mobile {
-        .cq-context {
-            z-index: 99;
-
-            .sc-mcd__category:last-child {
-                margin-bottom: 3rem !important;
-            }
-        }
-
-        & .cq-chart-title .cq-menu-dropdown {
-            position: fixed !important;
-            height: 100% !important;
-            width: 100% !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            z-index: 99999 !important;
-            transform: translateZ(0) !important;
-            backface-visibility: hidden !important;
-            will-change: transform !important;
-
-            .sc-dialog {
-                height: 100% !important;
-
-                &__body {
-                    height: inherit !important;
-
-                    .sc-mcd {
-                        height: inherit !important;
-                        min-width: auto !important;
-                    }
-
-                    .title-text {
-                        font-size: 1.6rem;
-                    }
-                }
-            }
-        }
-
-        .sc-mcd__item {
-            padding-left: 10px !important;
-        }
-
-        .sc-mcd__category__content .subcategory {
-            padding-left: 10px !important;
+    &--open {
+        @include mobile-or-tablet-screen {
+            // Antes: transform: translateY(calc(-100% + 3.6rem)) — un
+            // "deslizamiento" relativo a la propia altura de la caja,
+            // muy sensible a que top/height estuvieran calibrados al
+            // pixel. Ahora la caja está anclada por su borde inferior
+            // (bottom:12rem, ver arriba) y simplemente crece hacia
+            // arriba aumentando su altura — el botón/flecha, anclado
+            // al mismo borde inferior, nunca se mueve ni desaparece.
+            // Tope real: nunca llega por encima del header/saldo
+            // (--app-header-height, medido en vivo por
+            // browser-frame.js). Como la caja arranca en bottom:12rem
+            // (no en 0), ese mismo 12rem hay que restarlo del alto
+            // máximo disponible o el contenido se metería debajo del
+            // header — antes faltaba este descuento y por eso la
+            // flecha para cerrar podía llegar hasta encima del menú de
+            // saldo. Con scroll interno si el contenido de
+            // Summary/Transactions/Journal no cabe.
+            height: min(70vh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
+            height: min(70dvh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
         }
     }
-}
-
-// Safari-specific fixes
-.dashboard__chart-wrapper--safari {
-    .smartcharts-mobile {
-        .cq-context {
-            .sc-mcd__category:last-child {
-                padding-bottom: 200px !important;
-            }
-        }
-
-        & .cq-chart-title .cq-menu-dropdown {
-            position: absolute !important;
-            height: 100vh !important;
-            width: 100vw !important;
-            left: -10px !important;
-            padding-bottom: 200px;
-        }
-    }
-}
-
-.cq-modal-dropdown.stxMenuActive {
-    left: 0;
-    top: 0;
 }
