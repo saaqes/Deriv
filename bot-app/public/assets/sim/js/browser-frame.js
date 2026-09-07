@@ -23,7 +23,7 @@
   'use strict';
 
   var STORAGE_KEY = 'browserAppearance';
-  var DEFAULT_MODE = 'chrome';
+  var DEFAULT_MODE = 'none';
   var root = document.documentElement;
 
   function getRealAddress() {
@@ -38,7 +38,7 @@
   function getMode() {
     try {
       var v = localStorage.getItem(STORAGE_KEY);
-      return v === 'chrome' || v === 'safari' ? v : DEFAULT_MODE;
+      return v === 'chrome' || v === 'safari' || v === 'none' ? v : DEFAULT_MODE;
     } catch (err) {
       return DEFAULT_MODE;
     }
@@ -199,8 +199,20 @@
     var existingBottom = document.querySelector('.bf-bottom');
     if (existingBottom) existingBottom.remove();
 
+    body.classList.remove('bf-active', 'bf-chrome', 'bf-safari');
+
+    if (mode === 'none') {
+      // Sin marco: no se agrega ninguna clase ni barra, así que
+      // ninguna de las reglas de browser-frame.css (padding-top,
+      // padding-bottom, desplazamientos del menú/Run/drawer, etc.) se
+      // activa. El layout queda exactamente como si este sistema no
+      // existiera — limpio y organizado, tal cual estaba antes de
+      // elegir Chrome o Safari.
+      measureAndSetVars();
+      return;
+    }
+
     body.classList.add('bf-active');
-    body.classList.remove('bf-chrome', 'bf-safari');
     body.classList.add(mode === 'safari' ? 'bf-safari' : 'bf-chrome');
 
     // Chrome: solo barra superior (el menú de la app se queda donde
@@ -236,6 +248,11 @@
     overlay.innerHTML =
       '<div class="bf-sheet">' +
       '  <h3>Aspecto</h3>' +
+      '  <div class="bf-option none-preview" data-mode="none">' +
+      '    <div class="bf-preview"><div class="bf-preview-body" style="height:100%"></div></div>' +
+      '    <div class="bf-option-info"><div class="bf-option-name">Ninguno</div><div class="bf-option-desc">Sin marco de navegador (predeterminado)</div></div>' +
+      '    <div class="bf-radio">✓</div>' +
+      '  </div>' +
       '  <div class="bf-option chrome-preview" data-mode="chrome">' +
       '    <div class="bf-preview"><div class="bf-preview-top"></div><div class="bf-preview-body"></div><div class="bf-preview-bottom"></div></div>' +
       '    <div class="bf-option-info"><div class="bf-option-name">Chrome</div><div class="bf-option-desc">Barra de navegador arriba</div></div>' +
