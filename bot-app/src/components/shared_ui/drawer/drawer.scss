@@ -63,6 +63,16 @@
         height: 100%;
         width: 100%;
 
+        @include mobile-or-tablet-screen {
+            // height:100% aquí forzaba este bloque a ocupar TODA la
+            // altura del drawer abierto (hasta el tope de 70vh),
+            // incluso con contenido corto (el mensaje de "aún no hay
+            // operaciones") — el resto se veía como hueco vacío. Ahora
+            // se ajusta a su contenido real; el tope de altura sigue
+            // viviendo en .dc-drawer (arriba), con scroll si hace falta.
+            height: auto;
+        }
+
         &--left {
             padding-inline-end: $toggler-width;
         }
@@ -174,8 +184,9 @@
             // flecha para cerrar podía llegar hasta encima del menú de
             // saldo. Con scroll interno si el contenido de
             // Summary/Transactions/Journal no cabe.
-            height: min(70vh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
-            height: min(70dvh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
+            max-height: min(70vh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
+            max-height: min(70dvh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
+            height: auto !important;
         }
     }
 }
