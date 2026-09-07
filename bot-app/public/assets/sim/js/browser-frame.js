@@ -185,9 +185,14 @@
     // Altura real del header propio de la app (donde está el saldo,
     // .app-header en la app React / .header-top en home.html), para
     // que ningún panel/contenido pueda crecer por encima de él, sin
-    // importar el modo de aspecto seleccionado.
+    // importar el modo de aspecto seleccionado ni la pestaña activa.
+    var MIN_HEADER_HEIGHT = 72; // px — mínimo garantizado.
     var appHeader = document.querySelector('.app-header') || document.querySelector('.header-top');
-    var appHeaderH = appHeader ? appHeader.getBoundingClientRect().height : 0;
+    var measuredHeaderH = appHeader ? appHeader.getBoundingClientRect().height : 0;
+    // Si no se encuentra o mide menos que el mínimo (p.ej. en una
+    // pestaña donde el selector no aplica), usar el mínimo — sin
+    // esto, el tope efectivo sería "toda la pantalla".
+    var appHeaderH = measuredHeaderH > MIN_HEADER_HEIGHT ? measuredHeaderH : MIN_HEADER_HEIGHT;
     root.style.setProperty('--app-header-height', appHeaderH + 'px');
   }
 
@@ -325,7 +330,7 @@
   function init() {
     root.style.setProperty('--browser-frame-top-height', '0px');
     root.style.setProperty('--browser-frame-bottom-height', '0px');
-    root.style.setProperty('--app-header-height', '0px');
+    root.style.setProperty('--app-header-height', '72px');
     applyPwaClass();
     apply(getMode());
 
