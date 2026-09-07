@@ -22,26 +22,30 @@
     }
 
     @include mobile-or-tablet-screen {
-        // Antes: position:fixed anclado por top o por bottom, con
-        // desplazamientos calculados a mano para coordinarlo con el
-        // header, el botón Run y la barra Safari — cualquier pieza
-        // desalineada rompía el orden visual. Ahora es un bloque
-        // normal del documento: fluye justo después del header y
-        // antes del botón Run, en el mismo orden real del HTML
-        // (.dc-drawer__toggle primero, .dc-drawer__container
-        // después). Sin position:fixed no hay nada que coordinar ni
-        // superponer — el orden queda garantizado por la estructura,
-        // no por matemática.
-        position: relative !important;
+        width: 100vw !important;
+        // Antes el abrir/cerrar animaba con `transform`; ahora anima
+        // con `height` (ver más abajo), así que la transición debe
+        // seguir esa propiedad en móvil para que siga viéndose suave.
+        transition: height 0.3s ease !important;
+        // Ancla por el borde INFERIOR (no top) — así el botón/flecha
+        // (.dc-drawer__toggle, el último hijo, 3.6rem) siempre cae en
+        // una posición fija y predecible, sin importar cuánto crezca
+        // el contenido de arriba. bottom:6rem coincide con donde ya
+        // arranca .controls__section (el botón Run) — ver
+        // run-panel.scss — así el toggle queda pegado justo encima.
         top: auto !important;
-        bottom: auto !important;
-        left: auto !important;
-        right: auto !important;
-        width: 100% !important;
-        height: auto !important;
-        display: flex !important;
-        flex-direction: column !important;
-        overflow: visible !important;
+        bottom: 6rem !important;
+        // Cerrado: solo se ve el alto del botón/flecha.
+        height: 3.6rem !important;
+        overflow: hidden;
+        // En el DOM real, .dc-drawer__toggle es el PRIMER hijo y
+        // .dc-drawer__container (con el contenido) es el segundo. Con
+        // "column" normal eso ponía el toggle ARRIBA (cerca del saldo
+        // al abrir) y el contenido ABAJO — al revés de lo que se
+        // necesita. "column-reverse" invierte el orden VISUAL sin
+        // tocar el DOM real: el toggle queda siempre abajo, fijo cerca
+        // de Run, y el contenido aparece por encima de él al abrir.
+        flex-direction: column-reverse !important;
     }
 
     &__container {
@@ -59,12 +63,10 @@
         }
 
         @include mobile-or-tablet-screen {
-            // Cerrado por defecto (el drawer padre ya no tiene una
-            // altura fija tipo caja gigante que lo tapaba); el estado
-            // --open de abajo lo expande.
-            max-height: 0;
-            overflow-y: hidden;
-            transition: max-height 0.3s ease;
+            height: calc(100% - 3.6rem);
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
         }
     }
 
@@ -147,17 +149,19 @@
 
     &--open {
         @include mobile-or-tablet-screen {
-            // El drawer ya no es una caja fixed que se desliza — ahora
-            // es un bloque normal, y lo que se expande/colapsa es el
-            // contenedor interno (arriba). Tope real: nunca llega por
-            // encima del header/saldo (--app-header-height, medido en
-            // vivo por browser-frame.js), con scroll interno si el
-            // contenido de Summary/Transactions/Journal no cabe.
-            .dc-drawer__container {
-                max-height: min(70vh, calc(100dvh - var(--app-header-height, 8rem)));
-                max-height: min(70dvh, calc(100dvh - var(--app-header-height, 8rem)));
-                overflow-y: auto;
-            }
+            // Antes: transform: translateY(calc(-100% + 3.6rem)) — un
+            // "deslizamiento" relativo a la propia altura de la caja,
+            // muy sensible a que top/height estuvieran calibrados al
+            // pixel. Ahora la caja está anclada por su borde inferior
+            // (bottom:6rem, ver arriba) y simplemente crece hacia
+            // arriba aumentando su altura — el botón/flecha, anclado
+            // al mismo borde inferior, nunca se mueve ni desaparece.
+            // Tope real: nunca llega por encima del header/saldo
+            // (--app-header-height, medido en vivo por
+            // browser-frame.js), con scroll interno si el contenido
+            // de Summary/Transactions/Journal no cabe.
+            height: min(70vh, calc(100dvh - var(--app-header-height, 8rem))) !important;
+            height: min(70dvh, calc(100dvh - var(--app-header-height, 8rem))) !important;
         }
     }
 }
