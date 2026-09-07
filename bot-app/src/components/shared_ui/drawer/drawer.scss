@@ -35,6 +35,15 @@
         // llegar por encima del header sin importar el modo de aspecto.
         max-height: calc(100dvh - var(--app-header-height, 8rem));
         top: calc(100% - 15.8rem) !important;
+        // .dc-drawer hereda display:flex;flex-direction:row de
+        // &--left/&--right (pensado para el panel lateral de escritorio).
+        // En móvil esto hace que __container y __toggle compitan por
+        // ancho en la misma fila en vez de apilarse: el contenido crece
+        // y empuja/aplasta la flecha de "bajar" fuera de vista. En móvil
+        // deben apilarse verticalmente: contenido arriba, flecha abajo,
+        // siempre visible.
+        flex-direction: column !important;
+        overflow: hidden;
     }
 
     &__container {
@@ -53,6 +62,9 @@
 
         @include mobile-or-tablet-screen {
             height: calc(100% - 3.6rem);
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
         }
     }
 
@@ -122,6 +134,7 @@
             position: unset;
             width: 100%;
             height: 3.6rem;
+            flex: 0 0 3.6rem;
             justify-content: center;
             background-color: var(--general-main-1);
             border-top: solid 1px var(--general-section-1);
