@@ -1,364 +1,360 @@
 /* ================================================================
- * browser-frame.js — marco visual tipo navegador (Chrome / Safari)
+ * browser-frame.css — marco visual tipo navegador (Chrome / Safari)
  * ----------------------------------------------------------------
- * Decorativo únicamente. No toca el navegador real ni sus APIs de
- * seguridad. La "dirección" que se muestra es SIEMPRE
- * window.location.hostname — la dirección real donde está corriendo
- * la app, nunca un dominio inventado.
+ * Puramente decorativo: NO modifica el navegador real del usuario,
+ * NO falsifica dominios ni certificados. La dirección que muestra
+ * viene de window.location.hostname (ver browser-frame.js), es
+ * decir, siempre es la dirección REAL donde corre la app.
  *
- * Comportamiento:
- * - Chrome  -> solo barra SUPERIOR. El resto de la app (header,
- *   contenido, navegación) se desplaza hacia abajo automáticamente.
- * - Safari  -> solo barra INFERIOR. El contenido y la navegación
- *   propia de la app se acomodan encima de ella automáticamente.
- * El marco NUNCA se superpone: reserva su espacio real (medido con
- * getBoundingClientRect, no un valor fijo) mediante las variables
- * CSS --browser-frame-top-height / --browser-frame-bottom-height,
- * que el resto del CSS (ver browser-frame.css) usa para su padding.
- *
- * Uso: incluir este script (y browser-frame.css) en cualquier
- * página y llamar BrowserFrame.init() al final del <body>.
+ * REGLA CLAVE: el frame RESERVA espacio, nunca se superpone.
+ * --browser-frame-top-height / --browser-frame-bottom-height los
+ * fija browser-frame.js midiendo el alto real ya renderizado (no
+ * son valores fijos aquí) — 0px en el lado donde no hay barra.
+ * Chrome  -> solo barra superior  (top-height > 0, bottom-height = 0)
+ * Safari  -> solo barra inferior  (bottom-height > 0, top-height = 0)
  * ================================================================ */
-(function (window) {
-  'use strict';
 
-  var STORAGE_KEY = 'browserAppearance';
-  var DEFAULT_MODE = 'chrome';
-  var root = document.documentElement;
+:root{
+  --browser-frame-top-height: 0px;
+  --browser-frame-bottom-height: 0px;
+  --bf-frame-width: 480px; /* overridden per page (e.g. options.html usa 600px) */
+}
 
-  function getRealAddress() {
-    try {
-      var host = window.location.hostname;
-      return host && host !== '' ? host : 'localhost';
-    } catch (err) {
-      return 'localhost';
-    }
+/* Reserva el espacio real del frame — el resto de la app (header,
+   contenido, navegación) se desplaza automáticamente, nunca queda
+   detrás del marco. */
+body.bf-active{
+  padding-top: max(var(--browser-frame-top-height), env(safe-area-inset-top));
+  padding-bottom: max(var(--browser-frame-bottom-height), env(safe-area-inset-bottom));
+}
+
+/* .header-top (home.html) es la barra fija con avatar/notificaciones,
+   también position:fixed;top:0 — debe respetar como mínimo el notch/
+   Dynamic Island siempre (con o sin barra Chrome visible encima). */
+body.bf-active .header-top{
+  top: max(var(--browser-frame-top-height), env(safe-area-inset-top));
+}
+
+/* El panel de notificaciones de home.html es un overlay a pantalla
+   completa (top:0). Debe empezar debajo del marco Y del notch/Dynamic
+   Island, lo que sea mayor — nunca detrás de ninguno de los dos. */
+body.bf-active .notif-panel{
+  top: max(var(--browser-frame-top-height), env(safe-area-inset-top));
+  height: calc(100vh - max(var(--browser-frame-top-height), env(safe-area-inset-top)));
+  height: calc(100dvh - max(var(--browser-frame-top-height), env(safe-area-inset-top)));
+}
+
+.bf-top{
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 5000;
+  box-sizing: border-box;
+  width: 100%;
+  background: #f2f2f2;
+  top: 0;
+  padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+/* La barra Safari YA NO es fixed por su cuenta — vive dentro de
+   .bf-safari-stack (ver abajo), que es el único elemento fixed del
+   lado inferior. Así el menú de la app y la barra Safari son
+   simplemente dos hijos consecutivos del mismo flujo normal: es
+   estructuralmente imposible que se superpongan. */
+.bf-bottom{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5000;
+  box-sizing: border-box;
+  width: 100%;
+  background: #f2f2f2;
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Dentro de .bf-safari-stack (páginas estáticas) deja de ser fixed
+   por su cuenta — el contenedor padre ya es el único elemento fixed. */
+.bf-safari-stack .bf-bottom{
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+}
+
+/* Caso app React: el menú (.mobile-bottom-nav / .app-footer) sigue
+   siendo fixed tal cual ya era — solo se le calcula dónde termina la
+   barra Safari (también fixed, independiente) para que quede justo
+   encima sin superponerse. Nada de su DOM se mueve. */
+.bf-nav-offset{
+  bottom: var(--browser-frame-bottom-height) !important;
+}
+
+/* Estos dos elementos de la app React tienen su `bottom` calculado a
+   mano relativo a la posición ORIGINAL del menú (6rem / 15.7rem desde
+   el borde real de pantalla) — ver run-panel.scss. No sabían nada de
+   la barra Safari, así que cuando el menú sube en modo Safari, estos
+   se quedaban en su sitio original y terminaban ocultos detrás de
+   ella: el botón Run/Stop (.controls__section) y el contenido móvil
+   de Transactions/Summary (.run-panel-tab__content--mobile). Se les
+   suma la altura real de la barra para que sigan justo encima de ella,
+   igual que ya le pasa al menú. */
+body.bf-safari .controls__section{
+  bottom: calc(6rem + var(--browser-frame-bottom-height)) !important;
+  /* La regla específica de iOS (ios-device / @supports) le suma también
+     padding-bottom: env(safe-area-inset-bottom) — eso duplicaba el
+     espacio de zona segura, porque --browser-frame-bottom-height (la
+     barra Safari) ya incluye esa misma zona segura en su propia altura.
+     Se anula aquí para que Run quede pegado justo encima del menú, sin
+     el hueco extra. */
+  padding-bottom: 0 !important;
+}
+body.bf-safari .run-panel-tab__content--mobile{
+  bottom: calc(15.7rem + var(--browser-frame-bottom-height)) !important;
+}
+
+/* El propio drawer de Summary/Transactions (.dc-drawer) tiene, en
+   móvil, un `top` fijo (calc(100% - 15.8rem)) calibrado a mano para
+   que su botón/pestaña de apertura quede justo encima de
+   .controls__section (ver comentario en drawer.scss). Como ese botón
+   ahora sube en modo Safari, el drawer entero (con su botón de
+   Transactions dentro) tiene que subir la misma cantidad, o el botón
+   queda desalineado/oculto y aparece un hueco entre Run y el menú.
+   Acotado al mismo breakpoint (<1280px) que la regla original: en
+   escritorio este drawer es un panel lateral distinto y no debe
+   tocarse. */
+@media (max-width: 1279px){
+  body.bf-safari .dc-drawer{
+    top: calc(100% - 15.8rem - var(--browser-frame-bottom-height)) !important;
   }
+}
 
-  function getMode() {
-    try {
-      var v = localStorage.getItem(STORAGE_KEY);
-      return v === 'chrome' || v === 'safari' ? v : DEFAULT_MODE;
-    } catch (err) {
-      return DEFAULT_MODE;
-    }
+/* El único elemento fixed del lado inferior en modo Safari: agrupa,
+   EN ESTE ORDEN, el menú real de la app y la barra Safari debajo. */
+.bf-safari-stack{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+/* Neutraliza el position:fixed/centrado propio que ya tenía el menú
+   de la app (.bottom-nav / .mobile-bottom-nav / .app-footer) para que
+   pase a ser un hijo normal del flujo dentro de .bf-safari-stack, sin
+   tocar sus colores, iconos ni tamaños — solo su posicionamiento. */
+.bf-nav-in-stack{
+  position: static !important;
+  top: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+}
+
+.bf-safari-addr-row{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 6px;
+}
+.bf-safari-controls-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+}
+
+.bf-address{
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #e4e4e4;
+  border-radius: 14px;
+  padding: 7px 12px;
+  font-size: 13px;
+  color: #333;
+  overflow: hidden;
+}
+.bf-address .bf-lock{ flex: 0 0 auto; font-size: 12px; opacity:.7; }
+.bf-address .bf-host{
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bf-icon-btn{
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #444;
+  background: none;
+  border: none;
+  padding: 0;
+}
+.bf-aspect-btn{ color:#ff444f; }
+
+/* ---- Modo Safari: dirección centrada en su fila propia ---- */
+body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align:center; margin:0 auto; }
+
+/* ---- Escritorio: silueta tipo mockup de dispositivo — SOLO en las
+   páginas estáticas (home.html/options.html) que agregan la clase
+   bf-static-page. La app React (Chart, Bot Builder, Dashboard) sigue
+   usando barras a todo lo ancho en escritorio: no tiene sentido
+   encogerla a un ancho de móvil ahí, necesita todo el espacio. ---- */
+@media (min-width: 701px){
+  body.bf-active.bf-static-page{ background:#e9e9ec; }
+
+  body.bf-static-page .bf-top, body.bf-static-page .bf-safari-stack{
+    left: 50%;
+    right: auto;
+    width: var(--bf-frame-width);
+    transform: translateX(-50%);
   }
-
-  function setMode(mode) {
-    try {
-      localStorage.setItem(STORAGE_KEY, mode);
-    } catch (err) {
-      /* localStorage no disponible — el aspecto no persiste, pero no rompe nada */
-    }
+  body.bf-static-page .bf-top{
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -6px 24px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08);
   }
-
-  function svgIcon(name) {
-    var icons = {
-      menu: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>',
-      back: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>',
-      fwd: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>',
-      share: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 8l5-5 5 5M5 21h14"/></svg>',
-      book: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 0-3 3z"/></svg>',
-      tabs: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="4"/></svg>',
-      reload: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg>',
-      lock: '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2a4 4 0 0 0-4 4v3H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a4 4 0 0 0-4-4m0 2a2 2 0 0 1 2 2v3H10V6a2 2 0 0 1 2-2"/></svg>',
-      aspect: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>',
-    };
-    return icons[name] || '';
+  body.bf-static-page .bf-safari-stack{
+    border-radius: 0 0 22px 22px;
+    overflow: hidden;
+    box-shadow: 0 6px 24px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08);
   }
-
-  var aspectBtnHtml =
-    '<button class="bf-icon-btn bf-aspect-btn" aria-label="Aspecto" title="Aspecto" onclick="BrowserFrame.openSelector()">' +
-    svgIcon('aspect') +
-    '</button>';
-
-  function buildTopBar() {
-    var host = getRealAddress();
-    var top = document.createElement('div');
-    top.className = 'bf-top';
-    top.innerHTML =
-      aspectBtnHtml +
-      '<div class="bf-address"><span class="bf-lock">' + svgIcon('lock') + '</span>' +
-      '<span class="bf-host">' + host + '</span></div>' +
-      '<button class="bf-icon-btn" aria-label="Menú">' + svgIcon('menu') + '</button>';
-    return top;
+  /* Costados verticales del "dispositivo", de borde a borde de la
+     ventana, para cerrar la silueta sin tocar el DOM de la app. */
+  body.bf-active.bf-static-page::before, body.bf-active.bf-static-page::after{
+    content: "";
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    z-index: 4999;
+    pointer-events: none;
+    box-shadow: 0 0 24px rgba(0,0,0,.12);
   }
+  body.bf-active.bf-static-page::before{ left: calc(50vw - var(--bf-frame-width) / 2 - 1px); border-left:1px solid rgba(0,0,0,.08); }
+  body.bf-active.bf-static-page::after{ left: calc(50vw + var(--bf-frame-width) / 2); border-right:1px solid rgba(0,0,0,.08); }
+}
 
-  function buildBottomBar() {
-    var host = getRealAddress();
-    var bottom = document.createElement('div');
-    bottom.className = 'bf-bottom';
-    bottom.innerHTML =
-      '<div class="bf-safari-addr-row">' +
-      aspectBtnHtml +
-      '<div class="bf-address"><span class="bf-lock">' + svgIcon('lock') + '</span>' +
-      '<span class="bf-host">' + host + '</span>' +
-      '<span class="bf-icon-btn" style="width:14px;height:14px;opacity:.6">' + svgIcon('reload') + '</span></div>' +
-      '<span style="width:28px;flex:0 0 auto"></span>' +
-      '</div>' +
-      '<div class="bf-safari-controls-row">' +
-      '<button class="bf-icon-btn" aria-label="Atrás">' + svgIcon('back') + '</button>' +
-      '<button class="bf-icon-btn" aria-label="Adelante">' + svgIcon('fwd') + '</button>' +
-      '<button class="bf-icon-btn" aria-label="Compartir">' + svgIcon('share') + '</button>' +
-      '<button class="bf-icon-btn" aria-label="Marcadores">' + svgIcon('book') + '</button>' +
-      '<button class="bf-icon-btn" aria-label="Pestañas">' + svgIcon('tabs') + '</button>' +
-      '</div>';
-    return bottom;
-  }
+/* ================================================================
+ * Selector de "Aspecto" (Chrome / Safari)
+ * ================================================================ */
+.bf-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 6000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+.bf-overlay.open{ opacity: 1; pointer-events: auto; }
 
-  // Solo el menú de las páginas estáticas (home.html/options.html) se
-  // mueve realmente en el DOM — ahí lo controlo por completo y es
-  // seguro. El menú de la app React (.mobile-bottom-nav / .app-footer)
-  // NO se mueve: esa app calcula alturas internas (el panel de Run,
-  // el dashboard) asumiendo que su menú es position:fixed y no ocupa
-  // espacio de flujo: moverlo rompía esos cálculos (Run/Reset se
-  // cortaban). Para esos casos se usa un desplazamiento calculado en
-  // su lugar, sin tocar el DOM.
-  var REAL_MOVE_SELECTOR = '.bottom-nav';
-  var OFFSET_ONLY_SELECTORS = ['.mobile-bottom-nav', '.app-footer'];
-  var STACK_ID = 'bfSafariStack';
+.bf-sheet{
+  width: 100%;
+  max-width: 480px;
+  background: #16181d;
+  color: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
+  transform: translateY(100%);
+  transition: transform .28s cubic-bezier(.22,.9,.32,1);
+  box-sizing: border-box;
+  max-height: 85vh;
+  max-height: 85dvh;
+  overflow-y: auto;
+}
+.bf-overlay.open .bf-sheet{ transform: translateY(0); }
 
-  function findOffsetOnlyNav() {
-    for (var i = 0; i < OFFSET_ONLY_SELECTORS.length; i++) {
-      var el = document.querySelector(OFFSET_ONLY_SELECTORS[i]);
-      if (el) return el;
-    }
-    return null;
-  }
+.bf-sheet h3{
+  margin: 0 0 16px;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+}
 
-  /** Caso "página estática": saca el menú de su position:fixed y lo
-   * mueve, en el DOM real, al mismo contenedor apilado (flex-column)
-   * que la barra Safari — en ese orden: menú primero, Safari después.
-   * Caso "app React": el menú se queda donde está (fixed); solo se le
-   * calcula un `bottom` para que la barra Safari (también fixed,
-   * independiente) quede justo debajo sin superponerse. */
-  function placeSafariBar(safariBar) {
-    var realMoveNav = document.querySelector(REAL_MOVE_SELECTOR);
+.bf-option{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #1f2229;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.bf-option.selected{ border-color: #ff444f; }
 
-    if (realMoveNav) {
-      var stack = document.createElement('div');
-      stack.id = STACK_ID;
-      stack.className = 'bf-safari-stack';
-      realMoveNav.classList.add('bf-nav-in-stack');
-      stack.appendChild(realMoveNav); // lo saca de donde estaba y lo mete aquí, EN ESE ORDEN
-      stack.appendChild(safariBar); // Safari va DESPUÉS del menú, nunca antes
-      document.body.appendChild(stack);
-      return;
-    }
+.bf-option .bf-preview{
+  flex: 0 0 auto;
+  width: 64px;
+  height: 96px;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+}
+.bf-option .bf-preview .bf-preview-top{ height: 16px; background:#f2f2f2; border-bottom:1px solid #ddd; }
+.bf-option .bf-preview .bf-preview-body{ height: 60px; background: linear-gradient(180deg,#22242c,#181a20); }
+.bf-option .bf-preview .bf-preview-bottom{ height: 16px; background:#f2f2f2; border-top:1px solid #ddd; }
+.bf-option.safari-preview .bf-preview-top{ display:flex; align-items:center; justify-content:center; }
 
-    // App React: no mover nada del DOM existente, solo agregar la
-    // barra Safari como su propio elemento fixed independiente.
-    var offsetNav = findOffsetOnlyNav();
-    if (offsetNav) offsetNav.classList.add('bf-nav-offset');
-    document.body.appendChild(safariBar);
-  }
+.bf-option-info{ flex: 1 1 auto; min-width: 0; }
+.bf-option-info .bf-option-name{ font-weight: 600; font-size: 15px; }
+.bf-option-info .bf-option-desc{ font-size: 12px; color: #9a9a9a; margin-top: 2px; }
 
-  /** Deshace lo anterior (modo Chrome, donde no hace falta coordinar
-   * nada con una barra inferior porque no existe). */
-  function unstackNav() {
-    var stackedNav = document.querySelector('.bf-nav-in-stack');
-    if (stackedNav) {
-      stackedNav.classList.remove('bf-nav-in-stack');
-      document.body.appendChild(stackedNav);
-    }
-    var stack = document.getElementById(STACK_ID);
-    if (stack) stack.remove();
+.bf-radio{
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: transparent;
+}
+.bf-option.selected .bf-radio{
+  border-color: #ff444f;
+  background: #ff444f;
+  color: #fff;
+}
 
-    var offsetNav = document.querySelector('.bf-nav-offset');
-    if (offsetNav) offsetNav.classList.remove('bf-nav-offset');
-  }
-
-  /** Mide el frame real (no un valor fijo) y actualiza las variables CSS
-   * que el resto de la app usa para reservar su espacio. */
-  function measureAndSetVars() {
-    var top = document.querySelector('.bf-top');
-    var stack = document.getElementById(STACK_ID);
-    var bar = document.querySelector('.bf-bottom');
-    var topH = top ? top.getBoundingClientRect().height : 0;
-    // Caso página estática: el bloque apilado completo (menú + barra).
-    // Caso app React: la barra Safari sola (el menú no se movió, se le
-    // aplica su propio offset — ver CSS .bf-nav-offset).
-    var bottomH = stack ? stack.getBoundingClientRect().height : bar ? bar.getBoundingClientRect().height : 0;
-    root.style.setProperty('--browser-frame-top-height', topH + 'px');
-    root.style.setProperty('--browser-frame-bottom-height', bottomH + 'px');
-
-    // Altura real del header propio de la app (donde está el saldo,
-    // .app-header en la app React / .header-top en home.html), para
-    // que ningún panel/contenido pueda crecer por encima de él, sin
-    // importar el modo de aspecto seleccionado ni la pestaña activa
-    // (Home/Dashboard/Chart/etc.).
-    var MIN_HEADER_HEIGHT = 56; // px — mínimo garantizado.
-    var appHeader = document.querySelector('.app-header') || document.querySelector('.header-top');
-    var measuredHeaderH = appHeader ? appHeader.getBoundingClientRect().height : 0;
-    // Si no se encuentra o mide 0 (p.ej. en una pestaña donde el
-    // selector no aplica), usar el mínimo en vez de 0 — con 0 el techo
-    // efectivo sería "toda la pantalla", exactamente el bug reportado.
-    var appHeaderH = measuredHeaderH > MIN_HEADER_HEIGHT ? measuredHeaderH : MIN_HEADER_HEIGHT;
-    root.style.setProperty('--app-header-height', appHeaderH + 'px');
-  }
-
-  function apply(mode) {
-    var body = document.body;
-    var existingTop = document.querySelector('.bf-top');
-    if (existingTop) existingTop.remove();
-    unstackNav();
-    var existingBottom = document.querySelector('.bf-bottom');
-    if (existingBottom) existingBottom.remove();
-
-    body.classList.add('bf-active');
-    body.classList.remove('bf-chrome', 'bf-safari');
-    body.classList.add(mode === 'safari' ? 'bf-safari' : 'bf-chrome');
-
-    // Chrome: solo barra superior (el menú de la app se queda donde
-    // siempre estuvo, fixed, no hace falta tocarlo).
-    // Safari: solo barra inferior, apilada DEBAJO del menú real en el
-    // mismo contenedor de flujo — nunca fixed+offset calculado.
-    if (mode === 'safari') {
-      placeSafariBar(buildBottomBar());
-    } else {
-      body.insertBefore(buildTopBar(), body.firstChild);
-    }
-
-    // Medir de inmediato (getBoundingClientRect fuerza un reflow síncrono
-    // con el valor ya correcto) — así no hay ni un frame de solapamiento
-    // entre insertar la barra y reservarle su espacio real.
-    measureAndSetVars();
-  }
-
-  function handleViewportChange() {
-    requestAnimationFrame(measureAndSetVars);
-  }
-
-  /* ---- Selector "Aspecto" (sheet inferior con overlay) ---- */
-  function buildSelector() {
-    if (document.getElementById('bfOverlay')) return;
-
-    var overlay = document.createElement('div');
-    overlay.className = 'bf-overlay';
-    overlay.id = 'bfOverlay';
-
-    var current = getMode();
-
-    overlay.innerHTML =
-      '<div class="bf-sheet">' +
-      '  <h3>Aspecto</h3>' +
-      '  <div class="bf-option chrome-preview" data-mode="chrome">' +
-      '    <div class="bf-preview"><div class="bf-preview-top"></div><div class="bf-preview-body"></div><div class="bf-preview-bottom"></div></div>' +
-      '    <div class="bf-option-info"><div class="bf-option-name">Chrome</div><div class="bf-option-desc">Barra de navegador arriba</div></div>' +
-      '    <div class="bf-radio">✓</div>' +
-      '  </div>' +
-      '  <div class="bf-option safari-preview" data-mode="safari">' +
-      '    <div class="bf-preview"><div class="bf-preview-top"></div><div class="bf-preview-body"></div><div class="bf-preview-bottom"></div></div>' +
-      '    <div class="bf-option-info"><div class="bf-option-name">Safari</div><div class="bf-option-desc">Barra de navegador abajo</div></div>' +
-      '    <div class="bf-radio">✓</div>' +
-      '  </div>' +
-      '  <button class="bf-save-btn" id="bfSaveBtn">GUARDAR</button>' +
-      '</div>';
-
-    document.body.appendChild(overlay);
-
-    var options = overlay.querySelectorAll('.bf-option');
-    function markSelected(mode) {
-      options.forEach(function (opt) {
-        opt.classList.toggle('selected', opt.getAttribute('data-mode') === mode);
-      });
-    }
-    markSelected(current);
-
-    var pendingMode = current;
-    options.forEach(function (opt) {
-      opt.addEventListener('click', function () {
-        pendingMode = opt.getAttribute('data-mode');
-        markSelected(pendingMode);
-      });
-    });
-
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) closeSelector();
-    });
-
-    document.getElementById('bfSaveBtn').addEventListener('click', function () {
-      setMode(pendingMode);
-      apply(pendingMode);
-      closeSelector();
-    });
-  }
-
-  function openSelector() {
-    buildSelector();
-    var overlay = document.getElementById('bfOverlay');
-    if (overlay) overlay.classList.add('open');
-  }
-
-  function closeSelector() {
-    var overlay = document.getElementById('bfOverlay');
-    if (overlay) overlay.classList.remove('open');
-  }
-
-  /** window.matchMedia('(display-mode: standalone)') cubre PWA
-   * instaladas en Android/desktop; navigator.standalone es el
-   * equivalente específico de iOS Safari. */
-  function isRunningAsPwa() {
-    try {
-      if (window.navigator.standalone === true) return true;
-      return window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
-    } catch (err) {
-      return false;
-    }
-  }
-
-  function applyPwaClass() {
-    document.body.classList.toggle('bf-pwa-standalone', isRunningAsPwa());
-  }
-
-  function init() {
-    root.style.setProperty('--browser-frame-top-height', '0px');
-    root.style.setProperty('--browser-frame-bottom-height', '0px');
-    root.style.setProperty('--app-header-height', '56px');
-    applyPwaClass();
-    apply(getMode());
-
-    // Recalcular ante cualquier cambio real de layout: resize, cambio de
-    // orientación, o cuando el navegador muestra/oculta su propia UI
-    // (barra de direcciones móvil) y el viewport visual cambia de alto.
-    window.addEventListener('resize', handleViewportChange);
-    window.addEventListener('orientationchange', handleViewportChange);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewportChange);
-    }
-    if (window.matchMedia) {
-      try {
-        window.matchMedia('(display-mode: standalone)').addEventListener('change', applyPwaClass);
-      } catch (err) {
-        /* Safari antiguo sin addEventListener en MediaQueryList — no crítico. */
-      }
-    }
-
-    // La app React (.app-header) todavía no existe cuando este script
-    // corre — React la monta después. Un MutationObserver recalcula en
-    // cuanto aparece (y ante cualquier cambio posterior de su tamaño,
-    // p.ej. si el header cambia de alto entre pestañas), sin depender
-    // de ganchos específicos de React.
-    if (window.MutationObserver) {
-      var pending = false;
-      var observer = new MutationObserver(function () {
-        if (pending) return;
-        pending = true;
-        requestAnimationFrame(function () {
-          pending = false;
-          measureAndSetVars();
-        });
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
-  }
-
-  window.BrowserFrame = {
-    init: init,
-    apply: apply,
-    getMode: getMode,
-    setMode: setMode,
-    openSelector: openSelector,
-    closeSelector: closeSelector,
-  };
-})(window);
+.bf-save-btn{
+  width: 100%;
+  margin-top: 6px;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: #ff444f;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: .5px;
+}
