@@ -1,4 +1,3 @@
-```ts
 /**
  * Custom in-page dialogs for bot-app.
  *
@@ -232,4 +231,3 @@ export function showBotPrompt(
  */
 (window as any).showBotAlert = showBotAlert;
 (window as any).showBotPrompt = showBotPrompt;
-```
