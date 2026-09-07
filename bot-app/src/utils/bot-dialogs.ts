@@ -1,4 +1,3 @@
-ts
 /**
  * In-page replacement for the native `window.alert` / `window.prompt`.
  *
@@ -236,4 +235,3 @@ export function showBotPrompt(
         input.select();
     });
 }
-```
