@@ -370,11 +370,5 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
   .cq-chart-title{
     transform: scale(0.75);
     transform-origin: top left;
-    /* Empuja Volatility hacia abajo exactamente lo que mide el drawer
-       en cada momento (--drawer-toggle-height, medido en vivo por
-       browser-frame.js: 3.6rem cerrado, más si está abierto) — así
-       Volatility queda SIEMPRE visible debajo del drawer, nunca
-       tapada por él mientras no está expandido sobre esa zona. */
-    margin-top: calc(.2em + var(--drawer-toggle-height, 0px)) !important;
   }
 }
