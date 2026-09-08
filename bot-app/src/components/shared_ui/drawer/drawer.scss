@@ -41,25 +41,24 @@
         // con `height` (ver más abajo), así que la transición debe
         // seguir esa propiedad en móvil para que siga viéndose suave.
         transition: height 0.3s ease !important;
-        // Ancla por el borde SUPERIOR, justo debajo del header/saldo
-        // (--app-header-height, medido en vivo por browser-frame.js)
-        // — no por un `bottom` arbitrario relativo al botón Run. El
-        // toggle (primer hijo real en el DOM, ver drawer.tsx) queda
-        // así arriba de todo el drawer, inmediatamente debajo del
-        // header, y el contenido (Volatility ya NO forma parte de
-        // este componente — vive en el chart, no en el drawer) crece
-        // hacia ABAJO desde ahí, nunca hacia arriba.
-        top: var(--app-header-height, 8rem) !important;
-        bottom: auto !important;
+        // Ancla por el borde INFERIOR — el handle/chevron (último en
+        // aparecer visualmente, ver flex-direction abajo) se queda
+        // SIEMPRE fijo justo encima de .controls__section (el botón
+        // Run: bottom:6rem + su propia altura de 6rem = 12rem desde
+        // el borde real de pantalla). Al abrir, el panel crece hacia
+        // ARRIBA desde ese mismo punto — el handle nunca se mueve.
+        top: auto !important;
+        bottom: 12rem !important;
         // Cerrado: solo se ve el alto del botón/flecha.
         height: 3.6rem !important;
         overflow: hidden;
-        // El DOM real es: .dc-drawer__toggle (primer hijo), luego
-        // .dc-drawer__container (segundo hijo) — ver drawer.tsx. Con
-        // flex-direction normal ("column"), el toggle ya cae arriba
-        // y el container debajo, en ese mismo orden del DOM — sin
-        // necesidad de invertir nada.
-        flex-direction: column !important;
+        // En el DOM real, .dc-drawer__toggle es el PRIMER hijo y
+        // .dc-drawer__container (con el contenido) es el segundo —
+        // ver drawer.tsx. Con "column-reverse", el toggle se pinta
+        // VISUALMENTE último (abajo) sin tocar el DOM real: queda
+        // siempre pegado al borde inferior de la caja, y el
+        // contenido aparece por ENCIMA de él al abrir.
+        flex-direction: column-reverse !important;
     }
 
     &__container {
@@ -173,17 +172,17 @@
 
     &--open {
         @include mobile-or-tablet-screen {
-            // La caja ahora está anclada por su borde SUPERIOR, justo
-            // debajo del header (top: var(--app-header-height), ver
-            // arriba) — al abrirse, crece hacia ABAJO aumentando su
-            // altura, sin moverse de ahí. El botón/flecha, primer
-            // hijo del DOM, siempre queda pegado al header.
-            // Tope real: nunca llega hasta el botón Run ni el menú
-            // inferior — se descuentan 12rem (donde arranca
-            // .controls__section: bottom:6rem + su propia altura de
-            // 6rem = 12rem desde el borde inferior real). Con scroll
-            // interno si el contenido de Summary/Transactions/Journal
-            // no cabe en el espacio restante.
+            // La caja está anclada por su borde INFERIOR (bottom:12rem,
+            // ver arriba) — al abrirse, crece hacia ARRIBA aumentando
+            // su altura, sin moverse de ahí. El handle/chevron, pegado
+            // a ese mismo borde inferior, nunca se mueve ni desaparece.
+            // Tope real: nunca llega por encima del header/saldo
+            // (--app-header-height, medido en vivo por
+            // browser-frame.js). Como la caja arranca en bottom:12rem
+            // (no en 0), ese mismo 12rem se descuenta del alto máximo
+            // disponible, o el contenido se metería debajo del header.
+            // Con scroll interno si el contenido de
+            // Summary/Transactions/Journal no cabe.
             max-height: calc(100vh - var(--app-header-height, 6rem) - 12rem) !important;
             max-height: calc(100dvh - var(--app-header-height, 6rem) - 12rem) !important;
             height: auto !important;
