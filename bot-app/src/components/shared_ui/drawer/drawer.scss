@@ -194,8 +194,8 @@
             // disponible. Ahora usa TODO el espacio real que existe
             // entre el header y el área reservada para Run — ni un
             // límite fijo de más, ni de menos.
-            max-height: calc(100vh - var(--app-header-height, 8rem) - 12rem) !important;
-            max-height: calc(100dvh - var(--app-header-height, 8rem) - 12rem) !important;
+            max-height: calc(100vh - var(--app-header-height, 6rem) - 12rem) !important;
+            max-height: calc(100dvh - var(--app-header-height, 6rem) - 12rem) !important;
             height: auto !important;
         }
     }
