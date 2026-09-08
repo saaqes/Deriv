@@ -17,7 +17,11 @@
     // confirmado revisando ese CSS directamente. Por más que el
     // drawer creciera hacia arriba, el selector SIEMPRE se pintaba
     // encima de él por esa diferencia de capas. 50 > 41 lo resuelve.
-    z-index: var(--z-drawer, 50);
+    // El componente Drawer aplica z-index como estilo INLINE
+    // (style={{zIndex}}, ver drawer.tsx) — un estilo inline le gana a
+    // cualquier regla CSS externa que no sea !important, así que sin
+    // esto mi z-index de aquí nunca llegaba a aplicarse realmente.
+    z-index: var(--z-drawer, 50) !important;
 
     &--left {
         display: flex;
