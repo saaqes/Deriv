@@ -1,14 +1,139 @@
-// Este archivo contenía una copia COMPLETA y desactualizada de la
-// regla .dc-drawer (idéntica a bot-app/src/components/shared_ui/drawer/drawer.scss,
-// pero con versiones antiguas de esos cambios). Al compilarse en el
-// bundle, esta copia duplicada podía ganar la cascada CSS sobre la
-// versión real y actualizada, anulando en silencio los ajustes hechos
-// ahí — específicamente en la página de Chart, que es donde vive
-// este archivo.
-//
-// Se eliminó por completo. La única definición de .dc-drawer que debe
-// existir en el proyecto es la de drawer.scss — cualquier ajuste al
-// drawer va ahí, nunca aquí.
-//
-// El archivo se mantiene vacío (en vez de borrarlo) porque
-// chart-wrapper.tsx todavía lo importa (`import './chart.scss'`).
+@use 'components/shared/styles/devices' as *;
+
+/** @define dc-drawer */
+.dc-drawer {
+    $toggler-width: 16px;
+
+    position: fixed;
+    will-change: transform;
+    transition: transform 0.3s ease;
+    background: var(--general-main-2);
+
+    &--left {
+        display: flex;
+        flex-direction: row-reverse;
+        right: calc(100vw - 16px);
+    }
+
+    &--right {
+        display: flex;
+        flex-direction: row;
+        left: calc(100vw - 16px);
+    }
+
+    @include mobile-or-tablet-screen {
+        width: 100vw !important;
+        transition: height 0.3s ease !important;
+        top: auto !important;
+        bottom: 12rem !important;
+        height: 3.6rem !important;
+        overflow: hidden;
+        flex-direction: column-reverse !important;
+    }
+
+    &__container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        width: 100%;
+
+        &--left {
+            padding-inline-end: $toggler-width;
+        }
+
+        &--right {
+            padding-inline-start: $toggler-width;
+        }
+
+        @include mobile-or-tablet-screen {
+            height: calc(100% - 3.6rem);
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+        }
+    }
+
+    &__header {
+        border-bottom: 1px solid var(--general-section-1);
+        line-height: 40px;
+        font-weight: 700;
+        font-size: 1.6em;
+    }
+
+    &__content {
+        flex-grow: 1;
+        overflow: auto;
+    }
+
+    &__footer {
+        background-color: var(--general-main-2);
+        border-top: 1px solid var(--general-section-1);
+        line-height: 40px;
+        font-weight: 700;
+        font-size: 1.6em;
+        align-items: center;
+    }
+
+    &__toggle {
+        align-items: center;
+        border-left: 1px solid var(--border-disabled);
+        border-right: 1px solid var(--border-disabled);
+        display: flex;
+        position: absolute;
+        width: $toggler-width;
+        height: 100%;
+        background-color: var(--general-section-5);
+        cursor: pointer;
+
+        svg {
+            fill: var(--text-general);
+        }
+
+        &-icon {
+            transition: 0.25s ease;
+
+            &--left {
+                transform: rotate(0);
+            }
+
+            &--right {
+                transform: rotate(180deg);
+            }
+        }
+
+        &--open > &-icon {
+            &--left {
+                transform: rotate(180deg);
+            }
+
+            &--right {
+                transform: rotate(0);
+            }
+
+            @include mobile-or-tablet-screen {
+                transform: rotate(180deg);
+            }
+        }
+
+        @include mobile-or-tablet-screen {
+            position: unset;
+            width: 100%;
+            height: 3.6rem;
+            flex: 0 0 3.6rem;
+            justify-content: center;
+            background-color: var(--general-main-1);
+            border-top: solid 1px var(--general-section-1);
+
+            svg {
+                fill: var(--text-general);
+            }
+        }
+    }
+
+    &--open {
+        @include mobile-or-tablet-screen {
+            height: min(70vh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
+            height: min(70dvh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
+        }
+    }
+}
