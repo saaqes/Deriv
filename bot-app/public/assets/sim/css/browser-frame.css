@@ -357,3 +357,17 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
   font-size: 15px;
   letter-spacing: .5px;
 }
+
+/* Botón "Volatility X Index" (selector de símbolo del gráfico,
+   .cq-symbol-select-btn__container en smartcharts.css) — 20% más
+   chico, SOLO en PWA instalada y SOLO en móvil. En escritorio, o en
+   una pestaña normal de Safari/Chrome (no instalada), no se toca.
+   transform:scale mantiene el mismo texto/colores/funcionamiento,
+   solo lo dibuja más pequeño; transform-origin:top left lo ancla en
+   su misma esquina para que no se desplace de posición. */
+@media (max-width: 1279px){
+  body.bf-pwa-standalone .cq-symbol-select-btn__container{
+    transform: scale(0.8);
+    transform-origin: top left;
+  }
+}
