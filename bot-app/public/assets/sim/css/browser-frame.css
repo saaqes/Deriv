@@ -358,15 +358,16 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
   letter-spacing: .5px;
 }
 
-/* Botón "Volatility X Index" (selector de símbolo del gráfico,
-   .cq-symbol-select-btn en smartcharts.css) — más compacto en
-   cualquier contexto móvil (PWA, Android, Safari/Chrome normal). En
-   escritorio no se toca. transform:scale mantiene el mismo
-   texto/icono/precio/variación/flecha — solo lo dibuja más pequeño;
-   transform-origin:top left lo ancla en su misma esquina para que no
-   se desplace de posición. */
+/* Botón "Volatility X Index" (selector de símbolo del gráfico) — más
+   compacto en cualquier contexto móvil (PWA, Android, Safari/Chrome
+   normal). En escritorio no se toca.
+   IMPORTANTE: se escala .cq-chart-title (el contenedor MÁS EXTERIOR)
+   y no solo .cq-symbol-select-btn — .cq-menu-btn, que está en medio,
+   tiene su propio fondo/borde redondeado (ver smartcharts.css); si
+   solo se reduce el botón interno, ese fondo exterior se queda con
+   el tamaño original, grande, alrededor del contenido ya chico. */
 @media (max-width: 1279px){
-  .cq-symbol-select-btn{
+  .cq-chart-title{
     transform: scale(0.75);
     transform-origin: top left;
   }
