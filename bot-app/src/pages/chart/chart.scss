@@ -132,8 +132,9 @@
 
     &--open {
         @include mobile-or-tablet-screen {
-            height: min(70vh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
-            height: min(70dvh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
+            max-height: calc(100vh - var(--app-header-height, 8rem) - 12rem) !important;
+            max-height: calc(100dvh - var(--app-header-height, 8rem) - 12rem) !important;
+            height: auto !important;
         }
     }
 }
