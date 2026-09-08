@@ -69,13 +69,13 @@
         width: 100%;
 
         @include mobile-or-tablet-screen {
-            // height:100% aquí forzaba este bloque a ocupar TODA la
-            // altura del drawer abierto (hasta el tope de 70vh),
-            // incluso con contenido corto (el mensaje de "aún no hay
-            // operaciones") — el resto se veía como hueco vacío. Ahora
-            // se ajusta a su contenido real; el tope de altura sigue
-            // viviendo en .dc-drawer (arriba), con scroll si hace falta.
-            height: auto;
+            // .dc-drawer (el padre) ahora tiene una altura FIJA que
+            // llega hasta el header (ver drawer.scss arriba) — este
+            // contenedor debe llenar esa caja completa (100%) para
+            // que el contenido interno (.dc-drawer__content, con
+            // flex-grow:1) realmente aproveche ese espacio, en vez de
+            // quedarse en su tamaño natural y dejar hueco sin usar.
+            height: 100%;
         }
 
         &--left {
