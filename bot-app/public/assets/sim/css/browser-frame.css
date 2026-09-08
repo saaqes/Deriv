@@ -368,16 +368,7 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
    el tamaño original, grande, alrededor del contenido ya chico. */
 @media (max-width: 1279px){
   .cq-chart-title{
-    transform: scale(0.75, 0.95);
-    transform-origin: top left;
-  }
-  /* El menú desplegable de símbolos (.cq-menu-dropdown) vive DENTRO de
-     .cq-chart-title, así que heredaba su escala reducida y se veía
-     chico al abrirse. Se le aplica la escala INVERSA para cancelar
-     el encogimiento del padre y que vuelva a ocupar su tamaño y
-     ancho completos, como antes. */
-  .cq-chart-title .cq-menu-dropdown{
-    transform: scale(1.333, 1.053);
+    transform: scale(0.65, 0.85);
     transform-origin: top left;
   }
 }
