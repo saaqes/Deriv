@@ -2,17 +2,6 @@
 @use 'components/shared/styles/mixins' as *;
 
 .app-header {
-    // En iPhone con notch/Dynamic Island, sin esto el header/saldo
-    // podía quedar debajo de esa zona en el modo "Ninguno" del marco
-    // visual (el predeterminado) — es el único caso donde nada más
-    // reserva ese espacio (Chrome/Safari ya lo hacen vía el padding
-    // del body). Se acota a "sin marco activo" para no sumarlo dos
-    // veces. env() se evalúa a 0 sin área segura (Android), así que
-    // esto nunca afecta a Android.
-    body:not(.bf-active) & {
-        padding-top: env(safe-area-inset-top, 0);
-    }
-
     &__account-settings {
         padding-inline-end: 1.2rem;
         border-inline-end: 0.1rem solid var(--general-section-1);
