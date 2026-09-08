@@ -1,374 +1,45 @@
-/* ================================================================
- * browser-frame.css — marco visual tipo navegador (Chrome / Safari)
- * ----------------------------------------------------------------
- * Puramente decorativo: NO modifica el navegador real del usuario,
- * NO falsifica dominios ni certificados. La dirección que muestra
- * viene de window.location.hostname (ver browser-frame.js), es
- * decir, siempre es la dirección REAL donde corre la app.
- *
- * REGLA CLAVE: el frame RESERVA espacio, nunca se superpone.
- * --browser-frame-top-height / --browser-frame-bottom-height los
- * fija browser-frame.js midiendo el alto real ya renderizado (no
- * son valores fijos aquí) — 0px en el lado donde no hay barra.
- * Chrome  -> solo barra superior  (top-height > 0, bottom-height = 0)
- * Safari  -> solo barra inferior  (bottom-height > 0, top-height = 0)
- * ================================================================ */
+import { showBotAlert, showBotPrompt } from '../../../../../utils/bot-dialogs';
+import TradeEngine from '../trade';
+import getBotInterface from './BotInterface';
+import getTicksInterface from './TicksInterface';
+import getToolsInterface from './ToolsInterface';
 
-:root{
-  --browser-frame-top-height: 0px;
-  --browser-frame-bottom-height: 0px;
-  --bf-frame-width: 480px; /* overridden per page (e.g. options.html usa 600px) */
-}
+const sleep = (observer, arg = 1) => {
+    return new Promise(
+        r =>
+            // eslint-disable-next-line no-promise-executor-return
+            setTimeout(() => {
+                r();
+                setTimeout(() => observer.emit('CONTINUE'), 0);
+            }, arg * 1000),
+        () => {}
+    );
+};
 
-/* Reserva el espacio real del frame — el resto de la app (header,
-   contenido, navegación) se desplaza automáticamente, nunca queda
-   detrás del marco. */
-body.bf-active{
-  padding-top: max(var(--browser-frame-top-height), env(safe-area-inset-top));
-  padding-bottom: max(var(--browser-frame-bottom-height), env(safe-area-inset-bottom));
-}
+const Interface = $scope => {
+    const tradeEngine = new TradeEngine($scope);
+    const { observer } = $scope;
+    const getInterface = () => {
+        return {
+            ...getBotInterface(tradeEngine),
+            ...getToolsInterface(tradeEngine),
+            getTicksInterface: getTicksInterface(tradeEngine),
+            watch: (...args) => tradeEngine.watch(...args),
+            sleep: (...args) => sleep(observer, ...args),
+            // Modal personalizado con el nombre real de la app
+            // ("Deriv Bot dice:") — no un dominio inventado. Ver
+            // utils/bot-dialogs.ts.
+            alert: (...args) => showBotAlert(...args),
+            prompt: (...args) => showBotPrompt(...args),
+            console: {
+                log(...args) {
+                    // eslint-disable-next-line no-console
+                    console.log(new Date().toLocaleTimeString(), ...args);
+                },
+            },
+        };
+    };
+    return { tradeEngine, observer, getInterface };
+};
 
-/* .header-top (home.html) es la barra fija con avatar/notificaciones,
-   también position:fixed;top:0 — debe respetar como mínimo el notch/
-   Dynamic Island siempre (con o sin barra Chrome visible encima). */
-body.bf-active .header-top{
-  top: max(var(--browser-frame-top-height), env(safe-area-inset-top));
-}
-
-/* El panel de notificaciones de home.html es un overlay a pantalla
-   completa (top:0). Debe empezar debajo del marco Y del notch/Dynamic
-   Island, lo que sea mayor — nunca detrás de ninguno de los dos. */
-body.bf-active .notif-panel{
-  top: max(var(--browser-frame-top-height), env(safe-area-inset-top));
-  height: calc(100vh - max(var(--browser-frame-top-height), env(safe-area-inset-top)));
-  height: calc(100dvh - max(var(--browser-frame-top-height), env(safe-area-inset-top)));
-}
-
-.bf-top{
-  position: fixed;
-  left: 0;
-  right: 0;
-  z-index: 5000;
-  box-sizing: border-box;
-  width: 100%;
-  background: #f2f2f2;
-  top: 0;
-  padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
-  border-bottom: 1px solid #e0e0e0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
-/* La barra Safari YA NO es fixed por su cuenta — vive dentro de
-   .bf-safari-stack (ver abajo), que es el único elemento fixed del
-   lado inferior. Así el menú de la app y la barra Safari son
-   simplemente dos hijos consecutivos del mismo flujo normal: es
-   estructuralmente imposible que se superpongan. */
-.bf-bottom{
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 5000;
-  box-sizing: border-box;
-  width: 100%;
-  background: #f2f2f2;
-  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
-  border-top: 1px solid #e0e0e0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Dentro de .bf-safari-stack (páginas estáticas) deja de ser fixed
-   por su cuenta — el contenedor padre ya es el único elemento fixed. */
-.bf-safari-stack .bf-bottom{
-  position: static;
-  left: auto;
-  right: auto;
-  bottom: auto;
-}
-
-/* Caso app React: el menú (.mobile-bottom-nav / .app-footer) sigue
-   siendo fixed tal cual ya era — solo se le calcula dónde termina la
-   barra Safari (también fixed, independiente) para que quede justo
-   encima sin superponerse. Nada de su DOM se mueve. */
-.bf-nav-offset{
-  bottom: var(--browser-frame-bottom-height) !important;
-}
-
-/* Estos dos elementos de la app React tienen su `bottom` calculado a
-   mano relativo a la posición ORIGINAL del menú (6rem / 15.7rem desde
-   el borde real de pantalla) — ver run-panel.scss. No sabían nada de
-   la barra Safari, así que cuando el menú sube en modo Safari, estos
-   se quedaban en su sitio original y terminaban ocultos detrás de
-   ella: el botón Run/Stop (.controls__section) y el contenido móvil
-   de Transactions/Summary (.run-panel-tab__content--mobile). Se les
-   suma la altura real de la barra para que sigan justo encima de ella,
-   igual que ya le pasa al menú. */
-body.bf-safari .controls__section{
-  bottom: calc(6rem + var(--browser-frame-bottom-height)) !important;
-  /* La regla específica de iOS (ios-device / @supports) le suma también
-     padding-bottom: env(safe-area-inset-bottom) — eso duplicaba el
-     espacio de zona segura, porque --browser-frame-bottom-height (la
-     barra Safari) ya incluye esa misma zona segura en su propia altura.
-     Se anula aquí para que Run quede pegado justo encima del menú, sin
-     el hueco extra. */
-  padding-bottom: 0 !important;
-}
-body.bf-safari .run-panel__stat{
-  bottom: calc(6rem + var(--browser-frame-bottom-height)) !important;
-}
-body.bf-safari .run-panel-tab__content--mobile{
-  bottom: calc(15.7rem + var(--browser-frame-bottom-height)) !important;
-}
-
-/* El drawer de Summary/Transactions/Journal (.dc-drawer, ver
-   drawer.scss) ahora se ancla por su borde inferior en vez de por
-   arriba — mucho más simple y confiable: solo hay que subirlo la
-   misma cantidad que el botón Run, en vez de recalcular un `top`
-   complejo. El botón/flecha (su último hijo) queda siempre pegado a
-   ese borde, visible sin importar el estado abierto/cerrado. */
-@media (max-width: 1279px){
-  body.bf-safari .dc-drawer{
-    bottom: calc(6rem + var(--browser-frame-bottom-height)) !important;
-  }
-}
-
-/* El único elemento fixed del lado inferior en modo Safari: agrupa,
-   EN ESTE ORDEN, el menú real de la app y la barra Safari debajo. */
-.bf-safari-stack{
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 5000;
-  display: flex;
-  flex-direction: column;
-  background: transparent;
-}
-
-/* Neutraliza el position:fixed/centrado propio que ya tenía el menú
-   de la app (.bottom-nav / .mobile-bottom-nav / .app-footer) para que
-   pase a ser un hijo normal del flujo dentro de .bf-safari-stack, sin
-   tocar sus colores, iconos ni tamaños — solo su posicionamiento. */
-.bf-nav-in-stack{
-  position: static !important;
-  top: auto !important;
-  bottom: auto !important;
-  left: auto !important;
-  right: auto !important;
-  transform: none !important;
-  width: 100% !important;
-  margin: 0 auto !important;
-}
-
-.bf-safari-addr-row{
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px 6px;
-}
-.bf-safari-controls-row{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 18px;
-}
-
-.bf-address{
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #e4e4e4;
-  border-radius: 14px;
-  padding: 7px 12px;
-  font-size: 13px;
-  color: #333;
-  overflow: hidden;
-}
-.bf-address .bf-lock{ flex: 0 0 auto; font-size: 12px; opacity:.7; }
-.bf-address .bf-host{
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bf-icon-btn{
-  flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  color: #444;
-  background: none;
-  border: none;
-  padding: 0;
-}
-.bf-aspect-btn{ color:#ff444f; }
-
-/* ---- Modo Safari: dirección centrada en su fila propia ---- */
-body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align:center; margin:0 auto; }
-
-/* ---- Escritorio: silueta tipo mockup de dispositivo — SOLO en las
-   páginas estáticas (home.html/options.html) que agregan la clase
-   bf-static-page. La app React (Chart, Bot Builder, Dashboard) sigue
-   usando barras a todo lo ancho en escritorio: no tiene sentido
-   encogerla a un ancho de móvil ahí, necesita todo el espacio. ---- */
-@media (min-width: 701px){
-  body.bf-active.bf-static-page{ background:#e9e9ec; }
-
-  body.bf-static-page .bf-top, body.bf-static-page .bf-safari-stack{
-    left: 50%;
-    right: auto;
-    width: var(--bf-frame-width);
-    transform: translateX(-50%);
-  }
-  body.bf-static-page .bf-top{
-    border-radius: 22px 22px 0 0;
-    box-shadow: 0 -6px 24px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08);
-  }
-  body.bf-static-page .bf-safari-stack{
-    border-radius: 0 0 22px 22px;
-    overflow: hidden;
-    box-shadow: 0 6px 24px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08);
-  }
-  /* Costados verticales del "dispositivo", de borde a borde de la
-     ventana, para cerrar la silueta sin tocar el DOM de la app. */
-  body.bf-active.bf-static-page::before, body.bf-active.bf-static-page::after{
-    content: "";
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    width: 1px;
-    z-index: 4999;
-    pointer-events: none;
-    box-shadow: 0 0 24px rgba(0,0,0,.12);
-  }
-  body.bf-active.bf-static-page::before{ left: calc(50vw - var(--bf-frame-width) / 2 - 1px); border-left:1px solid rgba(0,0,0,.08); }
-  body.bf-active.bf-static-page::after{ left: calc(50vw + var(--bf-frame-width) / 2); border-right:1px solid rgba(0,0,0,.08); }
-}
-
-/* ================================================================
- * Selector de "Aspecto" (Chrome / Safari)
- * ================================================================ */
-.bf-overlay{
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  z-index: 6000;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .25s ease;
-}
-.bf-overlay.open{ opacity: 1; pointer-events: auto; }
-
-.bf-sheet{
-  width: 100%;
-  max-width: 480px;
-  background: #16181d;
-  color: #fff;
-  border-radius: 20px 20px 0 0;
-  padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
-  transform: translateY(100%);
-  transition: transform .28s cubic-bezier(.22,.9,.32,1);
-  box-sizing: border-box;
-  max-height: 85vh;
-  max-height: 85dvh;
-  overflow-y: auto;
-}
-.bf-overlay.open .bf-sheet{ transform: translateY(0); }
-
-.bf-sheet h3{
-  margin: 0 0 16px;
-  font-size: 17px;
-  font-weight: 700;
-  text-align: center;
-}
-
-.bf-option{
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #1f2229;
-  border: 2px solid transparent;
-  border-radius: 14px;
-  padding: 12px;
-  margin-bottom: 12px;
-}
-.bf-option.selected{ border-color: #ff444f; }
-
-.bf-option .bf-preview{
-  flex: 0 0 auto;
-  width: 64px;
-  height: 96px;
-  border-radius: 10px;
-  background: #fff;
-  overflow: hidden;
-  position: relative;
-  box-shadow: 0 2px 8px rgba(0,0,0,.35);
-}
-.bf-option .bf-preview .bf-preview-top{ height: 16px; background:#f2f2f2; border-bottom:1px solid #ddd; }
-.bf-option .bf-preview .bf-preview-body{ height: 60px; background: linear-gradient(180deg,#22242c,#181a20); }
-.bf-option .bf-preview .bf-preview-bottom{ height: 16px; background:#f2f2f2; border-top:1px solid #ddd; }
-.bf-option.safari-preview .bf-preview-top{ display:flex; align-items:center; justify-content:center; }
-
-.bf-option-info{ flex: 1 1 auto; min-width: 0; }
-.bf-option-info .bf-option-name{ font-weight: 600; font-size: 15px; }
-.bf-option-info .bf-option-desc{ font-size: 12px; color: #9a9a9a; margin-top: 2px; }
-
-.bf-radio{
-  flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid #555;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  color: transparent;
-}
-.bf-option.selected .bf-radio{
-  border-color: #ff444f;
-  background: #ff444f;
-  color: #fff;
-}
-
-.bf-save-btn{
-  width: 100%;
-  margin-top: 6px;
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  background: #ff444f;
-  color: #fff;
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: .5px;
-}
-
-/* Botón "Volatility X Index" (selector de símbolo del gráfico) — más
-   compacto en cualquier contexto móvil (PWA, Android, Safari/Chrome
-   normal). En escritorio no se toca.
-   IMPORTANTE: se escala .cq-chart-title (el contenedor MÁS EXTERIOR)
-   y no solo .cq-symbol-select-btn — .cq-menu-btn, que está en medio,
-   tiene su propio fondo/borde redondeado (ver smartcharts.css); si
-   solo se reduce el botón interno, ese fondo exterior se queda con
-   el tamaño original, grande, alrededor del contenido ya chico. */
-@media (max-width: 1279px){
-  .cq-chart-title{
-    transform: scale(0.75);
-    transform-origin: top left;
-  }
-}
+export default Interface;
