@@ -184,8 +184,13 @@
             // flecha para cerrar podía llegar hasta encima del menú de
             // saldo. Con scroll interno si el contenido de
             // Summary/Transactions/Journal no cabe.
-            max-height: min(70vh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
-            max-height: min(70dvh, calc(100dvh - var(--app-header-height, 8rem) - 12rem)) !important;
+            // Antes tenía un tope arbitrario de 70vh, que dejaba
+            // espacio sin usar en pantallas donde había más lugar
+            // disponible. Ahora usa TODO el espacio real que existe
+            // entre el header y el área reservada para Run — ni un
+            // límite fijo de más, ni de menos.
+            max-height: calc(100vh - var(--app-header-height, 8rem) - 12rem) !important;
+            max-height: calc(100dvh - var(--app-header-height, 8rem) - 12rem) !important;
             height: auto !important;
         }
     }
