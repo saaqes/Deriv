@@ -31,7 +31,7 @@ function buildOverlay(): {
     const box = document.createElement('div');
 
     Object.assign(box.style, {
-        background: '#fff',
+        background: '#e8e8e8',
         border: '1px solid #999',
         borderRadius: '4px',
         padding: '16px',
@@ -183,7 +183,7 @@ export function showBotPrompt(
             boxSizing: 'border-box',
             border: '1px solid #999',
             borderRadius: '2px',
-            background: '#fff',
+            background: '#e8e8e8',
             color: '#000',
             fontFamily: 'Arial, Helvetica, sans-serif',
             fontSize: '13px',
