@@ -35,8 +35,8 @@ function buildOverlay(): {
         border: '1px solid #3a3a3c',
         borderRadius: '14px',
         padding: '20px',
-        minWidth: '300px',
-        maxWidth: '90vw',
+        width: 'calc(100% - 40px)',
+        maxWidth: '400px',
         boxSizing: 'border-box',
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
         fontFamily: 'Arial, Helvetica, sans-serif',
@@ -112,16 +112,16 @@ function makeButton(text: string): HTMLButtonElement {
     button.textContent = text;
 
     Object.assign(button.style, {
-        minWidth: '64px',
+        minWidth: '48px',
         height: '34px',
-        padding: '6px 20px',
+        padding: '6px 10px',
         border: 'none',
-        borderRadius: '17px',
-        background: '#e5e5e7',
-        color: '#1c1c1e',
+        borderRadius: '0',
+        background: 'transparent',
+        color: '#0a84ff',
         cursor: 'pointer',
         fontFamily: 'Arial, Helvetica, sans-serif',
-        fontSize: '14px',
+        fontSize: '15px',
         fontWeight: '600',
         boxSizing: 'border-box',
     });
@@ -145,7 +145,7 @@ export function showBotAlert(msg?: unknown): Promise<void> {
             justifyContent: 'flex-end',
         });
 
-        const okButton = makeButton('OK');
+        const okButton = makeButton('Aceptar');
 
         okButton.addEventListener('click', () => {
             unmount();
@@ -206,7 +206,7 @@ export function showBotPrompt(
             resolve(null);
         });
 
-        const okButton = makeButton('OK');
+        const okButton = makeButton('Aceptar');
 
         okButton.addEventListener('click', () => {
             const value = input.value;
