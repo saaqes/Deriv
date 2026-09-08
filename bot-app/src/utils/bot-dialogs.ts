@@ -31,17 +31,17 @@ function buildOverlay(): {
     const box = document.createElement('div');
 
     Object.assign(box.style, {
-        background: '#e8e8e8',
-        border: '1px solid #999',
-        borderRadius: '4px',
-        padding: '16px',
+        background: '#1c1c1e',
+        border: '1px solid #3a3a3c',
+        borderRadius: '14px',
+        padding: '20px',
         minWidth: '300px',
         maxWidth: '90vw',
         boxSizing: 'border-box',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
         fontFamily: 'Arial, Helvetica, sans-serif',
-        fontSize: '13px',
-        color: '#000',
+        fontSize: '15px',
+        color: '#fff',
     });
 
     const label = document.createElement('div');
@@ -49,10 +49,10 @@ function buildOverlay(): {
     label.textContent = DIALOG_LABEL;
 
     Object.assign(label.style, {
-        marginBottom: '12px',
-        fontSize: '13px',
-        fontWeight: '400',
-        color: '#000',
+        marginBottom: '14px',
+        fontSize: '15px',
+        fontWeight: '700',
+        color: '#fff',
     });
 
     const message = document.createElement('div');
@@ -60,12 +60,12 @@ function buildOverlay(): {
     message.setAttribute('data-testid', 'bot-dialog-message');
 
     Object.assign(message.style, {
-        marginBottom: '16px',
-        fontSize: '13px',
+        marginBottom: '20px',
+        fontSize: '14px',
         lineHeight: '1.4',
         whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
-        color: '#000',
+        color: '#d1d1d6',
     });
 
     box.appendChild(label);
@@ -112,16 +112,17 @@ function makeButton(text: string): HTMLButtonElement {
     button.textContent = text;
 
     Object.assign(button.style, {
-        minWidth: '70px',
-        height: '28px',
-        padding: '4px 14px',
-        border: '1px solid #999',
-        borderRadius: '3px',
-        background: '#f2f2f2',
-        color: '#000',
+        minWidth: '64px',
+        height: '34px',
+        padding: '6px 20px',
+        border: 'none',
+        borderRadius: '17px',
+        background: '#e5e5e7',
+        color: '#1c1c1e',
         cursor: 'pointer',
         fontFamily: 'Arial, Helvetica, sans-serif',
-        fontSize: '13px',
+        fontSize: '14px',
+        fontWeight: '600',
         boxSizing: 'border-box',
     });
 
@@ -177,16 +178,16 @@ export function showBotPrompt(
 
         Object.assign(input.style, {
             width: '100%',
-            height: '28px',
-            padding: '4px 6px',
-            marginBottom: '16px',
+            height: '34px',
+            padding: '6px 10px',
+            marginBottom: '20px',
             boxSizing: 'border-box',
-            border: '1px solid #999',
-            borderRadius: '2px',
-            background: '#e8e8e8',
-            color: '#000',
+            border: '1px solid #3a3a3c',
+            borderRadius: '8px',
+            background: '#2c2c2e',
+            color: '#fff',
             fontFamily: 'Arial, Helvetica, sans-serif',
-            fontSize: '13px',
+            fontSize: '14px',
             outline: 'none',
         });
 
