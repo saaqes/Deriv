@@ -132,8 +132,8 @@
 
     &--open {
         @include mobile-or-tablet-screen {
-            max-height: calc(100vh - var(--app-header-height, 8rem) - 12rem) !important;
-            max-height: calc(100dvh - var(--app-header-height, 8rem) - 12rem) !important;
+            max-height: calc(100vh - var(--app-header-height, 8rem) - 12rem + 24px) !important;
+            max-height: calc(100dvh - var(--app-header-height, 8rem) - 12rem + 24px) !important;
             height: auto !important;
         }
     }
