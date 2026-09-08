@@ -37,29 +37,25 @@
         // con `height` (ver más abajo), así que la transición debe
         // seguir esa propiedad en móvil para que siga viéndose suave.
         transition: height 0.3s ease !important;
-        // Ancla por el borde INFERIOR (no top) — así el botón/flecha
-        // (.dc-drawer__toggle, el último hijo, 3.6rem) siempre cae en
-        // una posición fija y predecible, sin importar cuánto crezca
-        // el contenido de arriba.
-        // .controls__section (el botón Run, ver run-panel.scss) también
-        // arranca en bottom:6rem pero mide 6rem de alto — o sea que va
-        // de 6rem a 12rem. Poner este drawer en bottom:6rem lo dejaba
-        // TAPADO por el propio botón Run (mismo rango vertical), por
-        // eso la flechita no se veía. Ahora ancla en bottom:12rem, justo
-        // encima del borde superior de esa barra.
-        top: auto !important;
-        bottom: 12rem !important;
+        // Ancla por el borde SUPERIOR, justo debajo del header/saldo
+        // (--app-header-height, medido en vivo por browser-frame.js)
+        // — no por un `bottom` arbitrario relativo al botón Run. El
+        // toggle (primer hijo real en el DOM, ver drawer.tsx) queda
+        // así arriba de todo el drawer, inmediatamente debajo del
+        // header, y el contenido (Volatility ya NO forma parte de
+        // este componente — vive en el chart, no en el drawer) crece
+        // hacia ABAJO desde ahí, nunca hacia arriba.
+        top: var(--app-header-height, 8rem) !important;
+        bottom: auto !important;
         // Cerrado: solo se ve el alto del botón/flecha.
         height: 3.6rem !important;
         overflow: hidden;
-        // En el DOM real, .dc-drawer__toggle es el PRIMER hijo y
-        // .dc-drawer__container (con el contenido) es el segundo. Con
-        // "column" normal eso ponía el toggle ARRIBA (cerca del saldo
-        // al abrir) y el contenido ABAJO — al revés de lo que se
-        // necesita. "column-reverse" invierte el orden VISUAL sin
-        // tocar el DOM real: el toggle queda siempre abajo, fijo cerca
-        // de Run, y el contenido aparece por encima de él al abrir.
-        flex-direction: column-reverse !important;
+        // El DOM real es: .dc-drawer__toggle (primer hijo), luego
+        // .dc-drawer__container (segundo hijo) — ver drawer.tsx. Con
+        // flex-direction normal ("column"), el toggle ya cae arriba
+        // y el container debajo, en ese mismo orden del DOM — sin
+        // necesidad de invertir nada.
+        flex-direction: column !important;
     }
 
     &__container {
@@ -173,27 +169,17 @@
 
     &--open {
         @include mobile-or-tablet-screen {
-            // Antes: transform: translateY(calc(-100% + 3.6rem)) — un
-            // "deslizamiento" relativo a la propia altura de la caja,
-            // muy sensible a que top/height estuvieran calibrados al
-            // pixel. Ahora la caja está anclada por su borde inferior
-            // (bottom:12rem, ver arriba) y simplemente crece hacia
-            // arriba aumentando su altura — el botón/flecha, anclado
-            // al mismo borde inferior, nunca se mueve ni desaparece.
-            // Tope real: nunca llega por encima del header/saldo
-            // (--app-header-height, medido en vivo por
-            // browser-frame.js). Como la caja arranca en bottom:12rem
-            // (no en 0), ese mismo 12rem hay que restarlo del alto
-            // máximo disponible o el contenido se metería debajo del
-            // header — antes faltaba este descuento y por eso la
-            // flecha para cerrar podía llegar hasta encima del menú de
-            // saldo. Con scroll interno si el contenido de
-            // Summary/Transactions/Journal no cabe.
-            // Antes tenía un tope arbitrario de 70vh, que dejaba
-            // espacio sin usar en pantallas donde había más lugar
-            // disponible. Ahora usa TODO el espacio real que existe
-            // entre el header y el área reservada para Run — ni un
-            // límite fijo de más, ni de menos.
+            // La caja ahora está anclada por su borde SUPERIOR, justo
+            // debajo del header (top: var(--app-header-height), ver
+            // arriba) — al abrirse, crece hacia ABAJO aumentando su
+            // altura, sin moverse de ahí. El botón/flecha, primer
+            // hijo del DOM, siempre queda pegado al header.
+            // Tope real: nunca llega hasta el botón Run ni el menú
+            // inferior — se descuentan 12rem (donde arranca
+            // .controls__section: bottom:6rem + su propia altura de
+            // 6rem = 12rem desde el borde inferior real). Con scroll
+            // interno si el contenido de Summary/Transactions/Journal
+            // no cabe en el espacio restante.
             max-height: calc(100vh - var(--app-header-height, 6rem) - 12rem) !important;
             max-height: calc(100dvh - var(--app-header-height, 6rem) - 12rem) !important;
             height: auto !important;
