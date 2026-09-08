@@ -12,7 +12,12 @@
     // el drawer (y su botón/flecha) queda pintado DEBAJO de esa barra
     // sólida y se ve invisible en cualquier modo (Ninguno, Chrome,
     // Safari), no solo en Safari.
-    z-index: var(--z-drawer, 9);
+    // Además, .cq-chart-title (el selector "Volatility X Index", en
+    // smartcharts.css de la librería de gráficos) tiene z-index:41 —
+    // confirmado revisando ese CSS directamente. Por más que el
+    // drawer creciera hacia arriba, el selector SIEMPRE se pintaba
+    // encima de él por esa diferencia de capas. 50 > 41 lo resuelve.
+    z-index: var(--z-drawer, 50);
 
     &--left {
         display: flex;
