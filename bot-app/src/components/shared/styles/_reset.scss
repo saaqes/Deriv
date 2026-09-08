@@ -138,6 +138,16 @@ body {
     body { height: -webkit-fill-available; }
 }
 
+// Reserva el espacio real que el propio sistema operativo reporta
+// arriba/abajo (barra de estado, notch, indicador de inicio) en PWA
+// instalada. env() se evalúa a 0 donde no aplica (Android, iPhones
+// sin notch), así que nunca agrega espacio de más ni cambia nada ahí.
+body {
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    box-sizing: border-box;
+}
+
 ol,
 ul {
     list-style: none;
