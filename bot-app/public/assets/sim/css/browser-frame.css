@@ -385,24 +385,4 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
    abajo: 5px extra en esos dos lados (2px base + 5px = 7px ahí). */
 .cq-chart-title .cq-menu-btn{
   padding: 2px !important;
-  min-width: 280px !important;
-  min-height: 100px !important;
-}
-
-/* El fondo del botón creció, pero el ícono/texto de adentro se
-   quedaron del tamaño anterior — dejaba un espacio vacío que parecía
-   más padding sin serlo. Se agranda el contenido también, sin tocar
-   el padding real (arriba, 2px). */
-.cq-chart-title .cq-symbol-select-btn>.ic-frx>svg,
-.cq-chart-title .cq-symbol-select-btn>.ic-icon>svg,
-.cq-chart-title .cq-symbol-select-btn>.ic-otc>svg,
-.cq-chart-title .cq-symbol-select-btn>.ic-wld>svg{
-  height: 40px !important;
-  width: 40px !important;
-}
-.cq-chart-title .cq-symbol-select-btn .cq-symbol{
-  font-size: 1.6em !important;
-}
-.cq-chart-title .cq-symbol-select-btn .cq-chart-price{
-  font-size: 1.4em !important;
 }
