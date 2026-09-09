@@ -384,10 +384,7 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
 /* Borde parejo: 2px en los 4 lados. Más grande hacia la derecha y
    abajo: 5px extra en esos dos lados (2px base + 5px = 7px ahí). */
 .cq-chart-title .cq-menu-btn{
-  padding-top: 2px !important;
-  padding-left: 2px !important;
-  padding-right: 12px !important;
-  padding-bottom: 12px !important;
+  padding: 2px !important;
 }
 
 /* Título "Volatility X Index": 1.6em (~16px) -> 1.3em (~13px, 3px
