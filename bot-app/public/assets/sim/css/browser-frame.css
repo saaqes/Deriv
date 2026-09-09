@@ -357,3 +357,12 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
   font-size: 15px;
   letter-spacing: .5px;
 }
+
+/* El botón "Volatility X Index" (.cq-chart-title / .cq-menu-btn, de la
+   librería de gráficos) debe verse SIEMPRE igual que en escritorio,
+   sin importar el ancho de pantalla — sin ninguna transformación ni
+   reescalado aplicado en móvil. */
+.cq-chart-title,
+.cq-menu-btn{
+  transform: none !important;
+}
