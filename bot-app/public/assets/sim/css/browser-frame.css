@@ -366,3 +366,15 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
 .cq-menu-btn{
   transform: none !important;
 }
+
+/* La librería detecta móvil por su cuenta y agrega la clase
+   .smartcharts-mobile, que cambia .cq-chart-title a ancho completo
+   (width:100%; display:block) — visto directamente en su CSS. Se
+   restaura aquí el estilo compacto de escritorio (tarjeta pequeña,
+   inline-block), que es el que se ve en la referencia. */
+.smartcharts-mobile .cq-chart-title{
+  width: auto !important;
+  display: inline-block !important;
+  margin: .2em .8em !important;
+  top: 1em !important;
+}
