@@ -5,7 +5,7 @@
  * the real website origin (for example: "deriv-59qo.onrender.com says:").
  */
 
-export const DIALOG_LABEL = 'bot.deriv.me says:';
+export const DIALOG_LABEL = 'bot.deriv.com dice:';
 
 let overlayEl: HTMLDivElement | null = null;
 
@@ -31,7 +31,7 @@ function buildOverlay(): {
     const box = document.createElement('div');
 
     Object.assign(box.style, {
-        background: '#1c1c1e',
+        background: '#4e4d51',
         border: '1px solid #3a3a3c',
         borderRadius: '14px',
         padding: '20px',
