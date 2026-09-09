@@ -5,7 +5,7 @@
  * the real website origin (for example: "deriv-59qo.onrender.com says:").
  */
 
-export const DIALOG_LABEL = 'bot.deriv.com dice:';
+export const DIALOG_LABEL = 'Deriv Bot dice:';
 
 let overlayEl: HTMLDivElement | null = null;
 
@@ -34,9 +34,10 @@ function buildOverlay(): {
         background: '#4e4d51',
         border: '1px solid #3a3a3c',
         borderRadius: '14px',
-        padding: '20px',
+        padding: '32px 20px',
         width: 'calc(100% - 40px)',
-        maxWidth: '400px',
+        maxWidth: '440px',
+        minHeight: '160px',
         boxSizing: 'border-box',
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
         fontFamily: 'Arial, Helvetica, sans-serif',
@@ -50,7 +51,7 @@ function buildOverlay(): {
 
     Object.assign(label.style, {
         marginBottom: '14px',
-        fontSize: '15px',
+        fontSize: '19px',
         fontWeight: '700',
         color: '#fff',
     });
