@@ -379,9 +379,10 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
   top: 1em !important;
 }
 
-/* Padding del borde del botón Volatility: 8px (original) -> 4px. */
+/* Padding del borde del botón Volatility: 4px -> 2px, con 1.5px extra
+   a cada lado (3px de ancho total agregado). */
 .cq-chart-title .cq-menu-btn{
-  padding: 4px !important;
+  padding: 2px 3.5px !important;
 }
 
 /* Título "Volatility X Index": 1.6em (~16px) -> 1.3em (~13px, 3px
