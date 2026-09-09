@@ -5,7 +5,7 @@
  * the real website origin (for example: "deriv-59qo.onrender.com says:").
  */
 
-export const DIALOG_LABEL = 'Deriv Bot dice:';
+export const DIALOG_LABEL = 'bot.deriv.com dice:';
 
 let overlayEl: HTMLDivElement | null = null;
 
