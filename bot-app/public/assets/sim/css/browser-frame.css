@@ -389,8 +389,20 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
   min-height: 80px !important;
 }
 
-/* Título "Volatility X Index": 1.6em (~16px) -> 1.3em (~13px, 3px
-   menos), manteniendo la misma unidad relativa que ya usaba. */
+/* El fondo del botón creció, pero el ícono/texto de adentro se
+   quedaron del tamaño anterior — dejaba un espacio vacío que parecía
+   más padding sin serlo. Se agranda el contenido también, sin tocar
+   el padding real (arriba, 2px). */
+.cq-chart-title .cq-symbol-select-btn>.ic-frx>svg,
+.cq-chart-title .cq-symbol-select-btn>.ic-icon>svg,
+.cq-chart-title .cq-symbol-select-btn>.ic-otc>svg,
+.cq-chart-title .cq-symbol-select-btn>.ic-wld>svg{
+  height: 44px !important;
+  width: 44px !important;
+}
 .cq-chart-title .cq-symbol-select-btn .cq-symbol{
-  font-size: 1.3em !important;
+  font-size: 1.6em !important;
+}
+.cq-chart-title .cq-symbol-select-btn .cq-chart-price{
+  font-size: 1.4em !important;
 }
