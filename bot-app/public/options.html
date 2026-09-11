@@ -426,6 +426,19 @@ span.ic-icon.cq-symbol-dropdown svg[height]{
   height: 5px !important;
 }
 
+/* Respaldo estructural: en móvil el desplegable puede renderizarse
+   en un portal aparte (.smartcharts-portal), posiblemente con otro
+   nombre de clase para el ícono. Se apunta por POSICIÓN (el ícono
+   final dentro del botón "Volatility X Index") en vez de por nombre
+   exacto, para que funcione sin importar el contexto. */
+.cq-symbol-select-btn > span:last-child,
+.cq-symbol-select-btn > span:last-child svg,
+.cq-menu-btn > span:last-child,
+.cq-menu-btn > span:last-child svg{
+  width: 5px !important;
+  height: 5px !important;
+}
+
 /* Menú de Markets: que ocupe todo el ancho de la página al abrirse. */
 .cq-chart-title .cq-menu-dropdown{
   width: 100vw !important;
