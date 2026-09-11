@@ -402,22 +402,52 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
   width: 29px !important;
 }
 
-/* La flechita del desplegable (.cq-symbol-dropdown) creció al
-   heredar el font-size más grande del título — se fija de vuelta a
-   su tamaño pequeño original (12px). */
-.cq-chart-title .cq-symbol-dropdown,
-.cq-chart-title .cq-symbol-dropdown svg{
-  width: 12px !important;
-  height: 12px !important;
-  font-size: 12px !important;
+/* Estructura real confirmada por inspector:
+   <span class="ic-icon cq-symbol-dropdown"><svg width="16" height="16">
+   Sin depender de .cq-chart-title como ancestro, por si el ícono no
+   vive ahí dentro en el DOM real. Tamaño similar al texto (precio
+   ~7px), un poco más chico. */
+span.ic-icon.cq-symbol-dropdown{
+  width: 5px !important;
+  height: 5px !important;
+  overflow: hidden !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+span.ic-icon.cq-symbol-dropdown svg{
+  width: 5px !important;
+  height: 5px !important;
+}
+span.ic-icon.cq-symbol-dropdown svg[width]{
+  width: 5px !important;
+}
+span.ic-icon.cq-symbol-dropdown svg[height]{
+  height: 5px !important;
+}
+
+/* Respaldo estructural: en móvil el desplegable puede renderizarse
+   en un portal aparte (.smartcharts-portal), posiblemente con otro
+   nombre de clase para el ícono. Se apunta por POSICIÓN (el ícono
+   final dentro del botón "Volatility X Index") en vez de por nombre
+   exacto, para que funcione sin importar el contexto. */
+.cq-symbol-select-btn > span:last-child,
+.cq-symbol-select-btn > span:last-child svg,
+.cq-menu-btn > span:last-child,
+.cq-menu-btn > span:last-child svg{
+  width: 5px !important;
+  height: 5px !important;
 }
 
 /* Menú de Markets: que ocupe todo el ancho de la página al abrirse. */
 .cq-chart-title .cq-menu-dropdown{
-  width: 100vw !important;
+  position: fixed !important;
   left: 0 !important;
   right: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
   box-sizing: border-box !important;
+  transform: none !important;
 }
 
 /* Saldo (acc-info__balance-section) en móvil: baja 2px (queda a esa
