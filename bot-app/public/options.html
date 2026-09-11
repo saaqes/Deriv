@@ -441,9 +441,11 @@ span.ic-icon.cq-symbol-dropdown svg[height]{
 
 /* Menú de Markets: que ocupe todo el ancho de la página al abrirse. */
 .cq-chart-title .cq-menu-dropdown{
-  width: 100vw !important;
+  position: fixed !important;
   left: 0 !important;
   right: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
   box-sizing: border-box !important;
 }
 
