@@ -389,17 +389,17 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
 
 /* Ajustes de tamaño de Volatility: título, precio e ícono. */
 .cq-chart-title .cq-symbol-select-btn .cq-symbol{
-  font-size: 1.5em !important;
+  font-size: 1.3em !important;
 }
 .cq-chart-title .cq-symbol-select-btn .cq-chart-price{
-  font-size: 1.1em !important;
+  font-size: 0.9em !important;
 }
 .cq-chart-title .cq-symbol-select-btn>.ic-frx>svg,
 .cq-chart-title .cq-symbol-select-btn>.ic-icon>svg,
 .cq-chart-title .cq-symbol-select-btn>.ic-otc>svg,
 .cq-chart-title .cq-symbol-select-btn>.ic-wld>svg{
-  height: 31px !important;
-  width: 31px !important;
+  height: 29px !important;
+  width: 29px !important;
 }
 
 /* La flechita del desplegable (.cq-symbol-dropdown) creció al
@@ -410,6 +410,14 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
   width: 12px !important;
   height: 12px !important;
   font-size: 12px !important;
+}
+
+/* Menú de Markets: que ocupe todo el ancho de la página al abrirse. */
+.cq-chart-title .cq-menu-dropdown{
+  width: 100vw !important;
+  left: 0 !important;
+  right: 0 !important;
+  box-sizing: border-box !important;
 }
 
 /* Saldo (acc-info__balance-section) en móvil: baja 2px (queda a esa
