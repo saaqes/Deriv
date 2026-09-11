@@ -405,26 +405,27 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
 /* La flechita del desplegable (.cq-symbol-dropdown) creció al
    heredar el font-size más grande del título — se fija de vuelta a
    su tamaño pequeño original (12px). */
-.cq-chart-title .cq-symbol-dropdown,
-.cq-chart-title .cq-symbol-dropdown svg,
-.cq-chart-title .ic-icon.cq-symbol-dropdown,
-.cq-chart-title .ic-icon.cq-symbol-dropdown svg,
-.cq-chart-title .cq-symbol-dropdown use[*|href*="ic-dropdown"],
-.cq-chart-title use[*|href*="ic-dropdown"]{
+/* Estructura real confirmada por inspector:
+   <span class="ic-icon cq-symbol-dropdown"><svg width="16" height="16">
+   Sin depender de .cq-chart-title como ancestro, por si el ícono no
+   vive ahí dentro en el DOM real. */
+span.ic-icon.cq-symbol-dropdown{
   width: 7px !important;
   height: 7px !important;
-  font-size: 7px !important;
-  max-width: 7px !important;
-  max-height: 7px !important;
-  transform: scale(1) !important;
-}
-/* Que el ícono nunca se salga de su contenedor, sea cual sea su
-   tamaño interno real. */
-.cq-chart-title .cq-symbol-dropdown{
   overflow: hidden !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+}
+span.ic-icon.cq-symbol-dropdown svg{
+  width: 7px !important;
+  height: 7px !important;
+}
+span.ic-icon.cq-symbol-dropdown svg[width]{
+  width: 7px !important;
+}
+span.ic-icon.cq-symbol-dropdown svg[height]{
+  height: 7px !important;
 }
 
 /* Menú de Markets: que ocupe todo el ancho de la página al abrirse. */
