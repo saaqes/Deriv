@@ -387,13 +387,28 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
   padding: 1px !important;
 }
 
+/* Todo el Volatility 3px más pequeño: título, precio e ícono. */
+.cq-chart-title .cq-symbol-select-btn .cq-symbol{
+  font-size: 1.3em !important;
+}
+.cq-chart-title .cq-symbol-select-btn .cq-chart-price{
+  font-size: 0.9em !important;
+}
+.cq-chart-title .cq-symbol-select-btn>.ic-frx>svg,
+.cq-chart-title .cq-symbol-select-btn>.ic-icon>svg,
+.cq-chart-title .cq-symbol-select-btn>.ic-otc>svg,
+.cq-chart-title .cq-symbol-select-btn>.ic-wld>svg{
+  height: 29px !important;
+  width: 29px !important;
+}
+
 /* Saldo (acc-info__balance-section) en móvil: baja 2px (queda a esa
    distancia del borde inferior) y se corre 1px a la izquierda —
    solo el texto del saldo, no toda la barra. */
 @media (max-width: 1279px){
   .acc-info__balance-section{
     position: relative !important;
-    top: 2px !important;
+    top: 3px !important;
     left: -1px !important;
   }
 }
