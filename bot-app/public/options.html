@@ -384,15 +384,15 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
 /* Borde parejo: 2px en los 4 lados. Más grande hacia la derecha y
    abajo: 5px extra en esos dos lados (2px base + 5px = 7px ahí). */
 .cq-chart-title .cq-menu-btn{
-  padding: 3px !important;
+  padding: 1px !important;
 }
 
 /* Ajustes de tamaño de Volatility: título, precio e ícono. */
 .cq-chart-title .cq-symbol-select-btn .cq-symbol{
-  font-size: 1.1em !important;
+  font-size: 1.3em !important;
 }
 .cq-chart-title .cq-symbol-select-btn .cq-chart-price{
-  font-size: 0.75em !important;
+  font-size: 0.9em !important;
 }
 .cq-chart-title .cq-symbol-select-btn>.ic-frx>svg,
 .cq-chart-title .cq-symbol-select-btn>.ic-icon>svg,
@@ -402,30 +402,28 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
   width: 29px !important;
 }
 
-/* La flechita del desplegable (.cq-symbol-dropdown) creció al
-   heredar el font-size más grande del título — se fija de vuelta a
-   su tamaño pequeño original (12px). */
 /* Estructura real confirmada por inspector:
    <span class="ic-icon cq-symbol-dropdown"><svg width="16" height="16">
    Sin depender de .cq-chart-title como ancestro, por si el ícono no
-   vive ahí dentro en el DOM real. */
+   vive ahí dentro en el DOM real. Tamaño similar al texto (precio
+   ~7px), un poco más chico. */
 span.ic-icon.cq-symbol-dropdown{
-  width: 6px !important;
-  height: 6px !important;
+  width: 5px !important;
+  height: 5px !important;
   overflow: hidden !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 span.ic-icon.cq-symbol-dropdown svg{
-  width: 6px !important;
-  height: 6px !important;
+  width: 5px !important;
+  height: 5px !important;
 }
 span.ic-icon.cq-symbol-dropdown svg[width]{
-  width: 6px !important;
+  width: 5px !important;
 }
 span.ic-icon.cq-symbol-dropdown svg[height]{
-  height: 6px !important;
+  height: 5px !important;
 }
 
 /* Menú de Markets: que ocupe todo el ancho de la página al abrirse. */
@@ -442,7 +440,7 @@ span.ic-icon.cq-symbol-dropdown svg[height]{
 @media (max-width: 1279px){
   .acc-info__balance-section{
     position: relative !important;
-    top: 1.5px !important;
+    top: 3px !important;
     left: -1px !important;
   }
 }
