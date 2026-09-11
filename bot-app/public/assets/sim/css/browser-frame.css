@@ -389,17 +389,17 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
 
 /* Ajustes de tamaño de Volatility: título, precio e ícono. */
 .cq-chart-title .cq-symbol-select-btn .cq-symbol{
-  font-size: 1.3em !important;
+  font-size: 1.5em !important;
 }
 .cq-chart-title .cq-symbol-select-btn .cq-chart-price{
-  font-size: 0.9em !important;
+  font-size: 1.1em !important;
 }
 .cq-chart-title .cq-symbol-select-btn>.ic-frx>svg,
 .cq-chart-title .cq-symbol-select-btn>.ic-icon>svg,
 .cq-chart-title .cq-symbol-select-btn>.ic-otc>svg,
 .cq-chart-title .cq-symbol-select-btn>.ic-wld>svg{
-  height: 29px !important;
-  width: 29px !important;
+  height: 31px !important;
+  width: 31px !important;
 }
 
 /* La flechita del desplegable (.cq-symbol-dropdown) creció al
