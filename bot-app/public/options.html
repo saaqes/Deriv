@@ -408,10 +408,23 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
 .cq-chart-title .cq-symbol-dropdown,
 .cq-chart-title .cq-symbol-dropdown svg,
 .cq-chart-title .ic-icon.cq-symbol-dropdown,
-.cq-chart-title .ic-icon.cq-symbol-dropdown svg{
+.cq-chart-title .ic-icon.cq-symbol-dropdown svg,
+.cq-chart-title .cq-symbol-dropdown use[*|href*="ic-dropdown"],
+.cq-chart-title use[*|href*="ic-dropdown"]{
   width: 7px !important;
   height: 7px !important;
   font-size: 7px !important;
+  max-width: 7px !important;
+  max-height: 7px !important;
+  transform: scale(1) !important;
+}
+/* Que el ícono nunca se salga de su contenedor, sea cual sea su
+   tamaño interno real. */
+.cq-chart-title .cq-symbol-dropdown{
+  overflow: hidden !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* Menú de Markets: que ocupe todo el ancho de la página al abrirse. */
