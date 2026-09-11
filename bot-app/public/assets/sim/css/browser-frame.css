@@ -384,5 +384,16 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
 /* Borde parejo: 2px en los 4 lados. Más grande hacia la derecha y
    abajo: 5px extra en esos dos lados (2px base + 5px = 7px ahí). */
 .cq-chart-title .cq-menu-btn{
-  padding: 2px !important;
+  padding: 1px !important;
+}
+
+/* Saldo (acc-info__balance-section) en móvil: baja 2px (queda a esa
+   distancia del borde inferior) y se corre 1px a la izquierda —
+   solo el texto del saldo, no toda la barra. */
+@media (max-width: 1279px){
+  .acc-info__balance-section{
+    position: relative !important;
+    top: 2px !important;
+    left: -1px !important;
+  }
 }
