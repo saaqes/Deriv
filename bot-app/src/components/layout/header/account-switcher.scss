@@ -727,6 +727,19 @@
 }
 
 /** @define acc-dropdown */
+/** @define acc-dropdown__backdrop */
+.acc-dropdown__backdrop {
+    display: none;
+
+    @include mobile-or-tablet-screen {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+    }
+}
+
 .acc-dropdown {
     position: absolute;
     top: calc(100% + 4px);
