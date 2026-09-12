@@ -28,7 +28,6 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const configuredRealBalance = useConfiguredRealBalance();
 
     const is_bot_running = run_panel?.is_running || api_base.is_running;
-    const isSingleAccount = !accountList || accountList.length <= 1;
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -48,9 +47,12 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     }, []);
 
     const toggleDropdown = useCallback(() => {
-        if (is_bot_running || isSingleAccount) return;
+        // Antes también bloqueaba con una sola cuenta vinculada
+        // (isSingleAccount) — coincide ahora con showChevron: solo se
+        // bloquea si hay un bot corriendo.
+        if (is_bot_running) return;
         setIsOpen(prev => !prev);
-    }, [is_bot_running, isSingleAccount]);
+    }, [is_bot_running]);
 
     const handleAccountSelect = useCallback(
         (loginid: string) => {
