@@ -101,7 +101,12 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     if (!activeAccount) return null;
 
     const { currency, isVirtual, displayBalance } = activeAccount;
-    const showChevron = !isSingleAccount && !is_bot_running;
+    // Antes también se ocultaba con una sola cuenta vinculada
+    // (!isSingleAccount) — ahora se muestra siempre que no haya un
+    // bot corriendo, a pedido explícito. Se conserva
+    // "!is_bot_running": evita cambiar de cuenta mientras un bot
+    // está operando activamente.
+    const showChevron = !is_bot_running;
 
     return (
         <div className='acc-info__wrapper' ref={wrapperRef}>
