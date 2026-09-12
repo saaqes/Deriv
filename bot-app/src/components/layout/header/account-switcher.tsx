@@ -4,7 +4,7 @@ import { observer } from 'mobx-react-lite';
 import { addComma, getCurrencyDisplayCode, getDecimalPlaces } from '@/components/shared';
 import Text from '@/components/shared_ui/text';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
-import { isMockAccountId, switchMockAccount } from '@/external/deriv-core/auth/mock-login';
+import { isMockAccountId, MOCK_DEMO_ACCOUNT, switchMockAccount } from '@/external/deriv-core/auth/mock-login';
 import { formatConfiguredBalance } from '@/external/deriv-core/trading/display-balance';
 import { installFakeBroker } from '@/external/deriv-core/trading/fake-broker';
 import { useApiBase } from '@/hooks/useApiBase';
@@ -74,7 +74,13 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
 
     const formattedAccounts = useMemo(() => {
         if (!accountList) return [];
-        return accountList
+        const hasDemo = accountList.some(account => isDemoAccount(account.loginid));
+        // Esta app es un simulador educativo — si la sesión real no trae
+        // una cuenta demo propia vinculada, se agrega la demo simulada
+        // (VRTC0000001) como opción, para que siempre se pueda elegir
+        // entre Real y Demo.
+        const sourceAccounts = hasDemo ? accountList : [...accountList, MOCK_DEMO_ACCOUNT];
+        return sourceAccounts
             .map(account => {
                 const isVirtual = isDemoAccount(account.loginid);
                 const realBalance = addComma(Number(account.balance ?? 0).toFixed(getDecimalPlaces(account.currency)));
