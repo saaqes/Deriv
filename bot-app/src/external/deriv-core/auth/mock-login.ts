@@ -40,7 +40,7 @@ const MOCK_REAL_ACCOUNT: TAccount = {
     is_virtual: 0,
 };
 
-const MOCK_DEMO_ACCOUNT: TAccount = {
+export const MOCK_DEMO_ACCOUNT: TAccount = {
     loginid: 'VRTC0000001',
     currency: 'USD',
     balance: 9988.4,
