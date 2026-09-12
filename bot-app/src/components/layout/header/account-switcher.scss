@@ -4,7 +4,8 @@
 /** @define acc-info */
 .acc-info {
     align-items: center;
-    cursor: default;
+    cursor: pointer !important;
+    pointer-events: auto !important;
     display: flex;
     flex-direction: row;
     height: 100%;
@@ -12,8 +13,12 @@
     padding: 8px 1.6rem;
     width: max-content;
 
-    &:hover {
+    &:hover,
+    &:hover *,
+    &--interactive:hover,
+    &--interactive:hover * {
         background: transparent !important;
+        background-color: transparent !important;
     }
 
     &__preloader {
