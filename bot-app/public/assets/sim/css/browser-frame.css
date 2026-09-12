@@ -456,7 +456,7 @@ span.ic-icon.cq-symbol-dropdown svg[height]{
 @media (max-width: 1279px){
   .acc-info__balance-section{
     position: relative !important;
-    top: 4px !important;
+    top: 6px !important;
     left: -1px !important;
   }
 }
