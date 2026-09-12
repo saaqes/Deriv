@@ -464,5 +464,5 @@ span.ic-icon.cq-symbol-dropdown svg[height]{
 /* Botón "más opciones" de la barra del gráfico: subirlo para que sea
    más visible (estaba muy pegado abajo). */
 .sc-toolbar-widget__more{
-  top: -27px !important;
+  top: -57px !important;
 }
