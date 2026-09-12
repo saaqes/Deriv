@@ -780,10 +780,6 @@
             border-bottom: 1px solid var(--general-section-1);
         }
 
-        &:hover:not(.acc-dropdown__account--selected) {
-            background: var(--state-hover);
-        }
-
         &--selected {
             background: var(--state-active);
             cursor: default;
