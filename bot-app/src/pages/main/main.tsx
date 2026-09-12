@@ -121,7 +121,9 @@ const AppWrapper = observer(() => {
     let tab_value: number | string = active_tab;
     const GetHashedValue = (tab: number) => {
         tab_value = location.hash?.split('#')[1];
-        if (!tab_value) return is_preview_mode ? BOT_BUILDER : tab;
+        // Sin hash en la URL (carga fresca / recarga) -> siempre cae en
+        // Chart, no en el tab que tuviera guardado antes.
+        if (!tab_value) return is_preview_mode ? BOT_BUILDER : DBOT_TABS.CHART;
         return Number(hash.indexOf(String(tab_value)));
     };
     const active_hash_tab = GetHashedValue(active_tab);
