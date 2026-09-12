@@ -1,462 +1,824 @@
-/* ================================================================
- * browser-frame.css — marco visual tipo navegador (Chrome / Safari)
- * ----------------------------------------------------------------
- * Puramente decorativo: NO modifica el navegador real del usuario,
- * NO falsifica dominios ni certificados. La dirección que muestra
- * viene de window.location.hostname (ver browser-frame.js), es
- * decir, siempre es la dirección REAL donde corre la app.
- *
- * REGLA CLAVE: el frame RESERVA espacio, nunca se superpone.
- * --browser-frame-top-height / --browser-frame-bottom-height los
- * fija browser-frame.js midiendo el alto real ya renderizado (no
- * son valores fijos aquí) — 0px en el lado donde no hay barra.
- * Chrome  -> solo barra superior  (top-height > 0, bottom-height = 0)
- * Safari  -> solo barra inferior  (bottom-height > 0, top-height = 0)
- * ================================================================ */
+@use 'components/shared/styles/constants' as *;
+@use 'components/shared/styles/mixins' as *;
 
-:root{
-  --browser-frame-top-height: 0px;
-  --browser-frame-bottom-height: 0px;
-  --bf-frame-width: 480px; /* overridden per page (e.g. options.html usa 600px) */
+/** @define acc-info */
+.acc-info {
+    align-items: center;
+    cursor: default;
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    justify-content: center;
+    padding: 8px 1.6rem;
+    width: max-content;
+
+    &:hover {
+        background: transparent !important;
+    }
+
+    &__preloader {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 37rem;
+        height: 4rem;
+        z-index: 2;
+        background: var(--general-main-1);
+
+        &:before {
+            content: '';
+            position: absolute;
+            left: -8rem;
+            width: 8rem;
+            height: 3.5rem;
+            top: 0;
+            background: var(--general-main-1);
+        }
+
+        &--no-currency:before {
+            left: -9rem;
+            width: 9rem;
+        }
+
+        @include mobile-screen {
+            width: 14rem;
+            height: 4rem;
+            top: -0.3rem;
+
+            &:before {
+                display: none;
+            }
+
+            &--is-crypto {
+                width: 100%;
+            }
+        }
+    }
+
+    &__preloader__dtrader {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 37rem;
+        height: 4rem;
+        z-index: 2;
+        background: var(--general-main-1);
+
+        &:before {
+            content: '';
+            position: absolute;
+            left: -8rem;
+            width: 8rem;
+            height: 3.5rem;
+            top: 0;
+            background: var(--general-main-1);
+        }
+
+        &--no-currency:before {
+            left: -9rem;
+            width: 9rem;
+        }
+
+        @include mobile-screen {
+            width: 14rem;
+            height: 4rem;
+            top: -0.3rem;
+
+            &:before {
+                display: none;
+            }
+
+            &--is-crypto {
+                width: 100%;
+            }
+        }
+
+        &--wallets {
+            width: 47rem;
+
+            @include mobile-screen {
+                width: auto;
+            }
+        }
+    }
+
+    &__container {
+        align-items: center;
+        -webkit-box-align: center;
+        display: flex;
+    }
+
+    &__wrapper {
+        align-items: center;
+        display: flex;
+        flex-direction: row;
+        height: 100%;
+        justify-content: center;
+        position: relative;
+        margin-right: 0.8rem;
+        user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    &__content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        margin-inline-start: 1rem;
+    }
+
+    &__account-type-header {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-bottom: 0.2rem;
+    }
+
+    &__account-type {
+        @include typeface(--xxsmall-left-normal-green);
+
+        line-height: 1;
+        margin: 0;
+        font-size: var(--text-size-xxs);
+    }
+
+    &--is-virtual {
+        .acc-info__account-type {
+            color: $color-yellow;
+        }
+    }
+
+    &__balance-section {
+        display: flex;
+        align-items: center;
+    }
+
+    &__balance {
+        @include typeface(--paragraph-left-bold-black);
+
+        line-height: 1.4;
+        pointer-events: none;
+        margin: 0;
+        font-size: 1.4rem;
+        color: var(--status-success);
+
+        &--no-currency {
+            @include typeface(--small-left-normal-grey);
+
+            white-space: nowrap;
+        }
+    }
+
+    &__id {
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+
+        &-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.8rem;
+        }
+    }
+
+    &__separator {
+        border-right: 1px solid var(--general-section-1);
+        height: 3.2rem;
+        margin-right: -0.1rem;
+    }
+
+    &__account-type-and-balance {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0 1rem 0.1rem 0;
+        pointer-events: none;
+    }
+
+    &__select-arrow {
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        transform: rotate(0);
+        transform-origin: 50% 50%;
+        transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+
+        svg path {
+            stroke: var(--text-general);
+        }
+
+        &--invert {
+            transform: rotate(180deg);
+        }
+    }
+
+    @include desktop-screen {
+        &:hover:not(.show, &--is-disabled) {
+            background: var(--state-hover);
+
+            .symbols {
+                background: transparent;
+            }
+        }
+    }
+
+    @include mobile-screen {
+        padding: 0 1rem;
+        margin-right: -0.8rem;
+
+        &__balance {
+            font-size: 1.4rem;
+
+            &--no-currency {
+                white-space: nowrap;
+            }
+        }
+    }
+
+    .acc-info__balance {
+        @include typeface(--paragraph-left-bold-black);
+    }
+
+    &--is-disabled {
+        cursor: not-allowed;
+    }
+
+    &--interactive {
+        cursor: pointer !important;
+
+        &:hover {
+            background: var(--state-hover) !important;
+        }
+    }
+
+    &__button {
+        margin: 0 1.6em 0 0 !important;
+
+        &:not(:last-child) {
+            margin-right: 1em;
+        }
+
+        @include mobile-screen {
+            height: 2.8rem !important;
+        }
+    }
+
+    &__wallets {
+        padding: 1.2rem 1.6rem;
+        gap: 0.8rem;
+
+        &-notification-icon {
+            margin-right: 1rem;
+        }
+
+        &-container {
+            align-items: center;
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        &-account-type-and-balance {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0;
+            pointer-events: none;
+        }
+
+        &-balance {
+            color: var(--text-general);
+            margin-right: 0;
+        }
+    }
 }
 
-/* Reserva el espacio real del frame — el resto de la app (header,
-   contenido, navegación) se desplaza automáticamente, nunca queda
-   detrás del marco. */
-body.bf-active{
-  padding-top: max(var(--browser-frame-top-height), env(safe-area-inset-top));
-  padding-bottom: max(var(--browser-frame-bottom-height), env(safe-area-inset-bottom));
+/* @define acc-switcher; weak */
+.acc-switcher {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    margin: 0 0.8rem;
+    height: 4rem;
+    position: relative;
+
+    &--is-loading {
+        position: absolute;
+        height: 100%;
+        width: 100%;
+        top: 0;
+        left: 0;
+        background: var(--general-main-2);
+    }
+
+    &__wrapper {
+        border-radius: $BORDER_RADIUS;
+        position: absolute;
+        z-index: 3;
+        transition:
+            transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
+            opacity 0.25s linear;
+        box-shadow: 0 8px 16px 0 var(--shadow-menu);
+        right: 0;
+        top: calc(100% + 4px);
+        width: 320px;
+        background-color: var(--general-main-2);
+
+        @include tablet-screen {
+            position: unset;
+        }
+
+        &--wallets {
+            width: 32rem;
+            right: -3.2rem;
+        }
+
+        &--enter-done {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+        }
+
+        &--enter,
+        &--exit {
+            opacity: 0;
+            transform: translate3d(0, -20px, 0);
+        }
+
+        .acc-switcher__button {
+            max-width: calc(100% - 1.6rem);
+            margin: 0.2rem 0.8rem 0.8rem;
+            height: 4rem;
+        }
+
+        @include mobile-or-tablet-screen {
+            position: relative;
+            top: unset;
+            left: unset;
+            right: unset;
+            width: 100%;
+            box-shadow: none;
+            height: 100%;
+            border-radius: 0;
+        }
+
+        .dc-themed-scrollbars {
+            scrollbar-color: var(--text-less-prominent) transparent;
+
+            &::-webkit-scrollbar-thumb {
+                background-color: var(--text-less-prominent);
+            }
+        }
+    }
+
+    &__new-account {
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.6rem 1.8rem;
+        font-size: var(--text-size-xs);
+
+        &-text {
+            margin-left: 0.8rem;
+        }
+
+        &-btn {
+            margin-left: auto;
+        }
+
+        &--disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+    }
+
+    &__reset-account {
+        &-btn {
+            margin-left: auto;
+        }
+    }
+
+    &__list {
+        border-radius: $BORDER_RADIUS;
+        display: flex;
+        flex-flow: column nowrap;
+        height: 100%;
+        background: var(--general-main-2);
+
+        &-wrapper {
+            padding: 0.4rem 0.8rem 0;
+        }
+
+        &-title {
+            flex: 1;
+        }
+
+        &-container {
+            height: auto;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+    }
+
+    &__help-icon {
+        cursor: pointer;
+        margin-left: 0.8rem;
+        vertical-align: middle;
+    }
+
+    &__accounts {
+        border-radius: $BORDER_RADIUS;
+        background: var(--general-main-2);
+        position: relative;
+
+        .acc-switcher__account {
+            margin-bottom: 2px;
+            background: var(--general-main-2);
+
+            &:hover:not(.acc-switcher__account--selected) {
+                background-color: var(--state-hover);
+                border-radius: 4px;
+            }
+
+            &.acc-switcher__account--disabled:hover {
+                background-color: var(--general-main-2);
+            }
+
+            .acc-switcher__id {
+                color: var(--text-general);
+                width: 100%;
+                line-height: 1.43;
+            }
+
+            &--selected {
+                background: var(--state-active);
+
+                .acc-switcher__id {
+                    color: var(--text-prominent);
+                    font-weight: 700;
+
+                    &--virtual:before {
+                        color: var(--text-prominent);
+                        border: 1px solid var(--text-prominent);
+                    }
+                }
+            }
+
+            &--disabled {
+                opacity: 0.5;
+                cursor: default;
+            }
+
+            &:only-child {
+                border-radius: 4px;
+            }
+
+            &:last-child {
+                margin-bottom: 8px;
+            }
+        }
+
+        &--is-loading {
+            padding-bottom: 0.8rem;
+        }
+    }
+
+    &__account {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        padding: 0.3rem 1.6rem;
+        position: relative;
+        background: var(--general-main-2);
+        text-decoration: none;
+
+        .acc-switcher__id {
+            @include typeface(--paragraph-left-normal-black);
+
+            align-items: center;
+            display: flex;
+            color: var(--text-prominent);
+
+            &-icon {
+                @include toEm(margin-right, 8px, 1em);
+            }
+        }
+
+        &:hover:not(.acc-switcher__account--selected) {
+            background: var(--state-hover);
+        }
+
+        &--selected {
+            background: var(--state-active);
+            border-radius: 4px;
+
+            .acc-switcher {
+                &__id {
+                    @include typeface(--paragraph-left-bold-active);
+
+                    &--virtual:before {
+                        color: var(--text-prominent);
+                        border: 1px solid var(--text-prominent);
+                    }
+                }
+
+                &__loginid-text {
+                    color: var(--text-prominent);
+                    font-weight: normal;
+                }
+            }
+
+            .no-currency {
+                color: var(--text-prominent);
+            }
+        }
+    }
+
+    &__footer {
+        align-items: center;
+        display: grid;
+        grid-template-columns: auto auto;
+        justify-content: space-between;
+        padding-left: 1.3rem;
+    }
+
+    &__compare {
+        justify-self: end;
+        grid-column: 1 / 2;
+    }
+
+    &__logout {
+        grid-column: 2 / 3;
+        align-items: center;
+        display: flex;
+        justify-content: flex-end;
+        justify-self: start;
+        padding: 1.6em 1.3em;
+
+        &-text {
+            cursor: pointer;
+        }
+
+        &-icon {
+            margin-left: 8px;
+
+            // @extend %inline-icon;
+            cursor: pointer;
+        }
+    }
+
+    &__balance {
+        margin-left: auto;
+        text-align: right;
+    }
+
+    &__separator {
+        display: block;
+        position: relative;
+
+        &:after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            background-color: var(--general-section-2);
+            z-index: 1;
+        }
+
+        &--no-padding {
+            &:after {
+                width: calc(100% + 0.4rem);
+            }
+        }
+
+        &--auto-margin {
+            margin-top: auto;
+        }
+    }
+
+    &__total {
+        height: 2.6rem;
+        margin: 0.4rem 1.6rem;
+        align-items: center;
+        display: flex;
+
+        &-subtitle {
+            margin: 0 1.6rem 1.2rem;
+        }
+    }
+
+    &__loginid-text {
+        font-size: 1rem;
+        color: var(--text-less-prominent);
+        line-height: 1.4;
+
+        &--disabled {
+            color: var(--text-disabled);
+        }
+    }
+
+    &__loader {
+        margin: 1rem auto !important;
+        font-size: 0.8rem;
+    }
+
+    &__btn {
+        width: calc(100% - 32px);
+        margin: 0 16px 8px;
+
+        &--traders_hub {
+            margin: 1.3rem 1.1rem 1rem 1rem;
+        }
+    }
+
+    &__traders-hub {
+        padding: 1.2rem 0.5rem 0.6rem 0.8rem;
+
+        @include mobile-screen {
+            padding: 1.2rem 0.5rem 0.6rem 2.5rem;
+        }
+
+        &--link {
+            cursor: pointer;
+            text-decoration: none;
+
+            :hover {
+                cursor: pointer;
+                text-decoration: underline;
+            }
+        }
+
+        &--text {
+            align-items: center;
+            color: var(--text-loss-danger);
+        }
+    }
 }
 
-/* .header-top (home.html) es la barra fija con avatar/notificaciones,
-   también position:fixed;top:0 — debe respetar como mínimo el notch/
-   Dynamic Island siempre (con o sin barra Chrome visible encima). */
-body.bf-active .header-top{
-  top: max(var(--browser-frame-top-height), env(safe-area-inset-top));
+/** @define set-currency; weak */
+.set-currency {
+    margin-right: 8px;
+
+    & .dc-btn {
+        display: flex;
+        align-items: center;
+
+        @include mobile-screen {
+            height: 2.8rem !important;
+        }
+    }
 }
 
-/* El panel de notificaciones de home.html es un overlay a pantalla
-   completa (top:0). Debe empezar debajo del marco Y del notch/Dynamic
-   Island, lo que sea mayor — nunca detrás de ninguno de los dos. */
-body.bf-active .notif-panel{
-  top: max(var(--browser-frame-top-height), env(safe-area-inset-top));
-  height: calc(100vh - max(var(--browser-frame-top-height), env(safe-area-inset-top)));
-  height: calc(100dvh - max(var(--browser-frame-top-height), env(safe-area-inset-top)));
+/** @define no-currency; weak */
+.no-currency {
+    @include typeface(--xxsmall-center-normal-black);
+
+    text-transform: none;
+    color: var(--text-less-prominent);
+    line-height: 1.5;
+    text-align: right;
 }
 
-.bf-top{
-  position: fixed;
-  left: 0;
-  right: 0;
-  z-index: 5000;
-  box-sizing: border-box;
-  width: 100%;
-  background: #f2f2f2;
-  top: 0;
-  padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
-  border-bottom: 1px solid #e0e0e0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
+/** @define badge-server; weak */
+.badge-server {
+    display: inline-block;
+    background-color: $color-blue-2;
+    padding: 0.2rem;
+    border-radius: 0.2rem;
+    margin-left: 0.5rem;
+    height: 2.2rem;
+
+    &-bot {
+        color: var(--text-colored-background);
+    }
+
+    &--disabled {
+        background-color: var(--border-disabled);
+    }
 }
 
-/* La barra Safari YA NO es fixed por su cuenta — vive dentro de
-   .bf-safari-stack (ver abajo), que es el único elemento fixed del
-   lado inferior. Así el menú de la app y la barra Safari son
-   simplemente dos hijos consecutivos del mismo flujo normal: es
-   estructuralmente imposible que se superpongan. */
-.bf-bottom{
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 5000;
-  box-sizing: border-box;
-  width: 100%;
-  background: #f2f2f2;
-  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
-  border-top: 1px solid #e0e0e0;
-  display: flex;
-  flex-direction: column;
+.dc-modal__container_accounts-switcher {
+    @include tablet-screen {
+        inset-inline: 0;
+        max-width: 60rem;
+        margin: auto;
+    }
 }
 
-/* Dentro de .bf-safari-stack (páginas estáticas) deja de ser fixed
-   por su cuenta — el contenedor padre ya es el único elemento fixed. */
-.bf-safari-stack .bf-bottom{
-  position: static;
-  left: auto;
-  right: auto;
-  bottom: auto;
+.account-switcher-fixed {
+    pointer-events: none !important;
+    cursor: default !important;
+    border-inline-end: 1px solid var(--general-section-1);
 }
 
-/* Caso app React: el menú (.mobile-bottom-nav / .app-footer) sigue
-   siendo fixed tal cual ya era — solo se le calcula dónde termina la
-   barra Safari (también fixed, independiente) para que quede justo
-   encima sin superponerse. Nada de su DOM se mueve. */
-.bf-nav-offset{
-  bottom: var(--browser-frame-bottom-height) !important;
+// AccountInfoWrapper styles
+.account-info-wrapper {
+    display: contents;
+
+    &--disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 }
 
-/* Estos dos elementos de la app React tienen su `bottom` calculado a
-   mano relativo a la posición ORIGINAL del menú (6rem / 15.7rem desde
-   el borde real de pantalla) — ver run-panel.scss. No sabían nada de
-   la barra Safari, así que cuando el menú sube en modo Safari, estos
-   se quedaban en su sitio original y terminaban ocultos detrás de
-   ella: el botón Run/Stop (.controls__section) y el contenido móvil
-   de Transactions/Summary (.run-panel-tab__content--mobile). Se les
-   suma la altura real de la barra para que sigan justo encima de ella,
-   igual que ya le pasa al menú. */
-body.bf-safari .controls__section{
-  bottom: calc(6rem + var(--browser-frame-bottom-height)) !important;
-  /* La regla específica de iOS (ios-device / @supports) le suma también
-     padding-bottom: env(safe-area-inset-bottom) — eso duplicaba el
-     espacio de zona segura, porque --browser-frame-bottom-height (la
-     barra Safari) ya incluye esa misma zona segura en su propia altura.
-     Se anula aquí para que Run quede pegado justo encima del menú, sin
-     el hueco extra. */
-  padding-bottom: 0 !important;
-}
-body.bf-safari .run-panel__stat{
-  bottom: calc(6rem + var(--browser-frame-bottom-height)) !important;
-}
-body.bf-safari .run-panel-tab__content--mobile{
-  bottom: calc(15.7rem + var(--browser-frame-bottom-height)) !important;
-}
-
-/* El drawer de Summary/Transactions/Journal (.dc-drawer, ver
-   drawer.scss) ahora se ancla por su borde inferior en vez de por
-   arriba — mucho más simple y confiable: solo hay que subirlo la
-   misma cantidad que el botón Run, en vez de recalcular un `top`
-   complejo. El botón/flecha (su último hijo) queda siempre pegado a
-   ese borde, visible sin importar el estado abierto/cerrado. */
-@media (max-width: 1279px){
-  body.bf-safari .dc-drawer{
-    bottom: calc(6rem + var(--browser-frame-bottom-height)) !important;
-  }
-}
-
-/* El único elemento fixed del lado inferior en modo Safari: agrupa,
-   EN ESTE ORDEN, el menú real de la app y la barra Safari debajo. */
-.bf-safari-stack{
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 5000;
-  display: flex;
-  flex-direction: column;
-  background: transparent;
-}
-
-/* Neutraliza el position:fixed/centrado propio que ya tenía el menú
-   de la app (.bottom-nav / .mobile-bottom-nav / .app-footer) para que
-   pase a ser un hijo normal del flujo dentro de .bf-safari-stack, sin
-   tocar sus colores, iconos ni tamaños — solo su posicionamiento. */
-.bf-nav-in-stack{
-  position: static !important;
-  top: auto !important;
-  bottom: auto !important;
-  left: auto !important;
-  right: auto !important;
-  transform: none !important;
-  width: 100% !important;
-  margin: 0 auto !important;
-}
-
-.bf-safari-addr-row{
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px 6px;
-}
-.bf-safari-controls-row{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 18px;
-}
-
-.bf-address{
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #e4e4e4;
-  border-radius: 14px;
-  padding: 7px 12px;
-  font-size: 13px;
-  color: #333;
-  overflow: hidden;
-}
-.bf-address .bf-lock{ flex: 0 0 auto; font-size: 12px; opacity:.7; }
-.bf-address .bf-host{
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bf-icon-btn{
-  flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  color: #444;
-  background: none;
-  border: none;
-  padding: 0;
-}
-.bf-aspect-btn{ color:#ff444f; }
-
-/* ---- Modo Safari: dirección centrada en su fila propia ---- */
-body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align:center; margin:0 auto; }
-
-/* ---- Escritorio: silueta tipo mockup de dispositivo — SOLO en las
-   páginas estáticas (home.html/options.html) que agregan la clase
-   bf-static-page. La app React (Chart, Bot Builder, Dashboard) sigue
-   usando barras a todo lo ancho en escritorio: no tiene sentido
-   encogerla a un ancho de móvil ahí, necesita todo el espacio. ---- */
-@media (min-width: 701px){
-  body.bf-active.bf-static-page{ background:#e9e9ec; }
-
-  body.bf-static-page .bf-top, body.bf-static-page .bf-safari-stack{
-    left: 50%;
-    right: auto;
-    width: var(--bf-frame-width);
-    transform: translateX(-50%);
-  }
-  body.bf-static-page .bf-top{
-    border-radius: 22px 22px 0 0;
-    box-shadow: 0 -6px 24px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08);
-  }
-  body.bf-static-page .bf-safari-stack{
-    border-radius: 0 0 22px 22px;
+/** @define acc-dropdown */
+.acc-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 3;
+    min-width: 16rem;
+    background-color: var(--general-main-2);
+    border-radius: $BORDER_RADIUS;
+    box-shadow: 0 8px 16px 0 var(--shadow-menu);
     overflow: hidden;
-    box-shadow: 0 6px 24px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08);
-  }
-  /* Costados verticales del "dispositivo", de borde a borde de la
-     ventana, para cerrar la silueta sin tocar el DOM de la app. */
-  body.bf-active.bf-static-page::before, body.bf-active.bf-static-page::after{
-    content: "";
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    width: 1px;
-    z-index: 4999;
-    pointer-events: none;
-    box-shadow: 0 0 24px rgba(0,0,0,.12);
-  }
-  body.bf-active.bf-static-page::before{ left: calc(50vw - var(--bf-frame-width) / 2 - 1px); border-left:1px solid rgba(0,0,0,.08); }
-  body.bf-active.bf-static-page::after{ left: calc(50vw + var(--bf-frame-width) / 2); border-right:1px solid rgba(0,0,0,.08); }
+
+    @include mobile-or-tablet-screen {
+        position: fixed;
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        // Above the fixed bottom nav (10) and the full-screen menu drawer
+        // (10000), so it's always the topmost thing on screen when open.
+        z-index: 10001;
+        width: 100%;
+        min-width: unset;
+        max-height: 70vh;
+        overflow-y: auto;
+        border-radius: 1.6rem 1.6rem 0 0;
+        box-shadow: 0 -4px 16px 0 var(--shadow-menu);
+        padding-top: 1.6rem;
+
+        // Small drag-handle bar, purely decorative, so it reads as a
+        // swipe-up sheet rather than a plain dropdown.
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0.6rem;
+            left: 50%;
+            width: 3.6rem;
+            height: 0.4rem;
+            border-radius: 0.2rem;
+            background-color: var(--border-normal);
+            transform: translateX(-50%);
+        }
+    }
+
+    &__account {
+        display: flex;
+        flex-direction: column;
+        padding: .8rem 1.6rem;
+        cursor: pointer;
+        background: var(--general-main-2);
+
+        @include mobile-or-tablet-screen {
+            padding: 1.6rem;
+        }
+
+        &:not(:last-child) {
+            border-bottom: 1px solid var(--general-section-1);
+        }
+
+        &--selected {
+            background: var(--state-active);
+            cursor: default;
+        }
+    }
+
+    &__account-type {
+        color: var(--status-success);
+        margin-bottom: 0.1rem;
+        line-height: 1.2;
+        font-size: 1.4rem;
+
+        &--virtual {
+            color: $color-yellow;
+        }
+    }
+
+    &__balance {
+        color: var(--text-prominent);
+        line-height: 1.4;
+        font-size: 1.2rem;
+
+        @include mobile-or-tablet-screen {
+            font-size: 1.6rem;
+        }
+    }
 }
 
-/* ================================================================
- * Selector de "Aspecto" (Chrome / Safari)
- * ================================================================ */
-.bf-overlay{
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  z-index: 6000;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .25s ease;
-}
-.bf-overlay.open{ opacity: 1; pointer-events: auto; }
+.header {
+    &__logout-button {
+        margin-right: 0.8rem;
+        margin-left: 1.6rem;
 
-.bf-sheet{
-  width: 100%;
-  max-width: 480px;
-  background: #16181d;
-  color: #fff;
-  border-radius: 20px 20px 0 0;
-  padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
-  transform: translateY(100%);
-  transition: transform .28s cubic-bezier(.22,.9,.32,1);
-  box-sizing: border-box;
-  max-height: 85vh;
-  max-height: 85dvh;
-  overflow-y: auto;
-}
-.bf-overlay.open .bf-sheet{ transform: translateY(0); }
+        &:hover {
+            background: transparent !important;
+        }
 
-.bf-sheet h3{
-  margin: 0 0 16px;
-  font-size: 17px;
-  font-weight: 700;
-  text-align: center;
-}
-
-.bf-option{
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #1f2229;
-  border: 2px solid transparent;
-  border-radius: 14px;
-  padding: 12px;
-  margin-bottom: 12px;
-}
-.bf-option.selected{ border-color: #ff444f; }
-
-.bf-option .bf-preview{
-  flex: 0 0 auto;
-  width: 64px;
-  height: 96px;
-  border-radius: 10px;
-  background: #fff;
-  overflow: hidden;
-  position: relative;
-  box-shadow: 0 2px 8px rgba(0,0,0,.35);
-}
-.bf-option .bf-preview .bf-preview-top{ height: 16px; background:#f2f2f2; border-bottom:1px solid #ddd; }
-.bf-option .bf-preview .bf-preview-body{ height: 60px; background: linear-gradient(180deg,#22242c,#181a20); }
-.bf-option .bf-preview .bf-preview-bottom{ height: 16px; background:#f2f2f2; border-top:1px solid #ddd; }
-.bf-option.safari-preview .bf-preview-top{ display:flex; align-items:center; justify-content:center; }
-
-.bf-option-info{ flex: 1 1 auto; min-width: 0; }
-.bf-option-info .bf-option-name{ font-weight: 600; font-size: 15px; }
-.bf-option-info .bf-option-desc{ font-size: 12px; color: #9a9a9a; margin-top: 2px; }
-
-.bf-radio{
-  flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid #555;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  color: transparent;
-}
-.bf-option.selected .bf-radio{
-  border-color: #ff444f;
-  background: #ff444f;
-  color: #fff;
-}
-
-.bf-save-btn{
-  width: 100%;
-  margin-top: 6px;
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  background: #ff444f;
-  color: #fff;
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: .5px;
-}
-
-/* El botón "Volatility X Index" (.cq-chart-title / .cq-menu-btn, de la
-   librería de gráficos) debe verse SIEMPRE igual que en escritorio,
-   sin importar el ancho de pantalla — sin ninguna transformación ni
-   reescalado aplicado en móvil. */
-.cq-chart-title,
-.cq-menu-btn{
-  transform: none !important;
-}
-
-/* La librería detecta móvil por su cuenta y agrega la clase
-   .smartcharts-mobile, que cambia .cq-chart-title a ancho completo
-   (width:100%; display:block) — visto directamente en su CSS. Se
-   restaura aquí el estilo compacto de escritorio (tarjeta pequeña,
-   inline-block), que es el que se ve en la referencia. */
-.smartcharts-mobile .cq-chart-title{
-  width: auto !important;
-  display: inline-block !important;
-  margin: .2em .8em !important;
-  top: 1em !important;
-}
-
-/* Padding del borde del botón Volatility: 4px -> 2px, con 1.5px extra
-   a cada lado (3px de ancho total agregado). */
-/* Borde parejo: 2px en los 4 lados. Más grande hacia la derecha y
-   abajo: 5px extra en esos dos lados (2px base + 5px = 7px ahí). */
-.cq-chart-title .cq-menu-btn{
-  padding: 1px !important;
-}
-
-/* Ajustes de tamaño de Volatility: título, precio e ícono. */
-.cq-chart-title .cq-symbol-select-btn .cq-symbol{
-  font-size: 1.3em !important;
-}
-.cq-chart-title .cq-symbol-select-btn .cq-chart-price{
-  font-size: 0.9em !important;
-}
-.cq-chart-title .cq-symbol-select-btn>.ic-frx>svg,
-.cq-chart-title .cq-symbol-select-btn>.ic-icon>svg,
-.cq-chart-title .cq-symbol-select-btn>.ic-otc>svg,
-.cq-chart-title .cq-symbol-select-btn>.ic-wld>svg{
-  height: 29px !important;
-  width: 29px !important;
-}
-
-/* Estructura real confirmada por inspector:
-   <span class="ic-icon cq-symbol-dropdown"><svg width="16" height="16">
-   Sin depender de .cq-chart-title como ancestro, por si el ícono no
-   vive ahí dentro en el DOM real. Tamaño similar al texto (precio
-   ~7px), un poco más chico. */
-span.ic-icon.cq-symbol-dropdown{
-  width: 9px !important;
-  height: 9px !important;
-  overflow: hidden !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-span.ic-icon.cq-symbol-dropdown svg{
-  width: 9px !important;
-  height: 9px !important;
-}
-span.ic-icon.cq-symbol-dropdown svg[width]{
-  width: 9px !important;
-}
-span.ic-icon.cq-symbol-dropdown svg[height]{
-  height: 9px !important;
-}
-
-/* Respaldo estructural: en móvil el desplegable puede renderizarse
-   en un portal aparte (.smartcharts-portal), posiblemente con otro
-   nombre de clase para el ícono. Se apunta por POSICIÓN (el ícono
-   final dentro del botón "Volatility X Index") en vez de por nombre
-   exacto, para que funcione sin importar el contexto. */
-.cq-symbol-select-btn > span:last-child,
-.cq-symbol-select-btn > span:last-child svg,
-.cq-menu-btn > span:last-child,
-.cq-menu-btn > span:last-child svg{
-  width: 9px !important;
-  height: 9px !important;
-}
-
-/* Menú de Markets: que ocupe todo el ancho de la página al abrirse. */
-.cq-chart-title .cq-menu-dropdown{
-  position: fixed !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: auto !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  transform: none !important;
-}
-
-/* Saldo (acc-info__balance-section) en móvil: baja 2px (queda a esa
-   distancia del borde inferior) y se corre 1px a la izquierda —
-   solo el texto del saldo, no toda la barra. */
-@media (max-width: 1279px){
-  .acc-info__balance-section{
-    position: relative !important;
-    top: 6px !important;
-    left: -1px !important;
-  }
+        .dc-text {
+            color: var(--text-general) !important;
+        }
+    }
 }
