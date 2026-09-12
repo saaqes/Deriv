@@ -7,7 +7,7 @@
     },
     "domain_name": "YourBrand.com",
     "colors": {
-        "primary": "#f73b3b",
+        "primary": "#4e4d51",
         "secondary": "#64748b",
         "tertiary": "#8b5cf6",
         "success": "#10b981",
@@ -81,7 +81,7 @@
     "platform": {
         "name": "tradelab",
         "footer": {
-            "enable_language_settings": false,
+            "enable_language_settings": true,
             "enable_theme_toggle": true
         },
         "hostname": {
