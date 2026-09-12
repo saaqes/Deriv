@@ -145,7 +145,7 @@
 
         line-height: 1;
         margin: 0;
-        font-size: var(--text-size-xxs);
+        font-size: calc(var(--text-size-xxs) + 3px) !important;
     }
 
     &--is-virtual {
