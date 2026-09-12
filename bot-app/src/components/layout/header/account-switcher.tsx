@@ -175,6 +175,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                     </div>
                 </div>
             </AccountInfoWrapper>
+            {isOpen && <div className='acc-dropdown__backdrop' onClick={() => setIsOpen(false)} aria-hidden='true' />}
             {isOpen && (
                 <div className='acc-dropdown' role='listbox'>
                     {formattedAccounts.map(account => (
