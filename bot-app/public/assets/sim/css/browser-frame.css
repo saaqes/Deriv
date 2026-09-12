@@ -212,7 +212,7 @@ body.bf-safari .run-panel-tab__content--mobile{
   border: none;
   padding: 0;
 }
-.bf-aspect-btn{ color:#4e4d51; }
+.bf-aspect-btn{ color:#ff444f; }
 
 /* ---- Modo Safari: dirección centrada en su fila propia ---- */
 body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align:center; margin:0 auto; }
@@ -306,7 +306,7 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
   padding: 12px;
   margin-bottom: 12px;
 }
-.bf-option.selected{ border-color: #4e4d51; }
+.bf-option.selected{ border-color: #ff444f; }
 
 .bf-option .bf-preview{
   flex: 0 0 auto;
@@ -340,8 +340,8 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
   color: transparent;
 }
 .bf-option.selected .bf-radio{
-  border-color: #4e4d51;
-  background: #4e4d51;
+  border-color: #ff444f;
+  background: #ff444f;
   color: #fff;
 }
 
@@ -351,7 +351,7 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align
   padding: 14px;
   border: none;
   border-radius: 12px;
-  background: #4e4d51;
+  background: #ff444f;
   color: #fff;
   font-weight: 700;
   font-size: 15px;
