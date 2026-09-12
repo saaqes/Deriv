@@ -1,824 +1,223 @@
-@use 'components/shared/styles/constants' as *;
-@use 'components/shared/styles/mixins' as *;
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import classNames from 'classnames';
+import { observer } from 'mobx-react-lite';
+import { addComma, getCurrencyDisplayCode, getDecimalPlaces } from '@/components/shared';
+import Text from '@/components/shared_ui/text';
+import { api_base } from '@/external/bot-skeleton/services/api/api-base';
+import { isMockAccountId, switchMockAccount } from '@/external/deriv-core/auth/mock-login';
+import { formatConfiguredBalance } from '@/external/deriv-core/trading/display-balance';
+import { installFakeBroker } from '@/external/deriv-core/trading/fake-broker';
+import { useApiBase } from '@/hooks/useApiBase';
+import { useConfiguredBalance, useConfiguredRealBalance } from '@/hooks/useConfiguredBalance';
+import { useStore } from '@/hooks/useStore';
+import { isDemoAccount } from '@/utils/account-helpers';
+import { Localize } from '@deriv-com/translations';
+import { TAccountSwitcher } from './common/types';
+import AccountInfoWrapper from './account-info-wrapper';
+import './account-switcher.scss';
 
-/** @define acc-info */
-.acc-info {
-    align-items: center;
-    cursor: default;
-    display: flex;
-    flex-direction: row;
-    height: 100%;
-    justify-content: center;
-    padding: 8px 1.6rem;
-    width: max-content;
+const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const { accountList, activeLoginid } = useApiBase();
+    const { client, run_panel } = useStore() ?? {};
+    // DEMO-only cosmetic override (see display-balance.ts). Never applied to
+    // a genuine real account — see `formattedAccounts` below.
+    const configuredBalance = useConfiguredBalance();
+    // Same idea, for the mock "Real" account (CR0000001).
+    const configuredRealBalance = useConfiguredRealBalance();
 
-    &:hover {
-        background: transparent !important;
-    }
+    const is_bot_running = run_panel?.is_running || api_base.is_running;
+    const isSingleAccount = !accountList || accountList.length <= 1;
 
-    &__preloader {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 37rem;
-        height: 4rem;
-        z-index: 2;
-        background: var(--general-main-1);
-
-        &:before {
-            content: '';
-            position: absolute;
-            left: -8rem;
-            width: 8rem;
-            height: 3.5rem;
-            top: 0;
-            background: var(--general-main-1);
-        }
-
-        &--no-currency:before {
-            left: -9rem;
-            width: 9rem;
-        }
-
-        @include mobile-screen {
-            width: 14rem;
-            height: 4rem;
-            top: -0.3rem;
-
-            &:before {
-                display: none;
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+                setIsOpen(false);
             }
+        };
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsOpen(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, []);
 
-            &--is-crypto {
-                width: 100%;
+    const toggleDropdown = useCallback(() => {
+        if (is_bot_running || isSingleAccount) return;
+        setIsOpen(prev => !prev);
+    }, [is_bot_running, isSingleAccount]);
+
+    const handleAccountSelect = useCallback(
+        (loginid: string) => {
+            // Dev-mock accounts: flip the fake active account directly instead
+            // of tearing down and reconnecting a real WebSocket, since there's
+            // no real session behind them.
+            if (isMockAccountId(loginid)) {
+                switchMockAccount(loginid);
+                installFakeBroker();
+                setIsOpen(false);
+                return;
             }
-        }
-    }
-
-    &__preloader__dtrader {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 37rem;
-        height: 4rem;
-        z-index: 2;
-        background: var(--general-main-1);
-
-        &:before {
-            content: '';
-            position: absolute;
-            left: -8rem;
-            width: 8rem;
-            height: 3.5rem;
-            top: 0;
-            background: var(--general-main-1);
-        }
-
-        &--no-currency:before {
-            left: -9rem;
-            width: 9rem;
-        }
-
-        @include mobile-screen {
-            width: 14rem;
-            height: 4rem;
-            top: -0.3rem;
-
-            &:before {
-                display: none;
-            }
-
-            &--is-crypto {
-                width: 100%;
-            }
-        }
-
-        &--wallets {
-            width: 47rem;
-
-            @include mobile-screen {
-                width: auto;
-            }
-        }
-    }
-
-    &__container {
-        align-items: center;
-        -webkit-box-align: center;
-        display: flex;
-    }
-
-    &__wrapper {
-        align-items: center;
-        display: flex;
-        flex-direction: row;
-        height: 100%;
-        justify-content: center;
-        position: relative;
-        margin-right: 0.8rem;
-        user-select: none;
-        -webkit-touch-callout: none;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    &__content {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        margin-inline-start: 1rem;
-    }
-
-    &__account-type-header {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        margin-bottom: 0.2rem;
-    }
-
-    &__account-type {
-        @include typeface(--xxsmall-left-normal-green);
-
-        line-height: 1;
-        margin: 0;
-        font-size: var(--text-size-xxs);
-    }
-
-    &--is-virtual {
-        .acc-info__account-type {
-            color: $color-yellow;
-        }
-    }
-
-    &__balance-section {
-        display: flex;
-        align-items: center;
-    }
-
-    &__balance {
-        @include typeface(--paragraph-left-bold-black);
-
-        line-height: 1.4;
-        pointer-events: none;
-        margin: 0;
-        font-size: 1.4rem;
-        color: var(--status-success);
-
-        &--no-currency {
-            @include typeface(--small-left-normal-grey);
-
-            white-space: nowrap;
-        }
-    }
-
-    &__id {
-        pointer-events: none;
-        display: flex;
-        align-items: center;
-
-        &-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 0.8rem;
-        }
-    }
-
-    &__separator {
-        border-right: 1px solid var(--general-section-1);
-        height: 3.2rem;
-        margin-right: -0.1rem;
-    }
-
-    &__account-type-and-balance {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        padding: 0 1rem 0.1rem 0;
-        pointer-events: none;
-    }
-
-    &__select-arrow {
-        pointer-events: none;
-        display: flex;
-        align-items: center;
-        transform: rotate(0);
-        transform-origin: 50% 50%;
-        transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
-
-        svg path {
-            stroke: var(--text-general);
-        }
-
-        &--invert {
-            transform: rotate(180deg);
-        }
-    }
-
-    @include desktop-screen {
-        &:hover:not(.show, &--is-disabled) {
-            background: var(--state-hover);
-
-            .symbols {
-                background: transparent;
-            }
-        }
-    }
-
-    @include mobile-screen {
-        padding: 0 1rem;
-        margin-right: -0.8rem;
-
-        &__balance {
-            font-size: 1.4rem;
-
-            &--no-currency {
-                white-space: nowrap;
-            }
-        }
-    }
-
-    .acc-info__balance {
-        @include typeface(--paragraph-left-bold-black);
-    }
-
-    &--is-disabled {
-        cursor: not-allowed;
-    }
-
-    &--interactive {
-        cursor: pointer !important;
-
-        &:hover {
-            background: var(--state-hover) !important;
-        }
-    }
-
-    &__button {
-        margin: 0 1.6em 0 0 !important;
-
-        &:not(:last-child) {
-            margin-right: 1em;
-        }
-
-        @include mobile-screen {
-            height: 2.8rem !important;
-        }
-    }
-
-    &__wallets {
-        padding: 1.2rem 1.6rem;
-        gap: 0.8rem;
-
-        &-notification-icon {
-            margin-right: 1rem;
-        }
-
-        &-container {
-            align-items: center;
-            display: flex;
-            gap: 0.8rem;
-        }
-
-        &-account-type-and-balance {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 0;
-            pointer-events: none;
-        }
-
-        &-balance {
-            color: var(--text-general);
-            margin-right: 0;
-        }
-    }
-}
-
-/* @define acc-switcher; weak */
-.acc-switcher {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    margin: 0 0.8rem;
-    height: 4rem;
-    position: relative;
-
-    &--is-loading {
-        position: absolute;
-        height: 100%;
-        width: 100%;
-        top: 0;
-        left: 0;
-        background: var(--general-main-2);
-    }
-
-    &__wrapper {
-        border-radius: $BORDER_RADIUS;
-        position: absolute;
-        z-index: 3;
-        transition:
-            transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1),
-            opacity 0.25s linear;
-        box-shadow: 0 8px 16px 0 var(--shadow-menu);
-        right: 0;
-        top: calc(100% + 4px);
-        width: 320px;
-        background-color: var(--general-main-2);
-
-        @include tablet-screen {
-            position: unset;
-        }
-
-        &--wallets {
-            width: 32rem;
-            right: -3.2rem;
-        }
-
-        &--enter-done {
-            opacity: 1;
-            transform: translate3d(0, 0, 0);
-        }
-
-        &--enter,
-        &--exit {
-            opacity: 0;
-            transform: translate3d(0, -20px, 0);
-        }
-
-        .acc-switcher__button {
-            max-width: calc(100% - 1.6rem);
-            margin: 0.2rem 0.8rem 0.8rem;
-            height: 4rem;
-        }
-
-        @include mobile-or-tablet-screen {
-            position: relative;
-            top: unset;
-            left: unset;
-            right: unset;
-            width: 100%;
-            box-shadow: none;
-            height: 100%;
-            border-radius: 0;
-        }
-
-        .dc-themed-scrollbars {
-            scrollbar-color: var(--text-less-prominent) transparent;
-
-            &::-webkit-scrollbar-thumb {
-                background-color: var(--text-less-prominent);
-            }
-        }
-    }
-
-    &__new-account {
-        display: flex;
-        align-items: center;
-        padding: 1rem 1.6rem 1.8rem;
-        font-size: var(--text-size-xs);
-
-        &-text {
-            margin-left: 0.8rem;
-        }
-
-        &-btn {
-            margin-left: auto;
-        }
-
-        &--disabled {
-            opacity: 0.5;
-            cursor: default;
-        }
-    }
-
-    &__reset-account {
-        &-btn {
-            margin-left: auto;
-        }
-    }
-
-    &__list {
-        border-radius: $BORDER_RADIUS;
-        display: flex;
-        flex-flow: column nowrap;
-        height: 100%;
-        background: var(--general-main-2);
-
-        &-wrapper {
-            padding: 0.4rem 0.8rem 0;
-        }
-
-        &-title {
-            flex: 1;
-        }
-
-        &-container {
-            height: auto;
-            overflow-x: hidden;
-            overflow-y: auto;
-        }
-    }
-
-    &__help-icon {
-        cursor: pointer;
-        margin-left: 0.8rem;
-        vertical-align: middle;
-    }
-
-    &__accounts {
-        border-radius: $BORDER_RADIUS;
-        background: var(--general-main-2);
-        position: relative;
-
-        .acc-switcher__account {
-            margin-bottom: 2px;
-            background: var(--general-main-2);
-
-            &:hover:not(.acc-switcher__account--selected) {
-                background-color: var(--state-hover);
-                border-radius: 4px;
-            }
-
-            &.acc-switcher__account--disabled:hover {
-                background-color: var(--general-main-2);
-            }
-
-            .acc-switcher__id {
-                color: var(--text-general);
-                width: 100%;
-                line-height: 1.43;
-            }
-
-            &--selected {
-                background: var(--state-active);
-
-                .acc-switcher__id {
-                    color: var(--text-prominent);
-                    font-weight: 700;
-
-                    &--virtual:before {
-                        color: var(--text-prominent);
-                        border: 1px solid var(--text-prominent);
-                    }
-                }
-            }
-
-            &--disabled {
-                opacity: 0.5;
-                cursor: default;
-            }
-
-            &:only-child {
-                border-radius: 4px;
-            }
-
-            &:last-child {
-                margin-bottom: 8px;
-            }
-        }
-
-        &--is-loading {
-            padding-bottom: 0.8rem;
-        }
-    }
-
-    &__account {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        cursor: pointer;
-        padding: 0.3rem 1.6rem;
-        position: relative;
-        background: var(--general-main-2);
-        text-decoration: none;
-
-        .acc-switcher__id {
-            @include typeface(--paragraph-left-normal-black);
-
-            align-items: center;
-            display: flex;
-            color: var(--text-prominent);
-
-            &-icon {
-                @include toEm(margin-right, 8px, 1em);
-            }
-        }
-
-        &:hover:not(.acc-switcher__account--selected) {
-            background: var(--state-hover);
-        }
-
-        &--selected {
-            background: var(--state-active);
-            border-radius: 4px;
-
-            .acc-switcher {
-                &__id {
-                    @include typeface(--paragraph-left-bold-active);
-
-                    &--virtual:before {
-                        color: var(--text-prominent);
-                        border: 1px solid var(--text-prominent);
-                    }
-                }
-
-                &__loginid-text {
-                    color: var(--text-prominent);
-                    font-weight: normal;
-                }
-            }
-
-            .no-currency {
-                color: var(--text-prominent);
-            }
-        }
-    }
-
-    &__footer {
-        align-items: center;
-        display: grid;
-        grid-template-columns: auto auto;
-        justify-content: space-between;
-        padding-left: 1.3rem;
-    }
-
-    &__compare {
-        justify-self: end;
-        grid-column: 1 / 2;
-    }
-
-    &__logout {
-        grid-column: 2 / 3;
-        align-items: center;
-        display: flex;
-        justify-content: flex-end;
-        justify-self: start;
-        padding: 1.6em 1.3em;
-
-        &-text {
-            cursor: pointer;
-        }
-
-        &-icon {
-            margin-left: 8px;
-
-            // @extend %inline-icon;
-            cursor: pointer;
-        }
-    }
-
-    &__balance {
-        margin-left: auto;
-        text-align: right;
-    }
-
-    &__separator {
-        display: block;
-        position: relative;
-
-        &:after {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 4px;
-            background-color: var(--general-section-2);
-            z-index: 1;
-        }
-
-        &--no-padding {
-            &:after {
-                width: calc(100% + 0.4rem);
-            }
-        }
-
-        &--auto-margin {
-            margin-top: auto;
-        }
-    }
-
-    &__total {
-        height: 2.6rem;
-        margin: 0.4rem 1.6rem;
-        align-items: center;
-        display: flex;
-
-        &-subtitle {
-            margin: 0 1.6rem 1.2rem;
-        }
-    }
-
-    &__loginid-text {
-        font-size: 1rem;
-        color: var(--text-less-prominent);
-        line-height: 1.4;
-
-        &--disabled {
-            color: var(--text-disabled);
-        }
-    }
-
-    &__loader {
-        margin: 1rem auto !important;
-        font-size: 0.8rem;
-    }
-
-    &__btn {
-        width: calc(100% - 32px);
-        margin: 0 16px 8px;
-
-        &--traders_hub {
-            margin: 1.3rem 1.1rem 1rem 1rem;
-        }
-    }
-
-    &__traders-hub {
-        padding: 1.2rem 0.5rem 0.6rem 0.8rem;
-
-        @include mobile-screen {
-            padding: 1.2rem 0.5rem 0.6rem 2.5rem;
-        }
-
-        &--link {
-            cursor: pointer;
-            text-decoration: none;
-
-            :hover {
-                cursor: pointer;
-                text-decoration: underline;
-            }
-        }
-
-        &--text {
-            align-items: center;
-            color: var(--text-loss-danger);
-        }
-    }
-}
-
-/** @define set-currency; weak */
-.set-currency {
-    margin-right: 8px;
-
-    & .dc-btn {
-        display: flex;
-        align-items: center;
-
-        @include mobile-screen {
-            height: 2.8rem !important;
-        }
-    }
-}
-
-/** @define no-currency; weak */
-.no-currency {
-    @include typeface(--xxsmall-center-normal-black);
-
-    text-transform: none;
-    color: var(--text-less-prominent);
-    line-height: 1.5;
-    text-align: right;
-}
-
-/** @define badge-server; weak */
-.badge-server {
-    display: inline-block;
-    background-color: $color-blue-2;
-    padding: 0.2rem;
-    border-radius: 0.2rem;
-    margin-left: 0.5rem;
-    height: 2.2rem;
-
-    &-bot {
-        color: var(--text-colored-background);
-    }
-
-    &--disabled {
-        background-color: var(--border-disabled);
-    }
-}
-
-.dc-modal__container_accounts-switcher {
-    @include tablet-screen {
-        inset-inline: 0;
-        max-width: 60rem;
-        margin: auto;
-    }
-}
-
-.account-switcher-fixed {
-    pointer-events: none !important;
-    cursor: default !important;
-    border-inline-end: 1px solid var(--general-section-1);
-}
-
-// AccountInfoWrapper styles
-.account-info-wrapper {
-    display: contents;
-
-    &--disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-}
-
-/** @define acc-dropdown */
-.acc-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    z-index: 3;
-    min-width: 16rem;
-    background-color: var(--general-main-2);
-    border-radius: $BORDER_RADIUS;
-    box-shadow: 0 8px 16px 0 var(--shadow-menu);
-    overflow: hidden;
-
-    @include mobile-or-tablet-screen {
-        position: fixed;
-        top: auto;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        // Above the fixed bottom nav (10) and the full-screen menu drawer
-        // (10000), so it's always the topmost thing on screen when open.
-        z-index: 10001;
-        width: 100%;
-        min-width: unset;
-        max-height: 70vh;
-        overflow-y: auto;
-        border-radius: 1.6rem 1.6rem 0 0;
-        box-shadow: 0 -4px 16px 0 var(--shadow-menu);
-        padding-top: 1.6rem;
-
-        // Small drag-handle bar, purely decorative, so it reads as a
-        // swipe-up sheet rather than a plain dropdown.
-        &::before {
-            content: '';
-            position: absolute;
-            top: 0.6rem;
-            left: 50%;
-            width: 3.6rem;
-            height: 0.4rem;
-            border-radius: 0.2rem;
-            background-color: var(--border-normal);
-            transform: translateX(-50%);
-        }
-    }
-
-    &__account {
-        display: flex;
-        flex-direction: column;
-        padding: .8rem 1.6rem;
-        cursor: pointer;
-        background: var(--general-main-2);
-
-        @include mobile-or-tablet-screen {
-            padding: 1.6rem;
-        }
-
-        &:not(:last-child) {
-            border-bottom: 1px solid var(--general-section-1);
-        }
-
-        &--selected {
-            background: var(--state-active);
-            cursor: default;
-        }
-    }
-
-    &__account-type {
-        color: var(--status-success);
-        margin-bottom: 0.1rem;
-        line-height: 1.2;
-        font-size: 1.4rem;
-
-        &--virtual {
-            color: $color-yellow;
-        }
-    }
-
-    &__balance {
-        color: var(--text-prominent);
-        line-height: 1.4;
-        font-size: 1.2rem;
-
-        @include mobile-or-tablet-screen {
-            font-size: 1.6rem;
-        }
-    }
-}
-
-.header {
-    &__logout-button {
-        margin-right: 0.8rem;
-        margin-left: 1.6rem;
-
-        &:hover {
-            background: transparent !important;
-        }
-
-        .dc-text {
-            color: var(--text-general) !important;
-        }
-    }
-}
+            localStorage.setItem('active_loginid', loginid);
+            client?.checkAndRegenerateWebSocket();
+            setIsOpen(false);
+        },
+        [client]
+    );
+
+    const formattedAccounts = useMemo(() => {
+        if (!accountList) return [];
+        return accountList
+            .map(account => {
+                const isVirtual = isDemoAccount(account.loginid);
+                const realBalance = addComma(Number(account.balance ?? 0).toFixed(getDecimalPlaces(account.currency)));
+                // Same rule as the active-account balance below: a configured
+                // (simulated) balance only ever overrides the display for one
+                // of this simulator's two MOCK accounts, never a genuine
+                // real Deriv account.
+                const isMockAccount = isMockAccountId(account.loginid);
+                const configuredValue = isVirtual ? configuredBalance : configuredRealBalance;
+                const displayBalance =
+                    isMockAccount && configuredValue !== null
+                        ? formatConfiguredBalance(configuredValue)
+                        : `${realBalance} ${getCurrencyDisplayCode(account.currency)}`;
+                return {
+                    loginid: account.loginid,
+                    currency: account.currency,
+                    balance: realBalance,
+                    displayBalance,
+                    isVirtual,
+                    isActive: account.loginid === activeLoginid,
+                };
+            })
+            .sort((a, b) => (a.isActive ? -1 : b.isActive ? 1 : 0));
+    }, [accountList, activeLoginid, configuredBalance, configuredRealBalance]);
+
+    if (!activeAccount) return null;
+
+    const { currency, isVirtual, displayBalance } = activeAccount;
+    // Antes también se ocultaba con una sola cuenta vinculada
+    // (!isSingleAccount) — ahora se muestra siempre que no haya un
+    // bot corriendo, a pedido explícito. Se conserva
+    // "!is_bot_running": evita cambiar de cuenta mientras un bot
+    // está operando activamente.
+    const showChevron = !is_bot_running;
+
+    return (
+        <div className='acc-info__wrapper' ref={wrapperRef}>
+            <AccountInfoWrapper>
+                <div
+                    data-testid='dt_acc_info'
+                    id='dt_core_account-info_acc-info'
+                    role={showChevron ? 'button' : undefined}
+                    tabIndex={showChevron ? 0 : -1}
+                    aria-expanded={showChevron ? isOpen : undefined}
+                    aria-haspopup={showChevron ? 'listbox' : undefined}
+                    className={classNames('acc-info', {
+                        'acc-info--is-virtual': isVirtual,
+                        'acc-info--interactive': showChevron,
+                    })}
+                    onClick={toggleDropdown}
+                    onKeyDown={e => {
+                        if (showChevron && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault();
+                            toggleDropdown();
+                        }
+                    }}
+                >
+                    <span className='acc-info__id' aria-hidden='true'></span>
+                    <div className='acc-info__content'>
+                        <div className='acc-info__account-type-header'>
+                            <Text as='p' size='xs' className='acc-info__account-type'>
+                                {isVirtual ? (
+                                    <Localize i18n_default_text='Demo account' />
+                                ) : (
+                                    <Localize i18n_default_text='Real account' />
+                                )}
+                            </Text>
+                            {showChevron && (
+                                <span
+                                    className={classNames('acc-info__select-arrow', {
+                                        'acc-info__select-arrow--invert': isOpen,
+                                    })}
+                                >
+                                    <svg width='12' height='12' viewBox='0 0 12 12' fill='none'>
+                                        <path
+                                            d='M2 4L6 8L10 4'
+                                            stroke='currentColor'
+                                            strokeWidth='1.5'
+                                            strokeLinecap='round'
+                                            strokeLinejoin='round'
+                                        />
+                                    </svg>
+                                </span>
+                            )}
+                        </div>
+                        {(typeof displayBalance !== 'undefined' || !currency) && (
+                            <div className='acc-info__balance-section'>
+                                <p
+                                    data-testid='dt_balance'
+                                    className={classNames('acc-info__balance', {
+                                        'acc-info__balance--no-currency': !currency && !isVirtual,
+                                    })}
+                                >
+                                    {!currency ? <Localize i18n_default_text='No currency assigned' /> : displayBalance}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </AccountInfoWrapper>
+            {isOpen && (
+                <div className='acc-dropdown' role='listbox'>
+                    {formattedAccounts.map(account => (
+                        <div
+                            key={account.loginid}
+                            role='option'
+                            aria-selected={account.isActive}
+                            tabIndex={0}
+                            className={classNames('acc-dropdown__account', {
+                                'acc-dropdown__account--selected': account.isActive,
+                                'acc-dropdown__account--virtual': account.isVirtual,
+                            })}
+                            onClick={() => !account.isActive && handleAccountSelect(account.loginid)}
+                            onKeyDown={e => {
+                                if (!account.isActive && (e.key === 'Enter' || e.key === ' ')) {
+                                    e.preventDefault();
+                                    handleAccountSelect(account.loginid);
+                                }
+                            }}
+                        >
+                            <Text
+                                size='xxxs'
+                                className={classNames('acc-dropdown__account-type', {
+                                    'acc-dropdown__account-type--virtual': account.isVirtual,
+                                })}
+                            >
+                                {account.isVirtual ? (
+                                    <Localize i18n_default_text='Demo account' />
+                                ) : (
+                                    <Localize i18n_default_text='Real account' />
+                                )}
+                            </Text>
+                            <Text size='xs' weight='bold' className='acc-dropdown__balance'>
+                                {account.currency ? (
+                                    account.displayBalance
+                                ) : (
+                                    <Localize i18n_default_text='No currency assigned' />
+                                )}
+                            </Text>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+});
+
+export default AccountSwitcher;
