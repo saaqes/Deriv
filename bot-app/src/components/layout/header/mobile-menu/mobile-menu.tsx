@@ -16,7 +16,6 @@ import {
     LabelPairedObjectsColumnCaptionRegularIcon,
     LabelPairedPuzzlePieceTwoCaptionBoldIcon,
 } from '@deriv/quill-icons/LabelPaired';
-import { LegacyHomeNewIcon, LegacyMenuHamburger1pxIcon } from '@deriv/quill-icons/Legacy';
 import { useTranslations } from '@deriv-com/translations';
 import { Drawer, MobileLanguagesDrawer, useDevice } from '@deriv-com/ui';
 import NetworkStatus from './../../footer/NetworkStatus';
@@ -85,7 +84,9 @@ const MobileMenu = ({ onLogout }: TMobileMenuProps) => {
                     className='mobile-bottom-nav__item'
                     href='/home.html'
                 >
-                    <LegacyHomeNewIcon iconSize='xs' fill='var(--text-general)' />
+                    <svg height='24px' width='24px' viewBox='0 0 32 32' fill='var(--text-general)'>
+                        <path d='M15.57 6.656a.65.65 0 0 1 .82 0l10.626 9.375c.273.235.273.625.078.899-.235.273-.625.273-.899.039l-1.445-1.29v7.696a3.11 3.11 0 0 1-3.125 3.125h-11.25c-1.758 0-3.125-1.367-3.125-3.125V15.68l-1.484 1.289c-.235.234-.664.234-.86-.04-.234-.273-.234-.663.04-.898zm-7.07 7.93v8.789c0 1.055.82 1.875 1.875 1.875h11.25c1.016 0 1.875-.82 1.875-1.875v-8.79l-7.5-6.6z' />
+                    </svg>
                     <span>{localize('Home')}</span>
                 </a>
                 <button
@@ -124,7 +125,9 @@ const MobileMenu = ({ onLogout }: TMobileMenuProps) => {
                         })}
                         onClick={openDrawer}
                     >
-                        <LegacyMenuHamburger1pxIcon height='21px' width='21px' fill='var(--text-general)' />
+                        <svg height='21px' width='21px' viewBox='0 0 32 32' fill='var(--text-general)'>
+                            <path d='M7.25 9.625c0-.312.273-.625.625-.625h16.25c.313 0 .625.313.625.625a.64.64 0 0 1-.625.625H7.875a.617.617 0 0 1-.625-.625m0 6.25c0-.312.273-.625.625-.625h16.25c.313 0 .625.313.625.625a.64.64 0 0 1-.625.625H7.875a.617.617 0 0 1-.625-.625m17.5 6.25a.64.64 0 0 1-.625.625H7.875a.617.617 0 0 1-.625-.625c0-.312.273-.625.625-.625h16.25c.313 0 .625.313.625.625' />
+                        </svg>
                         <span>{localize('Menu')}</span>
                     </button>
                 )}
