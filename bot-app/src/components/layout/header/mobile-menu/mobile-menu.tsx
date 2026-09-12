@@ -122,7 +122,7 @@ const MobileMenu = ({ onLogout }: TMobileMenuProps) => {
                         })}
                         onClick={openDrawer}
                     >
-                        <LegacyMenuHamburger1pxIcon iconSize='xs' fill='var(--text-general)' />
+                        <LegacyMenuHamburger1pxIcon height='24px' width='24px' fill='var(--text-general)' />
                         <span>{localize('Menu')}</span>
                     </button>
                 )}
