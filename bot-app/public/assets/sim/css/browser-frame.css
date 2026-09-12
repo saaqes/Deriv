@@ -465,4 +465,6 @@ span.ic-icon.cq-symbol-dropdown svg[height]{
    más visible (estaba muy pegado abajo). */
 .sc-toolbar-widget__more{
   z-index: 20 !important;
+  position: relative !important;
+  bottom: 44px !important;
 }
