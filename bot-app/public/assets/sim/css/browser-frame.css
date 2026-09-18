@@ -195,12 +195,14 @@ body.bf-safari .run-panel-tab__content--mobile{
   white-space: nowrap;
 }
 .bf-address .bf-host{
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.bf-address{ justify-content: flex-start; }
 .bf-address .bf-route{
   flex: 0 0 auto;
   white-space: nowrap;
@@ -222,8 +224,10 @@ body.bf-safari .run-panel-tab__content--mobile{
 }
 .bf-aspect-btn{ color:#ff444f; }
 
-/* ---- Modo Safari: dirección centrada en su fila propia ---- */
-body.bf-safari .bf-address{ max-width: 480px; justify-content:center; text-align:center; margin:0 auto; }
+/* ---- Modo Safari: la barra en sí se centra en su fila, pero el
+   texto de adentro queda alineado a la izquierda (no centrado) para
+   que se lea como una URL continua normal. ---- */
+body.bf-safari .bf-address{ max-width: 480px; justify-content:flex-start; text-align:left; margin:0 auto; }
 
 /* ---- Escritorio: silueta tipo mockup de dispositivo — SOLO en las
    páginas estáticas (home.html/options.html) que agregan la clase
