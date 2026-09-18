@@ -137,11 +137,11 @@
     var top = document.createElement('div');
     top.className = 'bf-top';
     top.innerHTML =
+      aspectBtnHtml +
       '<div class="bf-address"><span class="bf-lock">' + svgIcon('controls') + '</span>' +
       '<span class="bf-prefix">' + prefix + '</span>' +
       '<span class="bf-host" contenteditable="true" spellcheck="false">' + host + '</span>' +
       '<span class="bf-route">' + route + '</span></div>' +
-      aspectBtnHtml +
       '<button class="bf-icon-btn" aria-label="Pestañas">' + svgIcon('tabs') + '</button>' +
       '<button class="bf-icon-btn" aria-label="Menú">' + svgIcon('dots') + '</button>';
     return top;
