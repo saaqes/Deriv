@@ -39,7 +39,7 @@
   // valor propio de la app, editable por el usuario, guardado en su
   // propia clave de localStorage. Nunca toca la URL real del navegador.
   var SIM_TEXT_KEY = 'simulatedNavigationText';
-  var DEFAULT_SIM_TEXT = 'bot.deriv.com';
+  var DEFAULT_SIM_TEXT = 'deriv simulado';
 
   function getSimulatedText() {
     try {
@@ -59,6 +59,35 @@
       /* localStorage no disponible — el valor solo dura la sesión actual */
     }
     return clean;
+  }
+
+  // Ruta simulada dinámica ("/#chart", "/#bot_builder", "/#dashboard", ...)
+  // — se LEE de location.hash (la misma navegación hash/SPA que ya usa
+  // la app real, ver main.tsx), nunca se escribe ni se modifica.
+  function getSimulatedRoute() {
+    try {
+      var h = window.location.hash; // incluye el "#", ej. "#chart"
+      return h && h.length > 1 ? '/' + h : '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  // Detecta si la página actual es home.html, leyendo únicamente
+  // location.pathname (solo lectura, no se modifica nada).
+  function isHomePage() {
+    try {
+      return /(^|\/)home\.html$/.test(window.location.pathname);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  // Prefijo NO editable ("home " o "") — se muestra aparte de
+  // .bf-host para que editar el texto nunca borre ni guarde este
+  // prefijo como si fuera parte del DEFAULT_SIM_TEXT del usuario.
+  function getSimulatedPrefix() {
+    return isHomePage() ? 'home ' : '';
   }
 
   function getMode() {
@@ -99,26 +128,34 @@
     '</button>';
 
   function buildTopBar() {
+    var prefix = getSimulatedPrefix();
     var host = getSimulatedText();
+    var route = getSimulatedRoute();
     var top = document.createElement('div');
     top.className = 'bf-top';
     top.innerHTML =
       aspectBtnHtml +
       '<div class="bf-address"><span class="bf-lock">' + svgIcon('lock') + '</span>' +
-      '<span class="bf-host" contenteditable="true" spellcheck="false">' + host + '</span></div>' +
+      '<span class="bf-prefix">' + prefix + '</span>' +
+      '<span class="bf-host" contenteditable="true" spellcheck="false">' + host + '</span>' +
+      '<span class="bf-route">' + route + '</span></div>' +
       '<button class="bf-icon-btn" aria-label="Menú">' + svgIcon('menu') + '</button>';
     return top;
   }
 
   function buildBottomBar() {
+    var prefix = getSimulatedPrefix();
     var host = getSimulatedText();
+    var route = getSimulatedRoute();
     var bottom = document.createElement('div');
     bottom.className = 'bf-bottom';
     bottom.innerHTML =
       '<div class="bf-safari-addr-row">' +
       aspectBtnHtml +
       '<div class="bf-address"><span class="bf-lock">' + svgIcon('lock') + '</span>' +
+      '<span class="bf-prefix">' + prefix + '</span>' +
       '<span class="bf-host" contenteditable="true" spellcheck="false">' + host + '</span>' +
+      '<span class="bf-route">' + route + '</span>' +
       '<span class="bf-icon-btn" style="width:14px;height:14px;opacity:.6">' + svgIcon('reload') + '</span></div>' +
       '<span style="width:28px;flex:0 0 auto"></span>' +
       '</div>' +
@@ -414,6 +451,17 @@
     // (barra de direcciones móvil) y el viewport visual cambia de alto.
     window.addEventListener('resize', handleViewportChange);
     window.addEventListener('orientationchange', handleViewportChange);
+
+    // Actualiza SOLO el texto de la ruta simulada (.bf-route) cuando la
+    // app navega entre secciones (#dashboard, #chart, #bot_builder...).
+    // Nunca toca .bf-host (el texto editable) ni .bf-prefix.
+    window.addEventListener('hashchange', function () {
+      var newRoute = getSimulatedRoute();
+      var routeEls = document.querySelectorAll('.bf-route');
+      for (var i = 0; i < routeEls.length; i++) {
+        routeEls[i].textContent = newRoute;
+      }
+    });
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleViewportChange);
     }
