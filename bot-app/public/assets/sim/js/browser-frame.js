@@ -452,6 +452,46 @@
     window.addEventListener('resize', handleViewportChange);
     window.addEventListener('orientationchange', handleViewportChange);
 
+    // Navegación por posición dentro de .mobile-bottom-nav: el mismo
+    // orden que usa hash=['dashboard','bot_builder','chart',...] en
+    // main.tsx. No se usa el texto del botón (se traduce según el
+    // idioma) ni un id — solo su posición, que es estable.
+    var NAV_ITEM_HASH_BY_INDEX = { 1: 'dashboard', 2: 'bot_builder', 3: 'chart' };
+
+    // Captura el click ANTES de que la app procese su propio manejador
+    // (fase de captura, en el document) — así la barra simulada se
+    // actualiza en el mismo instante del click, sin esperar al ciclo
+    // de render de React ni a que la app dispare su propio hashchange.
+    document.addEventListener('click', function (e) {
+      var nav = e.target.closest ? e.target.closest('.mobile-bottom-nav') : null;
+      var item = e.target.closest ? e.target.closest('.mobile-bottom-nav__item') : null;
+      if (!nav || !item) return;
+
+      var children = Array.prototype.slice.call(nav.children);
+      var index = children.indexOf(item);
+      var targetHash = NAV_ITEM_HASH_BY_INDEX[index];
+      if (!targetHash) return; // Home (0) y Menu (4): no cambian de hash
+
+      // Actualiza el hash real de la URL — asignar .hash es SPA/
+      // client-side puro, nunca recarga la página. Si ya es el mismo
+      // hash, no se toca nada (evita un cambio duplicado).
+      if (window.location.hash !== '#' + targetHash) {
+        window.location.hash = targetHash;
+      }
+
+      // Actualiza el texto de la barra en el MISMO instante del click,
+      // sin esperar el evento 'hashchange' (que también se disparará
+      // enseguida y confirmará/sincronizará el mismo valor).
+      var newRoute = '/#' + targetHash;
+      var routeEls = document.querySelectorAll('.bf-route');
+      for (var i = 0; i < routeEls.length; i++) {
+        routeEls[i].textContent = newRoute;
+      }
+    }, true);
+
+    // Respaldo: sigue escuchando 'hashchange' para cubrir Atrás/
+    // Adelante del navegador y cualquier cambio de hash que no venga
+    // de un click en estos botones (ej. navegación interna de la app).
     // Actualiza SOLO el texto de la ruta simulada (.bf-route) cuando la
     // app navega entre secciones (#dashboard, #chart, #bot_builder...).
     // Nunca toca .bf-host (el texto editable) ni .bf-prefix.
