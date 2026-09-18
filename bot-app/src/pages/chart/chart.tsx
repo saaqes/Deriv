@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
 /* [AI] - Analytics removed - rudderstack event tracking removed */
@@ -31,7 +31,56 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
     } = chart_store;
 
     // Use the custom hook for SmartChart Adaptor
-    const { chartData, getQuotes, subscribeQuotes, unsubscribeQuotes } = useSmartChartAdaptor();
+    const { chartData, getQuotes: rawGetQuotes, subscribeQuotes: rawSubscribeQuotes, unsubscribeQuotes } = useSmartChartAdaptor();
+
+    // scrollToEpoch (prop pública y documentada de SmartCharts, ver
+    // README oficial de @deriv-com/smartcharts-champion): "Scrolls the
+    // chart to the leftmost side and sets the last spot/bar as the
+    // first visible spot/bar in the chart." Se calcula UNA SOLA VEZ,
+    // a partir del epoch más reciente que ya llega de los datos
+    // reales (no se inventa ni se simula nada) — así el gráfico se
+    // posiciona en el presente al cargar, sin volver a forzar el
+    // scroll en cada tick nuevo (lo que rompería el desplazamiento
+    // manual del usuario).
+    const [initialScrollEpoch, setInitialScrollEpoch] = useState<number | undefined>(undefined);
+    const hasSetInitialScrollEpoch = useRef(false);
+
+    const applyLatestEpochOnce = useCallback((epoch: number | undefined) => {
+        if (!epoch || hasSetInitialScrollEpoch.current) return;
+        hasSetInitialScrollEpoch.current = true;
+        setInitialScrollEpoch(epoch);
+    }, []);
+
+    const extractLatestEpochFromQuotesResult = (result: any): number | undefined => {
+        if (!result) return undefined;
+        if (Array.isArray(result.candles) && result.candles.length > 0) {
+            return result.candles[result.candles.length - 1]?.epoch;
+        }
+        if (result.history?.times?.length > 0) {
+            const lastTime = result.history.times[result.history.times.length - 1];
+            return typeof lastTime === 'number' ? lastTime : Number(lastTime);
+        }
+        return undefined;
+    };
+
+    const getQuotes: typeof rawGetQuotes = useCallback(
+        async (...args) => {
+            const result = await rawGetQuotes(...args);
+            applyLatestEpochOnce(extractLatestEpochFromQuotesResult(result));
+            return result;
+        },
+        [rawGetQuotes, applyLatestEpochOnce]
+    );
+
+    const subscribeQuotes: typeof rawSubscribeQuotes = useCallback(
+        (params, callback) =>
+            rawSubscribeQuotes(params, quote => {
+                const epoch = (quote as any)?.tick?.epoch ?? (quote as any)?.epoch ?? (quote as any)?.ohlc?.epoch;
+                applyLatestEpochOnce(epoch);
+                callback(quote);
+            }),
+        [rawSubscribeQuotes, applyLatestEpochOnce]
+    );
 
     const { isDesktop, isMobile } = useDevice();
     const { is_drawer_open } = run_panel;
@@ -124,6 +173,7 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
                 isConnectionOpened={is_connection_opened}
                 getMarketsOrder={getMarketsOrder}
                 isLive
+                scrollToEpoch={initialScrollEpoch}
                 leftMargin={80}
                 drawingToolFloatingMenuPosition={isMobile ? { x: 100, y: 100 } : { x: 200, y: 200 }}
             />
