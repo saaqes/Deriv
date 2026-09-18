@@ -77,7 +77,7 @@
   // location.pathname (solo lectura, no se modifica nada).
   function isHomePage() {
     try {
-      return /(^|\/)home\.html$/.test(window.location.pathname);
+      return /(^|\/)home.\.html$/.test(window.location.pathname);
     } catch (err) {
       return false;
     }
@@ -87,7 +87,7 @@
   // .bf-host para que editar el texto nunca borre ni guarde este
   // prefijo como si fuera parte del DEFAULT_SIM_TEXT del usuario.
   function getSimulatedPrefix() {
-    return isHomePage() ? 'home ' : '';
+    return isHomePage() ? 'home. ' : '';
   }
 
   function getMode() {
