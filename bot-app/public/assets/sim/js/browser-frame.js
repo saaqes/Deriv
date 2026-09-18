@@ -118,13 +118,16 @@
       reload: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg>',
       lock: '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2a4 4 0 0 0-4 4v3H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a4 4 0 0 0-4-4m0 2a2 2 0 0 1 2 2v3H10V6a2 2 0 0 1 2-2"/></svg>',
       aspect: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>',
+      controls: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="3" y1="8" x2="21" y2="8"/><circle cx="9" cy="8" r="2" fill="currentColor" stroke="none"/><line x1="3" y1="16" x2="21" y2="16"/><circle cx="16" cy="16" r="2" fill="currentColor" stroke="none"/></svg>',
+      home: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h4v-5h2v5h4a1 1 0 0 0 1-1v-9"/></svg>',
+      dots: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>',
     };
     return icons[name] || '';
   }
 
   var aspectBtnHtml =
     '<button class="bf-icon-btn bf-aspect-btn" aria-label="Aspecto" title="Aspecto" onclick="BrowserFrame.openSelector()">' +
-    svgIcon('aspect') +
+    svgIcon('home') +
     '</button>';
 
   function buildTopBar() {
@@ -134,12 +137,13 @@
     var top = document.createElement('div');
     top.className = 'bf-top';
     top.innerHTML =
-      aspectBtnHtml +
-      '<div class="bf-address"><span class="bf-lock">' + svgIcon('lock') + '</span>' +
+      '<div class="bf-address"><span class="bf-lock">' + svgIcon('controls') + '</span>' +
       '<span class="bf-prefix">' + prefix + '</span>' +
       '<span class="bf-host" contenteditable="true" spellcheck="false">' + host + '</span>' +
       '<span class="bf-route">' + route + '</span></div>' +
-      '<button class="bf-icon-btn" aria-label="Menú">' + svgIcon('menu') + '</button>';
+      aspectBtnHtml +
+      '<button class="bf-icon-btn" aria-label="Pestañas">' + svgIcon('tabs') + '</button>' +
+      '<button class="bf-icon-btn" aria-label="Menú">' + svgIcon('dots') + '</button>';
     return top;
   }
 
