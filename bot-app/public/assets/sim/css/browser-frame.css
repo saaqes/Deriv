@@ -51,14 +51,15 @@ body.bf-active .notif-panel{
   z-index: 5000;
   box-sizing: border-box;
   width: 100%;
-  background: #f2f2f2;
+  background: #161719;
   top: 0;
   padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #2a2b2e;
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 8px;
+  color: #f2f5fc;
 }
 
 /* La barra Safari YA NO es fixed por su cuenta — vive dentro de
@@ -223,6 +224,16 @@ body.bf-safari .run-panel-tab__content--mobile{
   padding: 0;
 }
 .bf-aspect-btn{ color:#ff444f; }
+
+/* ---- Barra Chrome (.bf-top): campo de URL oscuro integrado, texto e
+   íconos claros — según la referencia visual proporcionada. La barra
+   Safari (.bf-bottom) NO se toca, conserva su estilo claro original. ---- */
+.bf-top .bf-address{
+  background: #22262f;
+  color: #f2f5fc;
+}
+.bf-top .bf-icon-btn{ color: #f2f5fc; }
+.bf-top .bf-aspect-btn{ color: #f2f5fc; }
 
 /* ---- Modo Safari: la barra en sí se centra en su fila, pero el
    texto de adentro queda alineado a la izquierda (no centrado) para
