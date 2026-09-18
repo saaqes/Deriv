@@ -182,7 +182,6 @@ body.bf-safari .run-panel-tab__content--mobile{
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
   background: #e4e4e4;
   border-radius: 14px;
   padding: 7px 12px;
@@ -190,7 +189,7 @@ body.bf-safari .run-panel-tab__content--mobile{
   color: #333;
   overflow: hidden;
 }
-.bf-address .bf-lock{ flex: 0 0 auto; font-size: 12px; opacity:.7; }
+.bf-address .bf-lock{ flex: 0 0 auto; font-size: 12px; opacity:.7; margin-right: 6px; }
 .bf-address .bf-prefix{
   flex: 0 0 auto;
   white-space: nowrap;
