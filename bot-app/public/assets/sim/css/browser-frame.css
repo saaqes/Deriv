@@ -191,12 +191,21 @@ body.bf-safari .run-panel-tab__content--mobile{
   overflow: hidden;
 }
 .bf-address .bf-lock{ flex: 0 0 auto; font-size: 12px; opacity:.7; }
+.bf-address .bf-prefix{
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
 .bf-address .bf-host{
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.bf-address .bf-route{
+  flex: 0 0 auto;
+  white-space: nowrap;
+  opacity: .55;
 }
 
 .bf-icon-btn{
