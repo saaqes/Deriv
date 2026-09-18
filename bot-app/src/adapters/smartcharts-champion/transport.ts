@@ -47,23 +47,63 @@ export function createTransport(): TTransport {
             // Send initial subscription request
             const subscribeRequest = { ...request, subscribe: 1 };
 
+            // CORRECCIÓN: antes, tanto el listener global de mensajes
+            // como la promesa de .send() podían procesar la MISMA
+            // respuesta inicial por separado — cada uno intentando fijar
+            // storedSub.realSubscriptionId y llamando a callback() por su
+            // cuenta. Eso dejaba una ventana de condición de carrera: si
+            // el listener veía la respuesta inicial primero y la
+            // confirmaba, pero .send().then() todavía no se resolvía, un
+            // tick LIVE que llegara justo en ese instante podía compararse
+            // contra un valor de realSubscriptionId que aún no reflejaba
+            // el remate correcto de ambas rutas — quedando sin reenviarse
+            // ("congelado") hasta el siguiente mensaje que sí calzara.
+            //
+            // Ahora se usa un único punto de confirmación
+            // (confirmSubscriptionId): sea cual sea la ruta que llegue
+            // primero (mensaje en vivo o la respuesta de .send()), fija
+            // realSubscriptionId UNA sola vez, entrega la respuesta
+            // inicial UNA sola vez, y a partir de ahí cualquier mensaje
+            // de streaming que coincida con ese ID se reenvía de
+            // inmediato — sin ventana intermedia.
+            let initialResponseDelivered = false;
+
+            const confirmSubscriptionId = (subscriptionId: string, initialData: any) => {
+                const storedSub = subscriptions.get(tempId);
+                if (!storedSub) return;
+
+                if (!storedSub.realSubscriptionId) {
+                    storedSub.realSubscriptionId = subscriptionId;
+                    subscriptions.set(tempId, storedSub);
+                }
+
+                if (!initialResponseDelivered) {
+                    initialResponseDelivered = true;
+                    callback(initialData);
+                }
+            };
+
             // Set up global message listener first (before sending request)
             const messageSubscription = chart_api.api.onMessage()?.subscribe(({ data }: { data: any }) => {
                 const subscriptionId = data?.subscription?.id;
+                if (!subscriptionId) return;
 
-                // Check if this message belongs to our subscription
                 const storedSub = subscriptions.get(tempId);
-                if (storedSub && subscriptionId) {
-                    // Update the subscription with the real ID
-                    if (!storedSub.realSubscriptionId) {
-                        storedSub.realSubscriptionId = subscriptionId;
-                        subscriptions.set(tempId, storedSub);
-                    }
+                if (!storedSub) return;
 
-                    // Forward the message if it matches our subscription
-                    if (subscriptionId === storedSub.realSubscriptionId) {
-                        callback(data);
-                    }
+                if (!storedSub.realSubscriptionId) {
+                    // Primer mensaje que trae este ID -> es la
+                    // confirmación (puede ser la propia respuesta al
+                    // send(), vista aquí antes de que su promesa
+                    // resuelva, o el primer tick en vivo).
+                    confirmSubscriptionId(subscriptionId, data);
+                    return;
+                }
+
+                // Ya confirmado: solo reenviar los mensajes LIVE que
+                // realmente pertenecen a esta suscripción.
+                if (subscriptionId === storedSub.realSubscriptionId) {
+                    callback(data);
                 }
             });
 
@@ -82,15 +122,7 @@ export function createTransport(): TTransport {
                     const subscriptionId = response?.subscription?.id;
 
                     if (subscriptionId) {
-                        // Update stored subscription with real ID
-                        const storedSub = subscriptions.get(tempId);
-                        if (storedSub) {
-                            storedSub.realSubscriptionId = subscriptionId;
-                            subscriptions.set(tempId, storedSub);
-                        }
-
-                        // Call callback with initial response
-                        callback(response);
+                        confirmSubscriptionId(subscriptionId, response);
                     } else {
                         logger.error('No subscription ID in response:', response);
                     }
