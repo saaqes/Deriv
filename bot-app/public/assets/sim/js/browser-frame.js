@@ -156,7 +156,7 @@
       '<span class="bf-prefix">' + prefix + '</span>' +
       '<span class="bf-host" contenteditable="true" spellcheck="false">' + host + '</span>' +
       '<span class="bf-route">' + route + '</span>' +
-      '<span class="bf-icon-btn" style="width:14px;height:14px;opacity:.6">' + svgIcon('reload') + '</span></div>' +
+      '<span class="bf-icon-btn" style="width:14px;height:14px;opacity:.6;margin-left:6px">' + svgIcon('reload') + '</span></div>' +
       '<span style="width:28px;flex:0 0 auto"></span>' +
       '</div>' +
       '<div class="bf-safari-controls-row">' +
