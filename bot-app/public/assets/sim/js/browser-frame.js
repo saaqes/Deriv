@@ -39,7 +39,7 @@
   // valor propio de la app, editable por el usuario, guardado en su
   // propia clave de localStorage. Nunca toca la URL real del navegador.
   var SIM_TEXT_KEY = 'simulatedNavigationText';
-  var DEFAULT_SIM_TEXT = 'bot.deriv.com';
+  var DEFAULT_SIM_TEXT = 'deriv simulado';
 
   function getSimulatedText() {
     try {
@@ -77,7 +77,7 @@
   // location.pathname (solo lectura, no se modifica nada).
   function isHomePage() {
     try {
-      return /(^|\/)home.\.html$/.test(window.location.pathname);
+      return /(^|\/)home\.html$/.test(window.location.pathname);
     } catch (err) {
       return false;
     }
@@ -87,7 +87,7 @@
   // .bf-host para que editar el texto nunca borre ni guarde este
   // prefijo como si fuera parte del DEFAULT_SIM_TEXT del usuario.
   function getSimulatedPrefix() {
-    return isHomePage() ? 'home. ' : '';
+    return isHomePage() ? 'home ' : '';
   }
 
   function getMode() {
@@ -119,7 +119,7 @@
       lock: '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2a4 4 0 0 0-4 4v3H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a4 4 0 0 0-4-4m0 2a2 2 0 0 1 2 2v3H10V6a2 2 0 0 1 2-2"/></svg>',
       aspect: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>',
       controls: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="3" y1="8" x2="21" y2="8"/><circle cx="9" cy="8" r="2" fill="currentColor" stroke="none"/><line x1="3" y1="16" x2="21" y2="16"/><circle cx="16" cy="16" r="2" fill="currentColor" stroke="none"/></svg>',
-      home: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h4v-5h2v5h4a1 1 0 0 0 1-1v-9"/></svg>',
+      home: '<svg viewBox="0 0 640 640" width="18" height="18" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M304 70.1C313.1 61.9 326.9 61.9 336 70.1L568 278.1C577.9 286.9 578.7 302.1 569.8 312C560.9 321.9 545.8 322.7 535.9 313.8L527.9 306.6L527.9 511.9C527.9 547.2 499.2 575.9 463.9 575.9L175.9 575.9C140.6 575.9 111.9 547.2 111.9 511.9L111.9 306.6L103.9 313.8C94 322.6 78.9 321.8 70 312C61.1 302.2 62 287 71.8 278.1L304 70.1zM320 120.2L160 263.7L160 512C160 520.8 167.2 528 176 528L224 528L224 424C224 384.2 256.2 352 296 352L344 352C383.8 352 416 384.2 416 424L416 528L464 528C472.8 528 480 520.8 480 512L480 263.7L320 120.3zM272 528L368 528L368 424C368 410.7 357.3 400 344 400L296 400C282.7 400 272 410.7 272 424L272 528z"/></svg>',
       dots: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>',
     };
     return icons[name] || '';
