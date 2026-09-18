@@ -35,6 +35,32 @@
     }
   }
 
+  // Texto de la barra simulada — NO depende de window.location. Es un
+  // valor propio de la app, editable por el usuario, guardado en su
+  // propia clave de localStorage. Nunca toca la URL real del navegador.
+  var SIM_TEXT_KEY = 'simulatedNavigationText';
+  var DEFAULT_SIM_TEXT = 'deriv simulado';
+
+  function getSimulatedText() {
+    try {
+      var v = localStorage.getItem(SIM_TEXT_KEY);
+      return v && v.trim() !== '' ? v : DEFAULT_SIM_TEXT;
+    } catch (err) {
+      return DEFAULT_SIM_TEXT;
+    }
+  }
+
+  function setSimulatedText(value) {
+    var clean = (value || '').trim();
+    if (clean === '') clean = DEFAULT_SIM_TEXT;
+    try {
+      localStorage.setItem(SIM_TEXT_KEY, clean);
+    } catch (err) {
+      /* localStorage no disponible — el valor solo dura la sesión actual */
+    }
+    return clean;
+  }
+
   function getMode() {
     try {
       var v = localStorage.getItem(STORAGE_KEY);
@@ -73,26 +99,26 @@
     '</button>';
 
   function buildTopBar() {
-    var host = getRealAddress();
+    var host = getSimulatedText();
     var top = document.createElement('div');
     top.className = 'bf-top';
     top.innerHTML =
       aspectBtnHtml +
       '<div class="bf-address"><span class="bf-lock">' + svgIcon('lock') + '</span>' +
-      '<span class="bf-host">' + host + '</span></div>' +
+      '<span class="bf-host" contenteditable="true" spellcheck="false">' + host + '</span></div>' +
       '<button class="bf-icon-btn" aria-label="Menú">' + svgIcon('menu') + '</button>';
     return top;
   }
 
   function buildBottomBar() {
-    var host = getRealAddress();
+    var host = getSimulatedText();
     var bottom = document.createElement('div');
     bottom.className = 'bf-bottom';
     bottom.innerHTML =
       '<div class="bf-safari-addr-row">' +
       aspectBtnHtml +
       '<div class="bf-address"><span class="bf-lock">' + svgIcon('lock') + '</span>' +
-      '<span class="bf-host">' + host + '</span>' +
+      '<span class="bf-host" contenteditable="true" spellcheck="false">' + host + '</span>' +
       '<span class="bf-icon-btn" style="width:14px;height:14px;opacity:.6">' + svgIcon('reload') + '</span></div>' +
       '<span style="width:28px;flex:0 0 auto"></span>' +
       '</div>' +
@@ -239,10 +265,50 @@
       body.insertBefore(buildTopBar(), body.firstChild);
     }
 
+    wireEditableHost();
+
     // Medir de inmediato (getBoundingClientRect fuerza un reflow síncrono
     // con el valor ya correcto) — así no hay ni un frame de solapamiento
     // entre insertar la barra y reservarle su espacio real.
     measureAndSetVars();
+  }
+
+  // Hace editable el texto de la barra simulada (.bf-host, ya
+  // contenteditable en el HTML). Solo cambia ESTE texto propio de la
+  // app — nunca window.location ni la URL real del navegador.
+  function wireEditableHost() {
+    var hosts = document.querySelectorAll('.bf-host');
+    for (var i = 0; i < hosts.length; i++) {
+      (function (el) {
+        var valueBeforeEdit = el.textContent;
+
+        el.addEventListener('focus', function () {
+          valueBeforeEdit = el.textContent;
+        });
+
+        el.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            el.blur(); // dispara 'blur' -> guarda
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            el.textContent = valueBeforeEdit;
+            el.blur();
+          }
+        });
+
+        el.addEventListener('blur', function () {
+          var saved = setSimulatedText(el.textContent);
+          el.textContent = saved;
+          // Mantiene todas las demás barras (top/bottom) sincronizadas
+          // con el mismo texto, si hubiera más de una en el DOM.
+          var all = document.querySelectorAll('.bf-host');
+          for (var j = 0; j < all.length; j++) {
+            all[j].textContent = saved;
+          }
+        });
+      })(hosts[i]);
+    }
   }
 
   function handleViewportChange() {
