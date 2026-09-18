@@ -39,7 +39,7 @@
   // valor propio de la app, editable por el usuario, guardado en su
   // propia clave de localStorage. Nunca toca la URL real del navegador.
   var SIM_TEXT_KEY = 'simulatedNavigationText';
-  var DEFAULT_SIM_TEXT = 'deriv simulado';
+  var DEFAULT_SIM_TEXT = 'bot.deriv.com';
 
   function getSimulatedText() {
     try {
