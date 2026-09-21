@@ -21,6 +21,14 @@
         outline: none !important;
     }
 
+    &--disabled {
+        cursor: default;
+    }
+
+    &__select-arrow--dimmed {
+        opacity: 0.35;
+    }
+
     &__preloader {
         position: absolute;
         top: 0;
