@@ -62,6 +62,34 @@
     }
   }
 
+  // ---- Porcentaje de ganancia (win rate del simulador) ----
+  var WIN_PERCENT_KEY = 'configuredWinPercent';
+  var DEFAULT_WIN_PERCENT = 51.8; // "Predeterminado de Deriv"
+
+  function loadWinPercent() {
+    try {
+      var raw = localStorage.getItem(WIN_PERCENT_KEY);
+      var n = raw !== null ? Number(raw) : NaN;
+      if (isFinite(n) && n >= 0 && n <= 100) return n;
+    } catch (err) {
+      console.warn('[TradeLab Sim] No se pudo leer el % de ganancia, usando el valor por defecto.', err);
+    }
+    return DEFAULT_WIN_PERCENT;
+  }
+
+  function saveWinPercent(percent) {
+    var n = Number(percent);
+    if (!isFinite(n) || n < 0 || n > 100) return false;
+    try {
+      localStorage.setItem(WIN_PERCENT_KEY, String(n));
+      window.dispatchEvent(new CustomEvent('tradelab-sim:win-percent-updated', { detail: n }));
+      return true;
+    } catch (err) {
+      console.error('[TradeLab Sim] Error al guardar el % de ganancia.', err);
+      return false;
+    }
+  }
+
   function formatMoney(n) {
     return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
@@ -120,5 +148,9 @@
     formatMoney: formatMoney,
     applyAction: applyAction,
     mountDisclaimerBanner: mountDisclaimerBanner,
+    WIN_PERCENT_KEY: WIN_PERCENT_KEY,
+    DEFAULT_WIN_PERCENT: DEFAULT_WIN_PERCENT,
+    loadWinPercent: loadWinPercent,
+    saveWinPercent: saveWinPercent,
   };
 })(window);
