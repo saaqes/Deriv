@@ -450,6 +450,7 @@
     width:152px;
     height:86px;
     flex-shrink:0;
+    object-fit:contain;
   }
   .ai-chart-card{
     position:absolute;
@@ -956,6 +957,7 @@
 <body class="bf-static-page">
 <script src="assets/sim/js/sim-shared.js"></script>
 <script src="assets/sim/js/browser-frame.js"></script>
+<script src="assets/sim/js/layout-debug.js"></script>
 <script>BrowserFrame.init();</script>
 
 <div class="app">
@@ -1172,6 +1174,22 @@
 
       <div class="balance-manager-card">
         <div class="balance-manager-header">
+          <span class="balance-manager-name">Porcentaje de ganancia</span>
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; margin-bottom:10px; cursor:pointer;">
+          <input type="radio" name="winPercentMode" id="winPercentDefault" value="default">
+          <span style="font-size:14px;">Predeterminado de Deriv — <span id="winPercentDefaultLabel">51.8%</span></span>
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="radio" name="winPercentMode" id="winPercentCustom" value="custom">
+          <span style="font-size:14px;">Personalizada</span>
+        </label>
+        <input type="number" inputmode="decimal" min="0" max="100" step="0.1" class="balance-input" id="winPercentInput" placeholder="Porcentaje (0-100)" style="display:none; margin-top:10px;">
+        <div class="balance-manager-feedback" id="winPercentFeedback"></div>
+      </div>
+
+      <div class="balance-manager-card">
+        <div class="balance-manager-header">
           <span class="balance-manager-name">Cuenta Demo</span>
           <span class="balance-manager-current"><span id="demoCurrentBalance">0.00</span> <small>USD</small></span>
         </div>
@@ -1365,6 +1383,63 @@
     // Mantiene sincronizado si se cambia el saldo desde otra pestaña/página.
     window.addEventListener('tradelab-sim:balances-updated', () => refreshBalances());
     window.addEventListener('storage', (e) => { if(e.key === TradeLabSim.STORAGE_KEY) refreshBalances(); });
+
+    // ===== Porcentaje de ganancia =====
+    (function(){
+      const radioDefault = document.getElementById('winPercentDefault');
+      const radioCustom = document.getElementById('winPercentCustom');
+      const customInput = document.getElementById('winPercentInput');
+      const defaultLabel = document.getElementById('winPercentDefaultLabel');
+      if(!radioDefault || !radioCustom || !customInput) return;
+
+      defaultLabel.textContent = TradeLabSim.DEFAULT_WIN_PERCENT + '%';
+
+      function applyModeVisibility(){
+        customInput.style.display = radioCustom.checked ? 'block' : 'none';
+      }
+
+      function renderWinPercent(){
+        const current = TradeLabSim.loadWinPercent();
+        const isDefault = current === TradeLabSim.DEFAULT_WIN_PERCENT;
+        radioDefault.checked = isDefault;
+        radioCustom.checked = !isDefault;
+        if(!isDefault) customInput.value = current;
+        applyModeVisibility();
+      }
+
+      function showWinPercentFeedback(message, isError){
+        const el = document.getElementById('winPercentFeedback');
+        if(!el) return;
+        el.textContent = message;
+        el.classList.toggle('error', !!isError);
+        el.classList.add('show');
+        clearTimeout(el._fadeTimeout);
+        el._fadeTimeout = setTimeout(() => el.classList.remove('show'), 2200);
+      }
+
+      radioDefault.addEventListener('change', () => {
+        applyModeVisibility();
+        TradeLabSim.saveWinPercent(TradeLabSim.DEFAULT_WIN_PERCENT);
+        showWinPercentFeedback('Guardado ✓', false);
+      });
+
+      radioCustom.addEventListener('change', () => {
+        applyModeVisibility();
+        customInput.focus();
+      });
+
+      customInput.addEventListener('change', () => {
+        const ok = TradeLabSim.saveWinPercent(customInput.value);
+        if(ok){
+          showWinPercentFeedback('Guardado ✓', false);
+        } else {
+          showWinPercentFeedback('Ingresa un valor entre 0 y 100', true);
+        }
+      });
+
+      window.addEventListener('tradelab-sim:win-percent-updated', renderWinPercent);
+      renderWinPercent();
+    })();
 
     refreshBalances();
   })();
