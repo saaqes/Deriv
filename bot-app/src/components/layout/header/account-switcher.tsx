@@ -4,7 +4,7 @@ import { observer } from 'mobx-react-lite';
 import { addComma, getCurrencyDisplayCode, getDecimalPlaces } from '@/components/shared';
 import Text from '@/components/shared_ui/text';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
-import { isMockAccountId, MOCK_DEMO_ACCOUNT, switchMockAccount } from '@/external/deriv-core/auth/mock-login';
+import { isMockAccountId, switchMockAccount } from '@/external/deriv-core/auth/mock-login';
 import { formatConfiguredBalance } from '@/external/deriv-core/trading/display-balance';
 import { installFakeBroker } from '@/external/deriv-core/trading/fake-broker';
 import { useApiBase } from '@/hooks/useApiBase';
@@ -28,6 +28,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const configuredRealBalance = useConfiguredRealBalance();
 
     const is_bot_running = run_panel?.is_running || api_base.is_running;
+    const isSingleAccount = !accountList || accountList.length <= 1;
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -47,12 +48,9 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     }, []);
 
     const toggleDropdown = useCallback(() => {
-        // Antes también bloqueaba con una sola cuenta vinculada
-        // (isSingleAccount) — coincide ahora con showChevron: solo se
-        // bloquea si hay un bot corriendo.
-        if (is_bot_running) return;
+        if (is_bot_running || isSingleAccount) return;
         setIsOpen(prev => !prev);
-    }, [is_bot_running]);
+    }, [is_bot_running, isSingleAccount]);
 
     const handleAccountSelect = useCallback(
         (loginid: string) => {
@@ -74,13 +72,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
 
     const formattedAccounts = useMemo(() => {
         if (!accountList) return [];
-        const hasDemo = accountList.some(account => isDemoAccount(account.loginid));
-        // Esta app es un simulador educativo — si la sesión real no trae
-        // una cuenta demo propia vinculada, se agrega la demo simulada
-        // (VRTC0000001) como opción, para que siempre se pueda elegir
-        // entre Real y Demo.
-        const sourceAccounts = hasDemo ? accountList : [...accountList, MOCK_DEMO_ACCOUNT];
-        return sourceAccounts
+        return accountList
             .map(account => {
                 const isVirtual = isDemoAccount(account.loginid);
                 const realBalance = addComma(Number(account.balance ?? 0).toFixed(getDecimalPlaces(account.currency)));
@@ -109,12 +101,8 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     if (!activeAccount) return null;
 
     const { currency, isVirtual, displayBalance } = activeAccount;
-    // Antes también se ocultaba con una sola cuenta vinculada
-    // (!isSingleAccount) — ahora se muestra siempre que no haya un
-    // bot corriendo, a pedido explícito. Se conserva
-    // "!is_bot_running": evita cambiar de cuenta mientras un bot
-    // está operando activamente.
-    const showChevron = !is_bot_running;
+    const showChevron = !isSingleAccount;
+    const isChevronDisabled = is_bot_running;
 
     return (
         <div className='acc-info__wrapper' ref={wrapperRef}>
@@ -122,17 +110,19 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                 <div
                     data-testid='dt_acc_info'
                     id='dt_core_account-info_acc-info'
-                    role={showChevron ? 'button' : undefined}
-                    tabIndex={showChevron ? 0 : -1}
-                    aria-expanded={showChevron ? isOpen : undefined}
-                    aria-haspopup={showChevron ? 'listbox' : undefined}
+                    role={showChevron && !isChevronDisabled ? 'button' : undefined}
+                    tabIndex={showChevron && !isChevronDisabled ? 0 : -1}
+                    aria-expanded={showChevron && !isChevronDisabled ? isOpen : undefined}
+                    aria-haspopup={showChevron && !isChevronDisabled ? 'listbox' : undefined}
+                    aria-disabled={showChevron && isChevronDisabled ? true : undefined}
                     className={classNames('acc-info', {
                         'acc-info--is-virtual': isVirtual,
-                        'acc-info--interactive': showChevron,
+                        'acc-info--interactive': showChevron && !isChevronDisabled,
+                        'acc-info--disabled': showChevron && isChevronDisabled,
                     })}
                     onClick={toggleDropdown}
                     onKeyDown={e => {
-                        if (showChevron && (e.key === 'Enter' || e.key === ' ')) {
+                        if (showChevron && !isChevronDisabled && (e.key === 'Enter' || e.key === ' ')) {
                             e.preventDefault();
                             toggleDropdown();
                         }
@@ -152,6 +142,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                 <span
                                     className={classNames('acc-info__select-arrow', {
                                         'acc-info__select-arrow--invert': isOpen,
+                                        'acc-info__select-arrow--dimmed': isChevronDisabled,
                                     })}
                                 >
                                     <svg width='12' height='12' viewBox='0 0 12 12' fill='none'>
@@ -181,7 +172,6 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                     </div>
                 </div>
             </AccountInfoWrapper>
-            {isOpen && <div className='acc-dropdown__backdrop' onClick={() => setIsOpen(false)} aria-hidden='true' />}
             {isOpen && (
                 <div className='acc-dropdown' role='listbox'>
                     {formattedAccounts.map(account => (
