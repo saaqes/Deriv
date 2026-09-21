@@ -84,9 +84,29 @@ async function fetchRealSpot(symbol: string): Promise<number | undefined> {
     return undefined;
 }
 
-/** Fixed win rate applied to every contract's outcome (92.3% win / 7.7% loss). */
-const WIN_PROBABILITY = 0.923;
-const rollWin = (): boolean => Math.random() < WIN_PROBABILITY;
+// "Porcentaje de ganancia" configurado en Home (ver Notifications ->
+// Porcentaje de ganancia, public/home.html + sim-shared.js). Misma
+// clave de localStorage que escribe TradeLabSim.saveWinPercent(), leída
+// aquí en vivo (no cacheada) para que un cambio en Home aplique desde
+// la siguiente operación, sin recargar. "Predeterminado de Deriv" =
+// 51.8%; si el usuario elige "Personalizada", usa ese valor tal cual.
+const WIN_PERCENT_STORAGE_KEY = 'configuredWinPercent';
+const DEFAULT_WIN_PERCENT = 51.8;
+
+const getWinProbability = (): number => {
+    try {
+        const raw = localStorage.getItem(WIN_PERCENT_STORAGE_KEY);
+        const percent = raw !== null ? Number(raw) : NaN;
+        if (Number.isFinite(percent) && percent >= 0 && percent <= 100) {
+            return percent / 100;
+        }
+    } catch {
+        // localStorage no disponible (ej. modo privado) -> usa el valor por defecto.
+    }
+    return DEFAULT_WIN_PERCENT / 100;
+};
+
+const rollWin = (): boolean => Math.random() < getWinProbability();
 
 function pushOpenContractMessage(contract: Record<string, unknown>): void {
     fakeMessages$.next({ data: { msg_type: 'proposal_open_contract', proposal_open_contract: { ...contract } } });
