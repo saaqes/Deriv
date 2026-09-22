@@ -16,9 +16,12 @@
     &:hover,
     &:active,
     &:focus,
-    &:focus-visible {
+    &:focus-visible,
+    &[aria-expanded='true'] {
         background: transparent !important;
+        background-color: transparent !important;
         outline: none !important;
+        box-shadow: none !important;
     }
 
     &--disabled {
