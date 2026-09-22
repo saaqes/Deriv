@@ -124,7 +124,15 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                         'acc-info--interactive': showChevron && !isChevronDisabled,
                         'acc-info--disabled': showChevron && isChevronDisabled,
                     })}
-                    onClick={toggleDropdown}
+                    onClick={e => {
+                        // Quita el foco de inmediato, en el mismo instante
+                        // del clic/toque — en móvil, el estado visual
+                        // "presionado" que queda pegado normalmente NO es
+                        // CSS, es el foco/hover del navegador que no se
+                        // limpia solo. blur() lo resuelve de forma directa.
+                        (e.currentTarget as HTMLElement).blur();
+                        toggleDropdown();
+                    }}
                     onKeyDown={e => {
                         if (showChevron && !isChevronDisabled && (e.key === 'Enter' || e.key === ' ')) {
                             e.preventDefault();
