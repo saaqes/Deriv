@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: Deriv
+    name:
     runtime: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
@@ -27,3 +27,6 @@ services:
       - path: /*
         name: X-Frame-Options
         value: SAMEORIGIN
+      - path: /manifest.webmanifest
+        name: Content-Type
+        value: application/manifest+json
