@@ -30,10 +30,35 @@
 
         &__items {
             display: flex !important;
-            flex-direction: row !important;
             position: static !important;
             width: auto !important;
+        }
+
+        // El layout en fila real vive en __items-inner (el hijo directo que
+        // la librería anima) — __items es solo un contenedor posicionador.
+        &__items-inner {
+            flex-direction: row !important;
             gap: 1.6rem !important;
+
+            > * {
+                margin: 0 !important;
+            }
+        }
+
+        // La librería oculta DrawTools en móvil (opacity:0 + deslizado hacia
+        // abajo) hasta que se "expande" el menú con el botón __more. Se
+        // fuerza a que quede SIEMPRE visible, sin necesidad de tocar nada.
+        &__items-inner .sc-chart-mode__menu,
+        &__items-inner .sc-dtools__menu {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+            pointer-events: auto !important;
+        }
+
+        // El botón "más" que expandía/colapsaba el menú ya no tiene función
+        // (los 2 únicos botones quedan siempre visibles) — se oculta.
+        &__more {
+            display: none !important;
         }
     }
 }
