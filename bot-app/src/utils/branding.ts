@@ -41,7 +41,7 @@ export function getAppName(): string {
     const fromEnv = process.env.NEXT_PUBLIC_DERIV_APP_NAME?.trim();
     if (fromEnv) return fromEnv;
     const fromConfig = getPlatform()?.name?.trim();
-    return fromConfig || 'TradeLab Bot';
+    return fromConfig || 'Deriv Bot';
 }
 
 /**
