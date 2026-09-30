@@ -302,19 +302,33 @@ export default class TicksService {
         });
     }
 
+    // CORRECCIÓN IMPORTANTE: antes, forget()/forgetCandleSubscription()
+    // llamaban a api_base.api.forgetAll('ticks') / forgetAll('candles').
+    // forgetAll() cancela TODAS las suscripciones de ese tipo en la
+    // conexión — pero la conexión WebSocket (generateDerivApiInstance, ver
+    // appId.js) es un SINGLETON compartido entre el motor de trading
+    // (api_base) y el GRÁFICO (chart_api usa la misma instancia). Cada vez
+    // que una operación terminaba y el motor de trading llamaba a
+    // unsubscribeFromTicksService(), de paso cancelaba también la
+    // suscripción de precios en vivo del gráfico, que vive en la misma
+    // conexión — dejándolo "congelado" hasta recargar la página.
+    //
+    // Ahora solo se cancelan (api.forget(id), uno por uno) las
+    // suscripciones que este propio servicio abrió — los IDs reales ya se
+    // van guardando en this.subscriptions dentro de observe() a medida que
+    // llegan los ticks/velas — dejando cualquier otra suscripción de tick
+    // en la misma conexión (como la del gráfico) sin tocar.
     forget = () => {
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             if (api_base?.api) {
-                try {
-                    api_base.api
-                        .forgetAll('ticks')
-                        .then(() => {
-                            resolve();
-                        })
-                        .catch(reject);
-                } catch (e) {
-                    console.log('Error in forget ticks', e);
-                }
+                const tickSubscriptions = this.subscriptions.get('tick');
+                const ids = tickSubscriptions ? Array.from(tickSubscriptions.values()) : [];
+
+                this.subscriptions = this.subscriptions.delete('tick');
+
+                Promise.all(ids.map(id => doUntilDone(() => api_base.api.forget(id)).catch(() => {})))
+                    .then(() => resolve())
+                    .catch(() => resolve());
             } else {
                 resolve();
             }
@@ -322,18 +336,24 @@ export default class TicksService {
     };
 
     forgetCandleSubscription = () => {
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             if (api_base?.api) {
-                try {
-                    api_base.api
-                        .forgetAll('candles')
-                        .then(() => {
-                            resolve();
-                        })
-                        .catch(reject);
-                } catch (e) {
-                    console.log('Error in forget candles', e);
+                const ohlcSubscriptions = this.subscriptions.get('ohlc');
+                const ids = [];
+
+                if (ohlcSubscriptions) {
+                    ohlcSubscriptions.forEach(granularityMap => {
+                        if (granularityMap && typeof granularityMap.values === 'function') {
+                            ids.push(...Array.from(granularityMap.values()));
+                        }
+                    });
                 }
+
+                this.subscriptions = this.subscriptions.delete('ohlc');
+
+                Promise.all(ids.map(id => doUntilDone(() => api_base.api.forget(id)).catch(() => {})))
+                    .then(() => resolve())
+                    .catch(() => resolve());
             } else {
                 resolve();
             }
