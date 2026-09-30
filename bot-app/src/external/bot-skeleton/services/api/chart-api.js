@@ -3,12 +3,40 @@ import { generateDerivApiInstance } from './appId';
 class ChartAPI {
     api;
     chart_active_symbols = null; // Separate variable for chart-specific symbols
+    reconnect_listeners = []; // Notified whenever `this.api` is replaced by a new socket instance
+
+    // El socket del gráfico (generateDerivApiInstance) puede cerrarse y
+    // recrearse solo (red inestable, pestaña en segundo plano, etc.).
+    // Cuando eso pasa, `this.api` pasa a apuntar a una instancia
+    // completamente nueva, pero cualquier suscripción de precios ya
+    // armada (transport.ts) sigue escuchando el `onMessage()` del socket
+    // VIEJO, que ya no va a emitir nada más — el gráfico se queda
+    // "congelado" para siempre en ese punto, sin ningún error visible.
+    // Este listener permite que quien arma esas suscripciones (transport.ts)
+    // se entere y las vuelva a levantar contra el socket nuevo.
+    onReconnect(callback) {
+        this.reconnect_listeners.push(callback);
+        return () => {
+            this.reconnect_listeners = this.reconnect_listeners.filter(cb => cb !== callback);
+        };
+    }
+
+    notifyReconnect() {
+        this.reconnect_listeners.forEach(callback => {
+            try {
+                callback(this.api);
+            } catch (error) {
+                console.error('[ChartAPI] Error in reconnect listener:', error);
+            }
+        });
+    }
 
     onsocketclose() {
         this.reconnectIfNotConnected();
     }
 
     init = async (force_create_connection = false) => {
+        const had_previous_api = !!this.api;
         if (!this.api || force_create_connection) {
             if (this.api?.connection) {
                 this.api.disconnect();
@@ -22,6 +50,10 @@ class ChartAPI {
 
             // Force inject symbols after a short delay to ensure api_base is ready
             // this.forceInjectSymbols();
+
+            if (had_previous_api) {
+                this.notifyReconnect();
+            }
         }
         this.getTime();
     };
