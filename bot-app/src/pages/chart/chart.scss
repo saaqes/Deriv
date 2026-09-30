@@ -25,7 +25,8 @@
 .dashboard__chart-wrapper {
     .sc-toolbar-widget {
         flex-direction: row !important;
-        gap: 1.6rem !important;
+        // Un poco más juntos que antes (traía 1.6rem).
+        gap: 1rem !important;
         width: auto !important;
         // Subida desde el borde inferior (donde vivía por defecto, a ~24-48px)
         // hasta cerca de la mitad de la gráfica, sin llegar a estar centrada.
@@ -43,7 +44,7 @@
         // la librería anima) — __items es solo un contenedor posicionador.
         &__items-inner {
             flex-direction: row !important;
-            gap: 1.6rem !important;
+            gap: 1rem !important;
 
             > * {
                 margin: 0 !important;
@@ -59,6 +60,7 @@
             transform: translateY(0) !important;
             pointer-events: auto !important;
         }
+
 
         // El botón "más" que expandía/colapsaba el menú ya no tiene función
         // (los 2 únicos botones quedan siempre visibles) — se oculta.
@@ -79,12 +81,12 @@
         // hermano de __items a nivel de .sc-toolbar-widget (todo el
         // contenedor, que ahora mide el ancho de los 2 botones juntos). Por
         // eso "left:50%" lo centraba en el HUECO entre los dos botones, no
-        // sobre el primero. Se usa "left:20px" (mitad del ancho real de un
-        // botón, 40px) para que caiga justo en el centro del primer botón
-        // (ChartMode), que es el de más a la izquierda.
+        // sobre el primero. Se usa "left:17px" (mitad del ancho real de un
+        // botón, ahora 34px) para que caiga justo en el centro del primer
+        // botón (ChartMode), que es el de más a la izquierda.
         &__interval {
             top: 50% !important;
-            left: 20px !important;
+            left: 17px !important;
             transform: translate(-50%, -50%) !important;
             background: transparent !important;
             backdrop-filter: none !important;
@@ -95,6 +97,8 @@
             z-index: 5 !important;
             // Más grande, como en la foto de referencia (traía 10px).
             font-size: 1.6rem !important;
+            // Más delgado (la librería lo traía en negrita, font-weight:700).
+            font-weight: 400 !important;
         }
 
         &__items-inner .sc-chart-mode__menu .ic-icon svg {
@@ -129,11 +133,22 @@
         left: 50%;
         // El ícono (compás de dibujo) tiene viewBox 24x30, no cuadrado —
         // se mantiene esa proporción (4:5) en vez de forzarlo a 24x24, que
-        // lo dejaría deformado.
-        width: 19.2px;
-        height: 24px;
+        // lo dejaría deformado. Reducido en la misma proporción que el
+        // círculo (34/40) para que siga viéndose centrado y bien
+        // proporcionado dentro del botón más pequeño.
+        width: 16.3px;
+        height: 20.4px;
         transform: translate(-50%, -50%);
         pointer-events: none;
+    }
+
+    // Círculos un poco más pequeños que el tamaño de la librería (traían
+    // 40x40px). Selector calcado del que usa la propia librería para
+    // pintar el círculo de fondo de cada botón (ver smartcharts.css).
+    .sc-toolbar-widget .ciq-menu .cq-menu-btn .sc-chart-mode__menu,
+    .sc-toolbar-widget .ciq-menu .cq-menu-btn .sc-dtools__menu {
+        width: 34px !important;
+        height: 34px !important;
     }
 }
 
