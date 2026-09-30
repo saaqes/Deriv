@@ -74,9 +74,17 @@
         // del círculo del ícono. Se le quita esa cajita y se centra el texto
         // dentro del propio círculo, y se oculta el ícono original que
         // quedaba detrás.
+        //
+        // OJO: este <span> NO vive dentro del botón de ChartMode — es
+        // hermano de __items a nivel de .sc-toolbar-widget (todo el
+        // contenedor, que ahora mide el ancho de los 2 botones juntos). Por
+        // eso "left:50%" lo centraba en el HUECO entre los dos botones, no
+        // sobre el primero. Se usa "left:20px" (mitad del ancho real de un
+        // botón, 40px) para que caiga justo en el centro del primer botón
+        // (ChartMode), que es el de más a la izquierda.
         &__interval {
             top: 50% !important;
-            left: 50% !important;
+            left: 20px !important;
             transform: translate(-50%, -50%) !important;
             background: transparent !important;
             backdrop-filter: none !important;
@@ -84,6 +92,7 @@
             border-radius: 0 !important;
             padding: 0 !important;
             box-shadow: none !important;
+            z-index: 5 !important;
         }
 
         &__items-inner .sc-chart-mode__menu .ic-icon svg {
