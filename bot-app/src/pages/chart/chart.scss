@@ -93,10 +93,21 @@
             padding: 0 !important;
             box-shadow: none !important;
             z-index: 5 !important;
+            // Más grande, como en la foto de referencia (traía 10px).
+            font-size: 1.6rem !important;
         }
 
         &__items-inner .sc-chart-mode__menu .ic-icon svg {
             visibility: hidden !important;
+        }
+
+        // Había un SEGUNDO badge, aparte del anterior: la librería también
+        // pinta ".sc-chart-mode__menu__interval" directamente dentro del
+        // botón (arriba a la izquierda, con su propia cajita oscura). Ese es
+        // "el pequeño cuadro" que quedaba encima — no es el mismo elemento
+        // que ya se centró arriba, así que había que ocultarlo aparte.
+        &__items-inner .sc-chart-mode__menu__interval {
+            display: none !important;
         }
     }
 
