@@ -16,3 +16,24 @@
 //
 // El archivo se mantiene vacío (en vez de borrarlo) porque
 // chart-wrapper.tsx todavía lo importa (`import './chart.scss'`).
+
+// Barra de botones encima de la gráfica (ChartMode + DrawTools, los únicos
+// que quedan renderizados — ver toolbar-widgets.tsx). La librería los coloca
+// por defecto en columna vertical (.sc-toolbar-widget{flex-direction:column}),
+// pegada al borde izquierdo. Se fuerza a fila horizontal con separación entre
+// los dos botones.
+.dashboard__chart-wrapper {
+    .sc-toolbar-widget {
+        flex-direction: row !important;
+        gap: 1.6rem !important;
+        width: auto !important;
+
+        &__items {
+            display: flex !important;
+            flex-direction: row !important;
+            position: static !important;
+            width: auto !important;
+            gap: 1.6rem !important;
+        }
+    }
+}
