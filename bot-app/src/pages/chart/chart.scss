@@ -29,9 +29,9 @@
         width: auto !important;
         // Subida desde el borde inferior (donde vivía por defecto, a ~24-48px)
         // hasta cerca de la mitad de la gráfica, sin llegar a estar centrada.
-        // calc() le resta 60px al 35% para bajarla sin perder el porcentaje
+        // calc() le resta 100px al 35% para bajarla sin perder el porcentaje
         // (que la mantiene proporcional al alto de la gráfica).
-        bottom: calc(35% - 60px) !important;
+        bottom: calc(35% - 100px) !important;
 
         &__items {
             display: flex !important;
@@ -66,4 +66,37 @@
             display: none !important;
         }
     }
+
+    // Ícono personalizado del botón "marcadores" (DrawTools) — ver
+    // toolbar-widgets.tsx. Se oculta el ícono original de la librería y se
+    // muestra encima el <svg> propio, centrado sobre el botón.
+    .dtools-custom-icon-wrap {
+        position: relative;
+        display: inline-flex;
+
+        .sc-dtools__menu .ic-icon svg {
+            visibility: hidden !important;
+        }
+    }
+
+    .dtools-custom-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 24px;
+        height: 24px;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+    }
+}
+
+// El color del ícono sigue el tema activo, igual que el resto de íconos de
+// la barra (.smartcharts-light / .smartcharts-dark viven en un ancestro,
+// normalmente <body> o <html>, por eso van sin anidar bajo .dashboard__chart-wrapper).
+.smartcharts-light .dtools-custom-icon path {
+    fill: rgba(0, 0, 0, 0.72);
+}
+
+.smartcharts-dark .dtools-custom-icon path {
+    fill: hsla(0, 0%, 100%, 0.72);
 }
