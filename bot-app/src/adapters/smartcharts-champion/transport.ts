@@ -20,6 +20,111 @@ const logger = {
 export function createTransport(): TTransport {
     const subscriptions = new Map<string, any>();
 
+    // Arma (o rearma) la escucha de mensajes + el envío de la petición de
+    // suscripción para un tempId dado, contra la instancia ACTUAL de
+    // chart_api.api. Se usa tanto para la primera suscripción como para
+    // volver a levantarla después de una reconexión del socket (ver
+    // registro de onReconnect más abajo) — en ese caso se reutiliza el
+    // mismo tempId (y por lo tanto la misma callback ya entregada al que
+    // llamó a subscribe()), solo se reemplaza la conexión interna.
+    const establishSubscription = (tempId: string, subscribeRequest: any, callback: (response: any) => void) => {
+        if (!chart_api.api) return;
+
+        let initialResponseDelivered = false;
+
+        const confirmSubscriptionId = (subscriptionId: string, initialData: any) => {
+            const storedSub = subscriptions.get(tempId);
+            if (!storedSub) return;
+
+            if (!storedSub.realSubscriptionId) {
+                storedSub.realSubscriptionId = subscriptionId;
+                subscriptions.set(tempId, storedSub);
+            }
+
+            if (!initialResponseDelivered) {
+                initialResponseDelivered = true;
+                callback(initialData);
+            }
+        };
+
+        // Set up global message listener first (before sending request)
+        const messageSubscription = chart_api.api.onMessage()?.subscribe(({ data }: { data: any }) => {
+            const subscriptionId = data?.subscription?.id;
+            if (!subscriptionId) return;
+
+            const storedSub = subscriptions.get(tempId);
+            if (!storedSub) return;
+
+            if (!storedSub.realSubscriptionId) {
+                // Primer mensaje que trae este ID -> es la
+                // confirmación (puede ser la propia respuesta al
+                // send(), vista aquí antes de que su promesa
+                // resuelva, o el primer tick en vivo).
+                confirmSubscriptionId(subscriptionId, data);
+                return;
+            }
+
+            // Ya confirmado: solo reenviar los mensajes LIVE que
+            // realmente pertenecen a esta suscripción.
+            if (subscriptionId === storedSub.realSubscriptionId) {
+                callback(data);
+            }
+        });
+
+        // Store/replace subscription info under the same temp ID
+        subscriptions.set(tempId, {
+            request: subscribeRequest,
+            callback,
+            messageSubscription,
+            realSubscriptionId: null, // Will be set when we get the first response
+        });
+
+        // Send the subscription request
+        chart_api.api
+            .send(subscribeRequest)
+            .then((response: any) => {
+                const subscriptionId = response?.subscription?.id;
+
+                if (subscriptionId) {
+                    confirmSubscriptionId(subscriptionId, response);
+                } else {
+                    logger.error('No subscription ID in response:', response);
+                }
+            })
+            .catch((error: any) => {
+                logger.error('Subscription failed:', error);
+                // Clean up failed subscription
+                const storedSub = subscriptions.get(tempId);
+                if (storedSub?.messageSubscription) {
+                    storedSub.messageSubscription.unsubscribe();
+                }
+                subscriptions.delete(tempId);
+            });
+    };
+
+    // El socket del gráfico puede cerrarse y volver a abrirse solo (red
+    // inestable, la pestaña vuelve de segundo plano, etc.). Cuando eso
+    // pasa, chart_api.api pasa a ser una instancia nueva: los
+    // `messageSubscription` ya armados siguen escuchando el socket VIEJO
+    // (que nunca más va a emitir nada) y el gráfico se queda "congelado"
+    // sin ningún error visible, aunque la app siga funcionando. Al
+    // reconectar, se vuelve a levantar cada suscripción viva contra el
+    // socket nuevo, con el mismo tempId y la misma callback — así los
+    // precios en vivo vuelven a fluir sin que el usuario tenga que
+    // recargar la página.
+    chart_api.onReconnect(() => {
+        subscriptions.forEach((storedSub, tempId) => {
+            if (storedSub.messageSubscription) {
+                try {
+                    storedSub.messageSubscription.unsubscribe();
+                } catch {
+                    // Ignore: the old socket is already gone.
+                }
+            }
+            establishSubscription(tempId, storedSub.request, storedSub.callback);
+        });
+    });
+
     return {
         /**
          * Send one-shot API request
@@ -47,95 +152,7 @@ export function createTransport(): TTransport {
             // Send initial subscription request
             const subscribeRequest = { ...request, subscribe: 1 };
 
-            // CORRECCIÓN: antes, tanto el listener global de mensajes
-            // como la promesa de .send() podían procesar la MISMA
-            // respuesta inicial por separado — cada uno intentando fijar
-            // storedSub.realSubscriptionId y llamando a callback() por su
-            // cuenta. Eso dejaba una ventana de condición de carrera: si
-            // el listener veía la respuesta inicial primero y la
-            // confirmaba, pero .send().then() todavía no se resolvía, un
-            // tick LIVE que llegara justo en ese instante podía compararse
-            // contra un valor de realSubscriptionId que aún no reflejaba
-            // el remate correcto de ambas rutas — quedando sin reenviarse
-            // ("congelado") hasta el siguiente mensaje que sí calzara.
-            //
-            // Ahora se usa un único punto de confirmación
-            // (confirmSubscriptionId): sea cual sea la ruta que llegue
-            // primero (mensaje en vivo o la respuesta de .send()), fija
-            // realSubscriptionId UNA sola vez, entrega la respuesta
-            // inicial UNA sola vez, y a partir de ahí cualquier mensaje
-            // de streaming que coincida con ese ID se reenvía de
-            // inmediato — sin ventana intermedia.
-            let initialResponseDelivered = false;
-
-            const confirmSubscriptionId = (subscriptionId: string, initialData: any) => {
-                const storedSub = subscriptions.get(tempId);
-                if (!storedSub) return;
-
-                if (!storedSub.realSubscriptionId) {
-                    storedSub.realSubscriptionId = subscriptionId;
-                    subscriptions.set(tempId, storedSub);
-                }
-
-                if (!initialResponseDelivered) {
-                    initialResponseDelivered = true;
-                    callback(initialData);
-                }
-            };
-
-            // Set up global message listener first (before sending request)
-            const messageSubscription = chart_api.api.onMessage()?.subscribe(({ data }: { data: any }) => {
-                const subscriptionId = data?.subscription?.id;
-                if (!subscriptionId) return;
-
-                const storedSub = subscriptions.get(tempId);
-                if (!storedSub) return;
-
-                if (!storedSub.realSubscriptionId) {
-                    // Primer mensaje que trae este ID -> es la
-                    // confirmación (puede ser la propia respuesta al
-                    // send(), vista aquí antes de que su promesa
-                    // resuelva, o el primer tick en vivo).
-                    confirmSubscriptionId(subscriptionId, data);
-                    return;
-                }
-
-                // Ya confirmado: solo reenviar los mensajes LIVE que
-                // realmente pertenecen a esta suscripción.
-                if (subscriptionId === storedSub.realSubscriptionId) {
-                    callback(data);
-                }
-            });
-
-            // Store subscription info with temp ID
-            subscriptions.set(tempId, {
-                request: subscribeRequest,
-                callback,
-                messageSubscription,
-                realSubscriptionId: null, // Will be set when we get the first response
-            });
-
-            // Send the subscription request
-            chart_api.api
-                .send(subscribeRequest)
-                .then((response: any) => {
-                    const subscriptionId = response?.subscription?.id;
-
-                    if (subscriptionId) {
-                        confirmSubscriptionId(subscriptionId, response);
-                    } else {
-                        logger.error('No subscription ID in response:', response);
-                    }
-                })
-                .catch((error: any) => {
-                    logger.error('Subscription failed:', error);
-                    // Clean up failed subscription
-                    const storedSub = subscriptions.get(tempId);
-                    if (storedSub?.messageSubscription) {
-                        storedSub.messageSubscription.unsubscribe();
-                    }
-                    subscriptions.delete(tempId);
-                });
+            establishSubscription(tempId, subscribeRequest, callback);
 
             return tempId;
         },
