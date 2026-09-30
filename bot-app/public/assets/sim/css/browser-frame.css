@@ -407,22 +407,22 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:flex-start; text-a
 /* Borde parejo: 2px en los 4 lados. Más grande hacia la derecha y
    abajo: 5px extra en esos dos lados (2px base + 5px = 7px ahí). */
 .cq-chart-title .cq-menu-btn{
-  padding: 1px !important;
+  padding: 2px !important;
 }
 
 /* Ajustes de tamaño de Volatility: título, precio e ícono. */
 .cq-chart-title .cq-symbol-select-btn .cq-symbol{
-  font-size: 1.3em !important;
+  font-size: 1.4em !important;
 }
 .cq-chart-title .cq-symbol-select-btn .cq-chart-price{
-  font-size: 0.9em !important;
+  font-size: 1em !important;
 }
 .cq-chart-title .cq-symbol-select-btn>.ic-frx>svg,
 .cq-chart-title .cq-symbol-select-btn>.ic-icon>svg,
 .cq-chart-title .cq-symbol-select-btn>.ic-otc>svg,
 .cq-chart-title .cq-symbol-select-btn>.ic-wld>svg{
-  height: 29px !important;
-  width: 29px !important;
+  height: 31px !important;
+  width: 31px !important;
 }
 
 /* Estructura real confirmada por inspector:
@@ -431,22 +431,22 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:flex-start; text-a
    vive ahí dentro en el DOM real. Tamaño similar al texto (precio
    ~7px), un poco más chico. */
 span.ic-icon.cq-symbol-dropdown{
-  width: 9px !important;
-  height: 9px !important;
+  width: 10px !important;
+  height: 10px !important;
   overflow: hidden !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 span.ic-icon.cq-symbol-dropdown svg{
-  width: 9px !important;
-  height: 9px !important;
+  width: 10px !important;
+  height: 10px !important;
 }
 span.ic-icon.cq-symbol-dropdown svg[width]{
-  width: 9px !important;
+  width: 10px !important;
 }
 span.ic-icon.cq-symbol-dropdown svg[height]{
-  height: 9px !important;
+  height: 10px !important;
 }
 
 /* Respaldo estructural: en móvil el desplegable puede renderizarse
@@ -458,8 +458,8 @@ span.ic-icon.cq-symbol-dropdown svg[height]{
 .cq-symbol-select-btn > span:last-child svg,
 .cq-menu-btn > span:last-child,
 .cq-menu-btn > span:last-child svg{
-  width: 9px !important;
-  height: 9px !important;
+  width: 10px !important;
+  height: 10px !important;
 }
 
 /* Menú de Markets: que ocupe todo el ancho de la página al abrirse. */
