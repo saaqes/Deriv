@@ -29,9 +29,9 @@
         width: auto !important;
         // Subida desde el borde inferior (donde vivía por defecto, a ~24-48px)
         // hasta cerca de la mitad de la gráfica, sin llegar a estar centrada.
-        // calc() le resta 20px al 35% para bajarla un poco sin perder el
-        // porcentaje (que la mantiene proporcional al alto de la gráfica).
-        bottom: calc(35% - 20px) !important;
+        // calc() le resta 60px al 35% para bajarla sin perder el porcentaje
+        // (que la mantiene proporcional al alto de la gráfica).
+        bottom: calc(35% - 60px) !important;
 
         &__items {
             display: flex !important;
