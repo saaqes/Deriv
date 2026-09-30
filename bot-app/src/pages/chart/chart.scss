@@ -66,10 +66,29 @@
             display: none !important;
         }
 
-        // La etiqueta de intervalo (ej. "1t") se deja tal cual la pone la
-        // librería por defecto — minúscula y sin espacio, como en la imagen
-        // de referencia. (Se probó forzar "1 T" en mayúscula/espaciado y no
-        // era lo que se quería — se revirtió.)
+        // La etiqueta de intervalo (ej. "1t") se deja en minúscula y sin
+        // espacio, tal cual la pone la librería (texto correcto, ya
+        // confirmado). Lo que se corrige es SOLO su posición/estilo: por
+        // defecto la librería la pinta como una "cajita" separada (fondo gris
+        // oscuro #414652, esquinas redondeadas, desenfoque) flotando encima
+        // del círculo del ícono. Se le quita esa cajita y se centra el texto
+        // dentro del propio círculo, y se oculta el ícono original que
+        // quedaba detrás.
+        &__interval {
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+        }
+
+        &__items-inner .sc-chart-mode__menu .ic-icon svg {
+            visibility: hidden !important;
+        }
     }
 
     // Ícono personalizado del botón "marcadores" (DrawTools) — ver
@@ -107,4 +126,15 @@
 
 .smartcharts-dark .dtools-custom-icon path {
     fill: hsla(0, 0%, 100%, 0.72);
+}
+
+// La etiqueta "1t" traía color blanco fijo (pensado para su cajita gris
+// oscura de fondo, que ya se quitó arriba) — ahora que va directo dentro
+// del círculo, sigue el mismo color que el resto de íconos según el tema.
+.smartcharts-light .sc-toolbar-widget__interval {
+    color: rgba(0, 0, 0, 0.72) !important;
+}
+
+.smartcharts-dark .sc-toolbar-widget__interval {
+    color: hsla(0, 0%, 100%, 0.72) !important;
 }
