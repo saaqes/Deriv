@@ -27,6 +27,9 @@
         flex-direction: row !important;
         gap: 1.6rem !important;
         width: auto !important;
+        // Subida desde el borde inferior (donde vivía por defecto, a ~24-48px)
+        // hasta cerca de la mitad de la gráfica, sin llegar a estar centrada.
+        bottom: 35% !important;
 
         &__items {
             display: flex !important;
