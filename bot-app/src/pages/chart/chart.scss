@@ -66,18 +66,10 @@
             display: none !important;
         }
 
-        // Etiqueta del intervalo actual sobre el ícono de ChartMode (ej. "1t",
-        // "5m"). La librería la pone en minúscula y con word-spacing negativo,
-        // lo que la deja pegada ("1t"). Se fuerza mayúscula y se separa el
-        // número de la letra con letter-spacing (afecta a cada par de
-        // caracteres — con solo 2 caracteres, esto es exactamente el espacio
-        // entre el número y la letra) para que quede "1 T" como en la
-        // referencia.
-        &__interval {
-            text-transform: uppercase !important;
-            word-spacing: normal !important;
-            letter-spacing: 0.15em !important;
-        }
+        // La etiqueta de intervalo (ej. "1t") se deja tal cual la pone la
+        // librería por defecto — minúscula y sin espacio, como en la imagen
+        // de referencia. (Se probó forzar "1 T" en mayúscula/espaciado y no
+        // era lo que se quería — se revirtió.)
     }
 
     // Ícono personalizado del botón "marcadores" (DrawTools) — ver
