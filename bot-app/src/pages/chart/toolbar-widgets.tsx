@@ -15,11 +15,12 @@ type TToolbarWidgetsProps = {
 // (indicadores), Views y Share se quitaron a propósito — no deben
 // renderizarse ni en desktop ni en mobile.
 //
-// El ícono de DrawTools se reemplaza visualmente por uno propio (lápiz/
-// "drawing tool"): se superpone un <svg> encima y se oculta el ícono
-// original vía CSS (ver chart.scss, clase .dtools-custom-icon-wrap). No se
-// puede cambiar el ícono interno del componente DrawTools (es de la
-// librería @deriv-com/smartcharts-champion), así que se tapa con este.
+// El ícono de DrawTools se reemplaza visualmente por uno propio (compás de
+// dibujo técnico, provisto por el usuario): se superpone un <svg> encima y
+// se oculta el ícono original vía CSS (ver chart.scss, clase
+// .dtools-custom-icon-wrap). No se puede cambiar el ícono interno del
+// componente DrawTools (es de la librería @deriv-com/smartcharts-champion),
+// así que se tapa con este.
 const ToolbarWidgets = ({ updateChartType, updateGranularity, position }: TToolbarWidgetsProps) => {
     const { isMobile } = useDevice();
     const validPosition = position === 'top' || position === 'bottom' ? position : 'top';
@@ -31,11 +32,11 @@ const ToolbarWidgets = ({ updateChartType, updateGranularity, position }: TToolb
                 <DrawTools portalNodeId='modal_root' />
                 <svg
                     className='dtools-custom-icon'
-                    viewBox='0 0 24 24'
+                    viewBox='0 0 24 30'
                     aria-hidden='true'
                     focusable='false'
                 >
-                    <path d='M2.291 21.955l-.039-.02a.5.5 0 0 1-.18-.176l-.009-.015a.486.486 0 0 1-.037-.402l2-6a.5.5 0 0 1 .047-.101l.033-.049.04-.046 13-13a.5.5 0 0 1 .708 0l4 4a.5.5 0 0 1 0 .708l-13 13a.501.501 0 0 1-.196.12L5.582 21 19.5 21a.5.5 0 0 1 .492.41l.008.09a.5.5 0 0 1-.5.5H2.515a.486.486 0 0 1-.187-.03l-.006-.002a.226.226 0 0 1-.03-.013zm2.427-5.53l-1.427 4.284 4.283-1.428-2.856-2.856zM15 5.707L5.207 15.5 8.5 18.792l9.793-9.793L15 5.707zm2.5-2.5L15.707 5 19 8.292 20.793 6.5 17.5 3.207z' />
+                    <path d='M23.925,23.236l-4.996-8.05c.844-.473,1.651-1.036,2.402-1.695,.207-.183,.228-.499,.046-.706-.183-.208-.499-.228-.706-.046-.709,.623-1.471,1.153-2.269,1.597l-3.476-5.6-.008-.008c.669-.715,1.083-1.673,1.083-2.728,0-2.036-1.53-3.718-3.5-3.965V.5c0-.276-.224-.5-.5-.5s-.5,.224-.5,.5v1.535c-1.97,.247-3.5,1.929-3.5,3.965,0,1.055,.413,2.013,1.083,2.728l-.008,.008-3.476,5.6c-.798-.444-1.56-.974-2.269-1.597-.206-.182-.523-.162-.706,.046-.182,.208-.161,.523,.046,.706,.751,.659,1.558,1.222,2.402,1.695L.075,23.236c-.146,.234-.073,.543,.161,.688,.082,.051,.173,.075,.264,.075,.167,0,.33-.084,.425-.236L5.962,15.648c1.906,.896,3.972,1.345,6.038,1.345s4.132-.449,6.038-1.345l5.037,8.116c.095,.152,.258,.236,.425,.236,.091,0,.182-.024,.264-.075,.234-.146,.307-.454,.161-.688ZM12,3c1.654,0,3,1.346,3,3s-1.346,3-3,3-3-1.346-3-3,1.346-3,3-3ZM6.494,14.791l3.363-5.419c.62,.395,1.354,.628,2.143,.628s1.522-.232,2.143-.628l3.363,5.419c-3.483,1.601-7.529,1.601-11.012,0Z' />
                 </svg>
             </span>
         </ToolbarWidget>
