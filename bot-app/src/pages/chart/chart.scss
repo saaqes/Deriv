@@ -83,7 +83,10 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 24px;
+        // El ícono (compás de dibujo) tiene viewBox 24x30, no cuadrado —
+        // se mantiene esa proporción (4:5) en vez de forzarlo a 24x24, que
+        // lo dejaría deformado.
+        width: 19.2px;
         height: 24px;
         transform: translate(-50%, -50%);
         pointer-events: none;
