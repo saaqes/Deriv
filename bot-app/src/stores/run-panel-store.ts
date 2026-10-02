@@ -7,6 +7,7 @@ import { contract_stages, TContractStage } from '@/constants/contract-stage';
 import { run_panel } from '@/constants/run-panel';
 import { ErrorTypes, MessageTypes, observer, unrecoverable_errors } from '@/external/bot-skeleton';
 import { getSelectedTradeType } from '@/external/bot-skeleton/scratch/utils';
+import { mobileTradeLog } from '@/external/bot-skeleton/utils/mobile-trade-debug';
 import { initiateMockLogin, isMockLoginAvailable } from '@/external/deriv-core/auth/mock-login';
 import { installFakeBroker } from '@/external/deriv-core/trading/fake-broker';
 import { handleBackendError, isBackendError } from '@/utils/error-handler';
@@ -163,6 +164,7 @@ export default class RunPanelStore {
     };
 
     onRunButtonClick = async () => {
+        mobileTradeLog('Run started');
         let timer_counter = 1;
         if (window.sendRequestsStatistic) {
             performance.clearMeasures();
@@ -188,7 +190,23 @@ export default class RunPanelStore {
          * user action(e.g click/touch) to be downloaded, otherwise throws an error. Also it should be called
          * syncronously, so keep above await.
          */
-        if (is_ios || isSafari()) this.preloadAudio();
+        // CORRECCIÓN MÓVIL: preloadAudio() lee la estructura interna de los
+        // bloques "notify" del workspace (block.inputList[...].fieldRow[...]),
+        // que puede lanzar una excepción si un bloque tiene una forma
+        // distinta a la esperada. Como esta llamada solo ocurre en
+        // iOS/Safari (is_ios || isSafari()), un error aquí ANTES bloqueaba
+        // silenciosamente el arranque del bot solo en esos dispositivos
+        // (nunca en Chrome de escritorio, donde esta rama ni se ejecuta):
+        // registerBotListeners()/shouldRunBot()/setIsRunning()/runBot()
+        // nunca llegaban a correr. Ahora un fallo aquí se registra pero
+        // nunca detiene el arranque del bot.
+        if (is_ios || isSafari()) {
+            try {
+                this.preloadAudio();
+            } catch (error) {
+                console.error('[RunPanelStore] preloadAudio failed, continuing bot startup:', error);
+            }
+        }
 
         this.registerBotListeners();
 
