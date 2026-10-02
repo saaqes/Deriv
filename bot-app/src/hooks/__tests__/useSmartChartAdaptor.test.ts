@@ -29,7 +29,6 @@ jest.mock('@/external/bot-skeleton/services/api/chart-api', () => ({
     default: {
         api: null,
         init: jest.fn(),
-        onReconnect: jest.fn(() => () => {}),
     },
 }));
 
