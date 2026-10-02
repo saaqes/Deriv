@@ -8,6 +8,7 @@ import { TAuthData } from '@/types/api-types';
 import { clearAuthData } from '@/utils/auth-utils';
 import { handleBackendError, isBackendError } from '@/utils/error-handler';
 import { activeSymbolsProcessorService } from '../../../../services/active-symbols-processor.service';
+import { mobileTradeLog } from '../../utils/mobile-trade-debug';
 import { observer as globalObserver } from '../../utils/observer';
 import { doUntilDone, socket_state } from '../tradeEngine/utils/helpers';
 import {
@@ -65,6 +66,13 @@ class APIBase {
     active_symbols_promise: Promise<any[] | undefined> | null = null;
     common_store: CommonStore | undefined;
     reconnection_attempts: number = 0;
+    // CORRECCIÓN MÓVIL: se incrementa únicamente cuando `this.api` pasa a
+    // apuntar a una instancia de WebSocket realmente distinta (reconexión
+    // real), nunca en cada llamada a init(). Purchase.js lo usa para saber
+    // si, mientras esperaba la respuesta de una compra, el socket cambió
+    // por debajo — en ese caso NO reintenta la compra (evita duplicarla) y
+    // en cambio informa con claridad que se perdió la conexión.
+    connection_generation: number = 0;
 
     // Constants for timeouts - extracted magic numbers for better maintainability
     private readonly ACTIVE_SYMBOLS_TIMEOUT_MS = 10000; // 10 seconds
@@ -164,6 +172,8 @@ class APIBase {
         }
 
         if (!this.api || this.api?.connection.readyState !== 1 || force_create_connection) {
+            const previous_api = this.api;
+
             if (this.api?.connection) {
                 ApiHelpers.disposeInstance();
                 setConnectionStatus(CONNECTION_STATUS.CLOSED);
@@ -173,6 +183,14 @@ class APIBase {
             }
 
             this.api = await generateDerivApiInstance();
+
+            // CORRECCIÓN MÓVIL: solo cuenta como una reconexión real cuando
+            // la instancia realmente cambió (generateDerivApiInstance()
+            // puede devolver la misma instancia si seguía abierta).
+            if (this.api !== previous_api) {
+                this.connection_generation += 1;
+                mobileTradeLog('api instance changed', { generation: this.connection_generation });
+            }
 
             this.api?.connection.addEventListener('open', this.onsocketopen.bind(this));
             this.api?.connection.addEventListener('close', this.onsocketclose.bind(this));
@@ -233,8 +251,85 @@ class APIBase {
         if (window) {
             window.addEventListener('online', this.reconnectIfNotConnected);
             window.addEventListener('focus', this.reconnectIfNotConnected);
+            // CORRECCIÓN MÓVIL: 'pageshow' cubre el caso de iOS Safari donde
+            // la pestaña vuelve desde el bfcache (back-forward cache) sin
+            // disparar 'focus'.
+            window.addEventListener('pageshow', this.reconnectIfNotConnected);
+        }
+        if (typeof document !== 'undefined') {
+            // CORRECCIÓN MÓVIL: 'online'/'focus' no son suficientes en
+            // Android Chrome / iOS Safari. Cuando el navegador o la PWA
+            // instalada pasa a segundo plano, el sistema operativo puede
+            // matar la conexión TCP real del WebSocket sin disparar nunca
+            // el evento 'close' (o dispararlo mucho después). El socket
+            // sigue reportando readyState === OPEN ("zombie"), así que
+            // reconnectIfNotConnected() no detecta nada. Al volver a primer
+            // plano, se verifica la conexión de forma activa (ping real)
+            // en vez de confiar únicamente en readyState.
+            document.addEventListener('visibilitychange', this.handleVisibilityChange);
         }
     }
+
+    handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+            mobileTradeLog('WebSocket state:', this.getConnectionStatus());
+            this.verifyConnectionOnResume();
+        }
+    };
+
+    // Comprueba, con un ping real, si la conexión sigue viva. No se puede
+    // confiar en connection.readyState solo: en móvil puede seguir
+    // reportando OPEN (1) aunque el socket ya esté muerto por el lado del
+    // sistema operativo/red.
+    checkConnectionAlive = (timeout_ms = 4000): Promise<boolean> => {
+        if (!this.api || !this.api.connection || this.api.connection.readyState !== 1) {
+            return Promise.resolve(false);
+        }
+        return new Promise(resolve => {
+            let settled = false;
+            const finish = (alive: boolean) => {
+                if (settled) return;
+                settled = true;
+                resolve(alive);
+            };
+            const timeout = setTimeout(() => finish(false), timeout_ms);
+            try {
+                this.api
+                    ?.send({ ping: 1 })
+                    .then(() => {
+                        clearTimeout(timeout);
+                        finish(true);
+                    })
+                    .catch(() => {
+                        clearTimeout(timeout);
+                        finish(false);
+                    });
+            } catch (e) {
+                clearTimeout(timeout);
+                finish(false);
+            }
+        });
+    };
+
+    verifyConnectionOnResume = async () => {
+        if (!this.api) return;
+        if (this.api.connection?.readyState !== 1) {
+            this.reconnectIfNotConnected();
+            return;
+        }
+        const alive = await this.checkConnectionAlive(4000);
+        if (!alive) {
+            this.forceReconnect('stale socket detected on resume');
+        }
+    };
+
+    // Fuerza una reconexión real (nueva instancia de WebSocket), usado por
+    // el watchdog de compra de Purchase.js cuando detecta que el socket
+    // dejó de responder.
+    forceReconnect = (reason: string = 'unknown') => {
+        mobileTradeLog('Forcing reconnect:', reason);
+        this.init(true);
+    };
 
     async createNewInstance(account_id: string) {
         if (this.account_id !== account_id) {
