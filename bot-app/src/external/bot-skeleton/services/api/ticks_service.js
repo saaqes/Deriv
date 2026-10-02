@@ -208,33 +208,62 @@ export default class TicksService {
         }
     }
 
+    // CORRECCIÓN IMPORTANTE: "No hay ticks disponibles todavía para este
+    // símbolo." / "Cannot read property 'epoch' of undefined" — observe()
+    // solo se llamaba UNA VEZ, en el constructor de TicksService, y solo
+    // armaba el listener de ticks en vivo SI api_base.api ya existía EN
+    // ESE MOMENTO. Pero TicksService se crea al armar el intérprete del
+    // bot (DBot/Interpreter), que ocurre muy temprano al cargar la
+    // app — normalmente ANTES de que la conexión WebSocket
+    // (api_base.api) esté lista. Si esa comprobación fallaba, el listener
+    // de ticks en vivo nunca se armaba, y this.ticks/this.candles se
+    // quedaban para siempre solo con la foto histórica inicial (sin
+    // recibir ni un tick más) — si esa foto inicial llegaba vacía, no
+    // había forma de recuperarse: ni esperando ni reintentando.
+    //
+    // Ahora, si api_base.api todavía no existe, se reintenta cada 200ms
+    // hasta que esté listo y ENTONCES se arma el listener — así los
+    // ticks en vivo llegan sin importar en qué momento se haya creado
+    // este servicio respecto a la conexión.
     observe() {
         if (api_base.api) {
-            const subscription = api_base.api.onMessage().subscribe(({ data }) => {
-                if (data.msg_type === 'tick') {
-                    const { tick } = data;
-                    const { symbol, id } = tick;
-                    if (this.ticks.has(symbol)) {
-                        this.subscriptions = this.subscriptions.setIn(['tick', symbol], id);
-                        this.updateTicksAndCallListeners(symbol, updateTicks(this.ticks.get(symbol), parseTick(tick)));
-                    }
-                }
-
-                if (data.msg_type === 'ohlc') {
-                    const { ohlc } = data;
-                    const { symbol, granularity, id } = ohlc;
-                    if (this.candles.hasIn([symbol, Number(granularity)])) {
-                        this.subscriptions = this.subscriptions.setIn(['ohlc', symbol, Number(granularity)], id);
-                        const address = [symbol, Number(granularity)];
-                        this.updateCandlesAndCallListeners(
-                            address,
-                            updateCandles(this.candles.getIn(address), parseOhlc(ohlc))
-                        );
-                    }
-                }
-            });
-            api_base.pushSubscription(subscription);
+            this.attachTickListener();
+            return;
         }
+
+        const pollId = setInterval(() => {
+            if (api_base.api) {
+                clearInterval(pollId);
+                this.attachTickListener();
+            }
+        }, 200);
+    }
+
+    attachTickListener() {
+        const subscription = api_base.api.onMessage().subscribe(({ data }) => {
+            if (data.msg_type === 'tick') {
+                const { tick } = data;
+                const { symbol, id } = tick;
+                if (this.ticks.has(symbol)) {
+                    this.subscriptions = this.subscriptions.setIn(['tick', symbol], id);
+                    this.updateTicksAndCallListeners(symbol, updateTicks(this.ticks.get(symbol), parseTick(tick)));
+                }
+            }
+
+            if (data.msg_type === 'ohlc') {
+                const { ohlc } = data;
+                const { symbol, granularity, id } = ohlc;
+                if (this.candles.hasIn([symbol, Number(granularity)])) {
+                    this.subscriptions = this.subscriptions.setIn(['ohlc', symbol, Number(granularity)], id);
+                    const address = [symbol, Number(granularity)];
+                    this.updateCandlesAndCallListeners(
+                        address,
+                        updateCandles(this.candles.getIn(address), parseOhlc(ohlc))
+                    );
+                }
+            }
+        });
+        api_base.pushSubscription(subscription);
     }
 
     requestStream(options) {
