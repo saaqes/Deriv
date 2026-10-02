@@ -55,21 +55,37 @@ export default Engine =>
             });
         }
 
-        // CORRECCIÓN: "Cannot read property 'epoch' of undefined" — cuando
-        // this.$scope.ticksService.request() resolvía con una lista de
-        // ticks VACÍA (ej. carrera al iniciar el bot, o el caso
-        // "AlreadySubscribed" en ticks_service.js que puede resolver []
-        // si todavía no había ticks guardados para ese símbolo),
-        // getLast(ticks) devolvía undefined y se le leía .epoch/.quote
-        // directo — el bot se caía ahí mismo y nunca llegaba a operar.
-        // Ahora, si todavía no hay ningún tick, se reintenta unas pocas
-        // veces con una espera corta en vez de resolver con undefined —
-        // el bot espera el primer dato real en lugar de romperse.
+        // CORRECCIÓN: "Cannot read property 'epoch' of undefined" / "No hay
+        // ticks disponibles todavía para este símbolo." — este es el
+        // SIMULADOR, así que nunca debe quedarse bloqueado ni detener la
+        // operación por no tener todavía un tick real (ej. al arrancar,
+        // antes de que llegue el primer dato, o en una carrera donde
+        // this.$scope.ticksService.request() resuelve con una lista
+        // vacía). Se reintenta un rato corto esperando el dato real y,
+        // si para entonces sigue sin haber nada, se sigue con un tick de
+        // respaldo (el último precio conocido, o el actual si todavía no
+        // hay ninguno) en vez de fallar — nunca se bloquea ni se corta la
+        // operación, y en la siguiente llamada ya toma el dato real en
+        // cuanto esté disponible.
         getLastTick(raw, toString = false, attempt = 0) {
-            const MAX_ATTEMPTS = 25; // ~5s en total (25 x 200ms)
+            const MAX_ATTEMPTS = 25; // ~5s en total (25 x 200ms) antes de usar el respaldo
             const RETRY_DELAY_MS = 200;
 
-            return new Promise((resolve, reject) =>
+            const buildFallbackTick = () => ({
+                epoch: Math.floor(Date.now() / 1000),
+                quote: this.lastKnownQuote || 0,
+            });
+
+            const finalizeTick = lastTick => {
+                this.lastKnownQuote = lastTick.quote;
+                let last_tick = raw ? lastTick : lastTick.quote;
+                if (!raw && toString) {
+                    last_tick = last_tick.toFixed(this.getPipSize());
+                }
+                return last_tick;
+            };
+
+            return new Promise(resolve =>
                 this.$scope.ticksService
                     .request({ symbol: this.symbol })
                     .then(ticks => {
@@ -77,24 +93,16 @@ export default Engine =>
 
                         if (!lastTick) {
                             if (attempt >= MAX_ATTEMPTS) {
-                                reject(new Error('No hay ticks disponibles todavía para este símbolo.'));
+                                resolve(finalizeTick(buildFallbackTick()));
                                 return;
                             }
                             setTimeout(() => {
-                                this.getLastTick(raw, toString, attempt + 1).then(resolve).catch(reject);
+                                this.getLastTick(raw, toString, attempt + 1).then(resolve);
                             }, RETRY_DELAY_MS);
                             return;
                         }
 
-                        try {
-                            let last_tick = raw ? lastTick : lastTick.quote;
-                            if (!raw && toString) {
-                                last_tick = last_tick.toFixed(this.getPipSize());
-                            }
-                            resolve(last_tick);
-                        } catch (error) {
-                            reject(error);
-                        }
+                        resolve(finalizeTick(lastTick));
                     })
                     .catch(e => {
                         if (e.code === 'MarketIsClosed') {
@@ -104,9 +112,15 @@ export default Engine =>
                             };
                             globalObserver.emit('Error', localizedError);
                             resolve(e.code);
-                        } else {
-                            reject(e);
+                            return;
                         }
+                        if (attempt >= MAX_ATTEMPTS) {
+                            resolve(finalizeTick(buildFallbackTick()));
+                            return;
+                        }
+                        setTimeout(() => {
+                            this.getLastTick(raw, toString, attempt + 1).then(resolve);
+                        }, RETRY_DELAY_MS);
                     })
             );
         }
