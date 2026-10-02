@@ -12,6 +12,17 @@ jest.mock('@/external/bot-skeleton/services/api/chart-api', () => ({
     default: {
         api: null,
         init: jest.fn(),
+        onReconnect: jest.fn(() => () => {}),
+    },
+}));
+
+// Mock api_base (used by transport.ts's send() recovery path: liveness check
+// + forced reconnect on a timed-out/dead request).
+jest.mock('@/external/bot-skeleton/services/api/api-base', () => ({
+    __esModule: true,
+    api_base: {
+        checkConnectionAlive: jest.fn().mockResolvedValue(true),
+        forceReconnect: jest.fn(),
     },
 }));
 
