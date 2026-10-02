@@ -485,7 +485,21 @@ class APIBase {
                         return undefined;
                     });
             }
-            this.subscribe();
+            // CORRECCIÓN: this.subscribe() se llamaba "en paralelo" (sin
+            // await ni .catch) — si alguna de las suscripciones
+            // (balance/transaction/proposal_open_contract) terminaba
+            // rechazada (p. ej. con una sesión mock/fake sin token real de
+            // Deriv, el servidor real rechaza la suscripción a
+            // "transaction" con un error de autorización), esa promesa
+            // rechazada nunca la atrapaba nadie: quedaba como "Uncaught
+            // (in promise)" en consola. Nunca fue la causa del
+            // congelamiento del Chart, pero sí ruido real que puede
+            // confundir el diagnóstico de otros problemas — se captura
+            // aquí para que quede como un simple log, no como una excepción
+            // sin manejar.
+            this.subscribe().catch(error => {
+                console.warn('[APIBase] One or more account subscriptions failed:', error);
+            });
         } catch (e) {
             this.is_authorized = false;
             clearAuthData();
