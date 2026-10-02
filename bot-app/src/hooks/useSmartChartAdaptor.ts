@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { buildSmartchartsChampionAdapter } from '@/adapters/smartcharts-champion';
+import { FALLBACK_ACTIVE_SYMBOLS, FALLBACK_TRADING_TIMES } from '@/adapters/smartcharts-champion/fallback-data';
 import { createServices } from '@/adapters/smartcharts-champion/services';
 import { createTransport } from '@/adapters/smartcharts-champion/transport';
 import chart_api from '@/external/bot-skeleton/services/api/chart-api';
@@ -186,6 +187,38 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
         const FAST_RETRY_DELAY_MS = 1500;
         const FALLBACK_RETRY_DELAY_MS = 5000;
 
+        // MODO SIMULADO TOTAL: pese a las correcciones anteriores, el
+        // usuario reporta que la obtención real de active_symbols sigue
+        // sin resolverse en su entorno, dejando el Chart sin operar. En
+        // vez de seguir esperando indefinidamente a que esa llamada
+        // responda, si no hay símbolos reales a los FALLBACK_AFTER_MS se
+        // usa una lista local de Índices de Volatilidad (siempre abiertos,
+        // no requieren autenticación real) para que el Chart SIEMPRE
+        // pueda operar de inmediato. Esto NO afecta precios, ticks ni
+        // compra/venta — eso sigue llegando por su propio canal — solo
+        // asegura que el Chart tenga una lista de símbolos con la que
+        // trabajar. Si la obtención real llega más tarde, reemplaza este
+        // respaldo de forma transparente (ver bloque de éxito abajo).
+        const FALLBACK_AFTER_MS = 4000;
+        let hasRealData = false;
+        let usingFallback = false;
+        const fallbackTimer = setTimeout(() => {
+            if (!cancelled && isMountedRef.current && !hasRealData) {
+                usingFallback = true;
+                console.warn(
+                    '[SmartCharts Hook] Sin símbolos reales tras ' +
+                        `${FALLBACK_AFTER_MS}ms — activando modo simulado total (símbolos de respaldo) ` +
+                        'para que el Chart opere de inmediato.'
+                );
+                setChartData({
+                    activeSymbols: FALLBACK_ACTIVE_SYMBOLS,
+                    tradingTimes: FALLBACK_TRADING_TIMES,
+                });
+                setError(null);
+                setIsLoading(false);
+            }
+        }, FALLBACK_AFTER_MS);
+
         const scheduleRetry = (retryCount: number) => {
             const delayMs = retryCount < FAST_RETRIES ? FAST_RETRY_DELAY_MS : FALLBACK_RETRY_DELAY_MS;
 
@@ -229,8 +262,11 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
                         return;
                     }
 
+                    hasRealData = true;
+                    clearTimeout(fallbackTimer);
                     console.warn(
-                        `[SmartCharts Hook] loadChartData(): éxito en el intento #${retryCount} — ${data.activeSymbols.length} símbolos activos.`
+                        `[SmartCharts Hook] loadChartData(): éxito en el intento #${retryCount} — ${data.activeSymbols.length} símbolos activos.` +
+                            (usingFallback ? ' (reemplazando los símbolos de respaldo por los reales)' : '')
                     );
                     setChartData({
                         activeSymbols: data.activeSymbols,
@@ -269,6 +305,7 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
                 clearTimeout(retryTimeoutRef.current);
                 retryTimeoutRef.current = null;
             }
+            clearTimeout(fallbackTimer);
         };
     }, [adapter, adapterInitialized]);
 
