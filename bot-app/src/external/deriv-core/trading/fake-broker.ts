@@ -409,6 +409,29 @@ export function installFakeBroker(): void {
                 balance: { balance: acc.balance, currency: acc.currency, loginid: acc.loginid },
             });
         }
+        // CORRECCIÓN: api_base.authorizeAndSubscribe() siempre se suscribe a
+        // 'transaction' y a 'proposal_open_contract' (sin contract_id, para
+        // TODOS los contratos de la cuenta) además de 'balance'. Como estas
+        // dos no tenían caso aquí, cualquier cuenta mock (sin token real de
+        // Deriv) las dejaba pasar a realSend(), y el servidor real las
+        // rechazaba por falta de autorización real — quedando como un
+        // "Uncaught (in promise)" en consola y, en el caso de
+        // proposal_open_contract, reintentándose indefinidamente contra la
+        // API real sin ninguna posibilidad de éxito. Ninguna de las dos hace
+        // falta en modo simulado: los cambios de balance y de contrato ya se
+        // emiten localmente (pushBalanceMessage/pushOpenContractMessage) vía
+        // fakeMessages$, así que basta con confirmar la suscripción sin
+        // reenviarla al servidor real.
+        if (data?.transaction !== undefined) {
+            return Promise.resolve({ msg_type: 'transaction', subscription: { id: genId('sub_transaction') } });
+        }
+        if (data?.proposal_open_contract !== undefined && !data?.contract_id) {
+            return Promise.resolve({
+                msg_type: 'proposal_open_contract',
+                subscription: { id: genId('sub_poc') },
+                proposal_open_contract: {},
+            });
+        }
 
         // Everything else (ticks, proposal quotes, active_symbols, forget,
         // ...) is public market data — send it to the real API untouched.
