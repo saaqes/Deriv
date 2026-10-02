@@ -475,10 +475,24 @@ export function installFakeBroker(): void {
         }
         // Everything else (ticks, ticks_history, candles, proposal quotes,
         // active_symbols, trading_times, forget, ...) is public market data
-        // — send it to the REAL API untouched, so the Chart and the bot's
-        // strategy engine both see the exact same real prices as every
-        // other device/tab, instead of an independent local simulation.
-        return realSend!(data);
+        // — send it to the REAL API, so the Chart and the bot's strategy
+        // engine both see the exact same real prices as every other
+        // device/tab, instead of an independent local simulation.
+        //
+        // CORRECCIÓN (bot se queda "esperando señal" para siempre): el
+        // motor de estrategias (ticks_service.js) pide sus ticks con
+        // `doUntilDone(() => api_base.api.send(request), ...)`, que SOLO
+        // reintenta cuando la promesa es RECHAZADA — si el servidor real
+        // nunca responde (ni resuelve ni rechaza), doUntilDone se queda
+        // esperando para siempre y el bot nunca recibe señal. Antes se
+        // llamaba a `realSend(data)` directo, sin ningún timeout, así que
+        // una respuesta lenta o perdida del servidor real colgaba el bot
+        // indefinidamente. Ahora se usa `realSendWithTimeout()` (mismo
+        // timeout de 6s ya usado para las cotizaciones de compra/venta más
+        // arriba): si no responde a tiempo, la promesa se rechaza y
+        // `doUntilDone` reintenta solo, con backoff, hasta conseguir datos
+        // reales — nunca se inventa ni se sustituye el precio.
+        return realSendWithTimeout(data);
     };
 
     console.info('[fake-broker] Installed — buy/sell/balance now run against local fake money, real market data.');
