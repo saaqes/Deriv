@@ -85,6 +85,63 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
         []
     );
 
+    // CORRECCIÓN: al cambiar de pestaña (o minimizar/bloquear el
+    // dispositivo) y volver, el Chart se quedaba "atrás" — el precio real
+    // siguió avanzando todo ese tiempo (los ticks por WebSocket llegan
+    // igual en segundo plano), pero el navegador pausa/retrasa fuertemente
+    // los `setTimeout` de una pestaña oculta (puede ser hasta una vez por
+    // minuto), así que el `setLiveScrollEpoch` de arriba — que depende de
+    // ese mismo `setTimeout` para aplicar el último tick recibido — se
+    // quedaba esperando en vez de disparar. El usuario volvía a ver el
+    // gráfico desplazado en el tiempo en vez de mostrando el precio
+    // actual. Ahora, en cuanto la pestaña vuelve a estar visible, se salta
+    // ese debounce y se salta directo al último epoch recibido (sin
+    // esperar los 800ms ni el próximo tick), para que el gráfico quede
+    // inmediatamente "al día" con el precio en vivo.
+    useEffect(() => {
+        const catchUpToLive = () => {
+            if (document.visibilityState !== 'visible') return;
+            if (followLiveEpochTimerRef.current) {
+                clearTimeout(followLiveEpochTimerRef.current);
+                followLiveEpochTimerRef.current = null;
+            }
+            const latestEpoch = pendingEpochRef.current;
+            if (latestEpoch) {
+                setLiveScrollEpoch(prev => (prev === latestEpoch ? prev : latestEpoch));
+            }
+        };
+
+        document.addEventListener('visibilitychange', catchUpToLive);
+        // También al volver el foco a la ventana (algunos navegadores/
+        // móviles no disparan visibilitychange de forma confiable al
+        // volver de otra app).
+        window.addEventListener('focus', catchUpToLive);
+
+        return () => {
+            document.removeEventListener('visibilitychange', catchUpToLive);
+            window.removeEventListener('focus', catchUpToLive);
+        };
+    }, []);
+
+    // CORRECCIÓN: al darle Run, el gráfico también debía "ponerse al día"
+    // de inmediato con el precio actual en vez de esperar el próximo tick
+    // agrupado — igual que al volver de otra pestaña (ver efecto arriba).
+    const { is_running } = run_panel;
+    const wasRunningRef = useRef(false);
+    useEffect(() => {
+        if (is_running && !wasRunningRef.current) {
+            const latestEpoch = pendingEpochRef.current;
+            if (latestEpoch) {
+                if (followLiveEpochTimerRef.current) {
+                    clearTimeout(followLiveEpochTimerRef.current);
+                    followLiveEpochTimerRef.current = null;
+                }
+                setLiveScrollEpoch(prev => (prev === latestEpoch ? prev : latestEpoch));
+            }
+        }
+        wasRunningRef.current = is_running;
+    }, [is_running]);
+
     const extractLatestEpochFromQuotesResult = (result: any): number | undefined => {
         if (!result) return undefined;
         if (Array.isArray(result.candles) && result.candles.length > 0) {
