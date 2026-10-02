@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
 /* [AI] - Analytics removed - rudderstack event tracking removed */
@@ -17,6 +17,7 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
     const { common, ui } = useStore();
     const { chart_store, run_panel, dashboard } = useStore();
     const [isSafari, setIsSafari] = useState(false);
+    const blockedReasonRef = useRef<string | null>(null);
 
     const {
         chart_type,
@@ -36,21 +37,53 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
     // scrollToEpoch (prop pública y documentada de SmartCharts, ver
     // README oficial de @deriv-com/smartcharts-champion): "Scrolls the
     // chart to the leftmost side and sets the last spot/bar as the
-    // first visible spot/bar in the chart."
+    // first visible spot/bar in the chart." El requisito es que el
+    // gráfico esté SIEMPRE siguiendo el precio en vivo — al entrar,
+    // durante una operación y después de que termina — sin quedarse
+    // "atrás".
     //
-    // Antes se calculaba UNA SOLA VEZ al cargar, para no pelear con el
-    // desplazamiento manual del usuario. Ahora se actualiza con CADA tick
-    // nuevo que llega (dato real, no simulado) a propósito: el
-    // requisito es que el gráfico esté SIEMPRE siguiendo el precio en
-    // vivo — al entrar, durante una operación y después de que termina —
-    // sin quedarse "atrás" a la izquierda. Cada epoch nuevo dispara de
-    // nuevo el scroll-to-live de la librería.
+    // CORRECCIÓN: al principio se actualizaba scrollToEpoch con CADA tick
+    // nuevo, sin agrupar. La librería dispara una animación de "saltar al
+    // último precio" cada vez que este valor cambia — y si llega un tick
+    // nuevo antes de que esa animación termine (los índices de
+    // volatilidad pueden tickear varias veces por segundo), la reinicia
+    // sin dejarla completar. El resultado visible era justo lo contrario
+    // de lo buscado: en vez de seguir el precio en vivo, la vista se
+    // quedaba atascada/atrasada, acumulando ticks sin terminar de
+    // desplazarse, hasta que había que arrastrarla a mano para
+    // "alcanzar" el precio actual.
+    //
+    // Ahora se agrupan los ticks que llegan muy seguido y solo se aplica
+    // el más reciente cada ~800ms — tiempo suficiente para que la
+    // animación de la librería termine antes de pedirle la siguiente —
+    // mantenien el gráfico sincronizado de forma continua y fluida en
+    // vez de en saltos que se pisan entre sí.
     const [liveScrollEpoch, setLiveScrollEpoch] = useState<number | undefined>(undefined);
+    const pendingEpochRef = useRef<number | undefined>(undefined);
+    const followLiveEpochTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const followLiveEpoch = useCallback((epoch: number | undefined) => {
         if (!epoch) return;
-        setLiveScrollEpoch(prev => (prev === epoch ? prev : epoch));
+        pendingEpochRef.current = epoch;
+
+        if (followLiveEpochTimerRef.current) return;
+
+        followLiveEpochTimerRef.current = setTimeout(() => {
+            followLiveEpochTimerRef.current = null;
+            const latestEpoch = pendingEpochRef.current;
+            setLiveScrollEpoch(prev => (prev === latestEpoch ? prev : latestEpoch));
+        }, 800);
     }, []);
+
+    useEffect(
+        () => () => {
+            if (followLiveEpochTimerRef.current) {
+                clearTimeout(followLiveEpochTimerRef.current);
+                followLiveEpochTimerRef.current = null;
+            }
+        },
+        []
+    );
 
     const extractLatestEpochFromQuotesResult = (result: any): number | undefined => {
         if (!result) return undefined;
@@ -116,9 +149,22 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
         };
     }, []);
 
+    // CORRECCIÓN (segunda parte de la causa raíz de "no carga nada"/Chart
+    // nunca sale del loader al entrar directo a #chart): este efecto solo
+    // volvía a ejecutarse cuando `symbol` cambiaba. Pero si el primer
+    // intento de `updateSymbol()` no encuentra símbolo (no hay bloque de
+    // mercado en Bot Builder Y `api_base.active_symbols` todavía está
+    // vacío porque la lista real tarda en llegar por WebSocket), `symbol`
+    // se queda en `undefined` para siempre — y como `undefined` nunca
+    // "cambia", este efecto jamás se repite por sí solo, aunque
+    // `chartData.activeSymbols` (que sí se actualiza de forma reactiva,
+    // ver useSmartChartAdaptor) termine poblándose segundos después. Ahora
+    // también reacciona a `chartData.activeSymbols`, así que en cuanto la
+    // lista de símbolos llega, se reintenta automáticamente en vez de
+    // quedar esperando un cambio que nunca iba a ocurrir.
     useEffect(() => {
         if (!symbol) updateSymbol();
-    }, [symbol, updateSymbol]);
+    }, [symbol, updateSymbol, chartData.activeSymbols]);
 
     const is_connection_opened = !!chart_api?.api;
 
@@ -132,7 +178,22 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
     };
 
     if (!symbol || chartData.activeSymbols.length === 0) {
+        // Diagnóstico: deja constancia de CUÁL de las dos condiciones es
+        // la que está bloqueando el render (y cuándo deja de hacerlo), sin
+        // inundar la consola en cada re-render mientras se mantiene igual.
+        const blocked_reason = !symbol ? 'symbol' : 'activeSymbols';
+        if (blockedReasonRef.current !== blocked_reason) {
+            blockedReasonRef.current = blocked_reason;
+            console.warn(
+                `[Chart] Esperando datos antes de poder renderizar (symbol=${symbol ?? 'undefined'}, ` +
+                    `activeSymbols.length=${chartData.activeSymbols.length}).`
+            );
+        }
         return <ChunkLoader message='' />;
+    }
+    if (blockedReasonRef.current !== null) {
+        console.warn('[Chart] Datos listos — renderizando el gráfico.');
+        blockedReasonRef.current = null;
     }
 
     return (
