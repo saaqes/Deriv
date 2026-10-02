@@ -20,10 +20,23 @@ const parseOhlc = ohlc => ({
 
 const parseCandles = candles => candles.map(t => parseOhlc(t));
 
-const updateTicks = (ticks, newTick) => (getLast(ticks).epoch >= newTick.epoch ? ticks : [...ticks.slice(1), newTick]);
+// CORRECCIÓN: "Cannot read property 'epoch' of undefined" — getLast()
+// devuelve undefined cuando la lista está vacía (ver binary-utils.ts), y
+// esto se leía directo sin comprobar. Pasaba cuando llegaba un tick/vela
+// en vivo ANTES de que el historial inicial terminara de poblar la lista
+// (o si el historial venía vacío) — el bot se caía ahí mismo y nunca
+// llegaba a operar. Ahora, si no hay nada previo, el tick/vela nuevo
+// simplemente se toma como el primero, sin comparar contra algo que no
+// existe.
+const updateTicks = (ticks, newTick) => {
+    const lastTick = getLast(ticks);
+    if (!lastTick) return [...ticks, newTick];
+    return lastTick.epoch >= newTick.epoch ? ticks : [...ticks.slice(1), newTick];
+};
 
 const updateCandles = (candles, ohlc) => {
     const lastCandle = getLast(candles);
+    if (!lastCandle) return [...candles, ohlc];
     if (
         (lastCandle.open === ohlc.open &&
             lastCandle.high === ohlc.high &&
