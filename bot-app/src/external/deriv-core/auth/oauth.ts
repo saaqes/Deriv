@@ -12,6 +12,28 @@ import {
 } from './storage';
 import { getAuthBaseUrl } from '../config/urls';
 
+// CORRECCIÓN (causa raíz final de "cargando" para siempre en Chart/Run):
+// estas llamadas a fetch() hacia el endpoint de token no tenían ningún
+// timeout. Si el servidor de autenticación tardaba o no respondía,
+// exchangeCodeForTokens()/refreshAccessToken() se quedaban colgados para
+// siempre — y esto bloquea TODA la conexión WebSocket (getSocketURL() en
+// config.ts depende de refreshAccessToken), antes incluso de que exista
+// una instancia de la API, así que ningún timeout agregado más abajo en
+// la cadena podía ayudar. Ahora cada fetch se aborta a los 10s, lo que
+// hace que la promesa se rechace de verdad y los catch ya existentes
+// (en config.ts/appId.js) puedan recuperarse en vez de quedarse colgados.
+const FETCH_TIMEOUT_MS = 10000;
+
+async function fetchWithTimeout(input: string, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /**
  * Build the base PKCE URLSearchParams shared by login and sign-up.
  * Stores a fresh CSRF token and code verifier in sessionStorage.
@@ -160,7 +182,7 @@ export async function exchangeCodeForTokens(params: TokenExchangeParams): Promis
     code_verifier: params.codeVerifier,
   });
 
-  const response = await fetch(`${getAuthBaseUrl()}/token`, {
+  const response = await fetchWithTimeout(`${getAuthBaseUrl()}/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
@@ -200,7 +222,7 @@ export async function refreshAccessToken(
     client_id: clientId,
   });
 
-  const response = await fetch(`${getAuthBaseUrl()}/token`, {
+  const response = await fetchWithTimeout(`${getAuthBaseUrl()}/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
