@@ -67,7 +67,38 @@ export default class ChartStore {
     };
 
     updateSymbol = () => {
-        const workspace = window.Blockly.derivWorkspace;
+        // CORRECCIÓN (causa raíz de "no carga nada" al entrar directo a
+        // #chart): esta función se llama incondicionalmente desde el efecto
+        // de montaje de Chart (chart.tsx: `if (!symbol) updateSymbol();`),
+        // es decir, ANTES de que exista ninguna garantía de haber abierto
+        // Bot Builder. `window.Blockly` solo se asigna dentro de
+        // `loadBlockly()` (scratch/blockly.js), que es async y se dispara
+        // al inicializar Bot Builder — si el usuario entra directo a
+        // #chart (o recarga ahí) sin haber pasado antes por Bot Builder,
+        // `window.Blockly` todavía es `undefined` en ese momento.
+        //
+        // Antes, `window.Blockly.derivWorkspace` (sin `?.` sobre
+        // `window.Blockly`) lanzaba un TypeError síncrono dentro del
+        // useEffect de Chart. React enruta ese error al ErrorBoundary
+        // global (que envuelve TODA la app), que hace `forceUpdate()` para
+        // recuperarse; pero como `symbol` nunca llegaba a asignarse, el
+        // remount repetía el mismo throw una y otra vez — hasta agotar el
+        // límite de recuperaciones (5 en 2s) y entonces el ErrorBoundary
+        // deja de reintentar y renderiza `null` para TODA la aplicación.
+        // Resultado visible: pantalla en blanco / "no carga nada" al
+        // entrar directo a #chart, exactamente el reporte del usuario.
+        //
+        // El resto del código ya sigue este mismo patrón defensivo en
+        // otros lugares (p. ej. app-store.ts: `window.Blockly?.derivWorkspace`);
+        // aquí faltaba.
+        if (!window.Blockly) {
+            console.warn(
+                '[ChartStore] updateSymbol(): window.Blockly aún no está listo (Bot Builder no se ha ' +
+                    'inicializado todavía) — usando el símbolo de active_symbols como fallback.'
+            );
+        }
+
+        const workspace = window.Blockly?.derivWorkspace;
         const market_block = workspace?.getAllBlocks().find((block: window.Blockly.Block) => {
             return block.type === 'trade_definition_market';
         });
@@ -77,6 +108,14 @@ export default class ChartStore {
             (api_base?.active_symbols[0]
                 ? (api_base.active_symbols[0] as any).underlying_symbol || (api_base.active_symbols[0] as any).symbol
                 : undefined);
+
+        if (!symbol) {
+            console.warn(
+                '[ChartStore] updateSymbol(): todavía no hay símbolo disponible (ni bloque de mercado ni ' +
+                    'active_symbols poblado). Chart seguirá mostrando el loader hasta el próximo intento.'
+            );
+        }
+
         this.symbol = symbol;
     };
 
