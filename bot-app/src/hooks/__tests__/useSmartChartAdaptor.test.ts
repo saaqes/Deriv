@@ -168,14 +168,14 @@ describe('useSmartChartAdaptor', () => {
 
             const { result } = renderHook(() => useSmartChartAdaptor());
 
-            // Fast-forward through all retries (10 retries * 200ms = 2000ms)
+            // Fast-forward through all retries (20 retries * 1500ms = 30000ms)
             await waitFor(() => {
                 expect(result.current.adapterInitialized).toBe(true);
             });
 
             // Fast-forward through retry delays
-            for (let i = 0; i < 10; i++) {
-                jest.advanceTimersByTime(200);
+            for (let i = 0; i < 20; i++) {
+                jest.advanceTimersByTime(1500);
                 await Promise.resolve(); // Allow promises to resolve
             }
 
