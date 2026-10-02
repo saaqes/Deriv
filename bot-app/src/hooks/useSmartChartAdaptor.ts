@@ -104,6 +104,10 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
 
             if (!chart_api.api) {
                 if (attempt >= maxAttempts) {
+                    console.warn(
+                        '[SmartCharts Hook] initAdapter(): chart_api.api nunca estuvo listo tras ' +
+                            `${maxAttempts} intentos (~30s) — abandonando esta ronda de inicialización.`
+                    );
                     if (isMountedRef.current) {
                         setError(new Error('Timed out waiting for chart connection to be ready'));
                         setIsLoading(false);
@@ -114,6 +118,7 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
                 pollTimeoutId = setTimeout(initAdapter, pollDelayMs);
                 return;
             }
+            console.warn(`[SmartCharts Hook] initAdapter(): chart_api.api listo tras ${attempt} intento(s).`);
 
             try {
                 const transport = createTransport();
@@ -197,6 +202,18 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
         };
 
         const loadChartData = async (retryCount = 0) => {
+            // Diagnóstico: antes este hook no dejaba NINGUNA huella en
+            // consola (ni al reintentar ni al tener éxito) porque `logger`
+            // está deshabilitado a propósito en producción — lo que hacía
+            // imposible distinguir, desde un log de consola, si el Chart
+            // seguía reintentando, si ya había cargado, o si nunca llegó
+            // siquiera a intentarlo. Se agregan aquí unos `console.warn`
+            // puntuales (solo en los cambios de estado relevantes, no en
+            // cada intento) para poder diagnosticar el problema real con
+            // el próximo log que se capture.
+            if (retryCount === 0) {
+                console.warn('[SmartCharts Hook] loadChartData(): iniciando primer intento.');
+            }
             try {
                 setIsLoading(true);
                 const data = await adapter.getChartData();
@@ -205,10 +222,16 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
                     // Sin símbolos todavía: nunca nos rendimos mientras el
                     // componente siga montado (ver comentario arriba).
                     if (data.activeSymbols.length === 0) {
+                        console.warn(
+                            `[SmartCharts Hook] loadChartData(): intento #${retryCount} devolvió 0 símbolos — reintentando.`
+                        );
                         scheduleRetry(retryCount);
                         return;
                     }
 
+                    console.warn(
+                        `[SmartCharts Hook] loadChartData(): éxito en el intento #${retryCount} — ${data.activeSymbols.length} símbolos activos.`
+                    );
                     setChartData({
                         activeSymbols: data.activeSymbols,
                         tradingTimes: data.tradingTimes,
@@ -220,6 +243,10 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
                     // Deja constancia del error (por si algo más lo usa),
                     // pero igual sigue reintentando — nunca se detiene por
                     // su cuenta, ver comentario arriba.
+                    console.warn(
+                        `[SmartCharts Hook] loadChartData(): intento #${retryCount} falló — reintentando.`,
+                        err
+                    );
                     setError(err instanceof Error ? err : new Error('Failed to load chart data'));
                     scheduleRetry(retryCount);
                     return;
