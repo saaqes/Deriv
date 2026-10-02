@@ -3,7 +3,9 @@
  * Wraps the existing chart_api.api to match the TTransport interface
  */
 
+import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import chart_api from '@/external/bot-skeleton/services/api/chart-api';
+import { chartDebugLog } from '@/external/bot-skeleton/utils/mobile-trade-debug';
 import type { TTransport } from './types';
 
 // Logger utility for transport layer
@@ -11,6 +13,71 @@ const logger = {
     log: () => {}, // Disabled in production
     warn: console.warn.bind(console, '[SmartCharts Transport]'),
     error: console.error.bind(console, '[SmartCharts Transport]'),
+};
+
+// CORRECCIÓN: una petición one-shot (ticks_history, usada por getQuotes para
+// el historial inicial) enviada contra un socket "zombie" (readyState sigue
+// reportando OPEN aunque el sistema operativo ya mató la conexión real, algo
+// común en móvil al volver de segundo plano) nunca se resuelve ni se
+// rechaza — se queda esperando para siempre, y con ella el "obteniendo
+// datos" del Chart. Se agrega un timeout: si se cumple, se comprueba la
+// conexión con un ping real (api_base.checkConnectionAlive, ya usado para el
+// mismo problema en el flujo de compra); si está muerta, se fuerza una
+// reconexión y se reintenta la petición UNA sola vez contra el socket nuevo
+// (nunca más de una vez, para no duplicar peticiones). Si sigue sin
+// responder, se rechaza con un error claro en vez de quedarse esperando.
+const TRANSPORT_SEND_TIMEOUT_MS = 12000;
+const RECONNECT_SETTLE_MS = 1500;
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const sendWithTimeout = (request: any): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        const timeout = setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            reject(new Error('transport.send timed out'));
+        }, TRANSPORT_SEND_TIMEOUT_MS);
+
+        chart_api.api
+            .send(request)
+            .then((response: any) => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeout);
+                resolve(response);
+            })
+            .catch((error: any) => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeout);
+                reject(error);
+            });
+    });
+};
+
+const sendWithRecovery = async (request: any): Promise<any> => {
+    try {
+        return await sendWithTimeout(request);
+    } catch (error) {
+        chartDebugLog('getQuotes/send timed out or failed, checking connection health...', error);
+
+        const alive = await api_base.checkConnectionAlive(4000);
+        if (!alive) {
+            chartDebugLog('chart connection appears dead, forcing reconnect');
+            api_base.forceReconnect('chart transport.send timeout');
+            await delay(RECONNECT_SETTLE_MS);
+        }
+
+        if (!chart_api.api) {
+            await chart_api.init();
+        }
+
+        // Single retry only — never resend more than once, to avoid
+        // duplicating historical-data requests.
+        return sendWithTimeout(request);
+    }
 };
 
 /**
@@ -133,7 +200,7 @@ export function createTransport(): TTransport {
             if (!chart_api.api) {
                 await chart_api.init();
             }
-            return chart_api.api.send(request);
+            return sendWithRecovery(request);
         },
 
         /**
