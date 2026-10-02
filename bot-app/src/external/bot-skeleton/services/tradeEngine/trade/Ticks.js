@@ -55,13 +55,39 @@ export default Engine =>
             });
         }
 
-        getLastTick(raw, toString = false) {
+        // CORRECCIÓN: "Cannot read property 'epoch' of undefined" — cuando
+        // this.$scope.ticksService.request() resolvía con una lista de
+        // ticks VACÍA (ej. carrera al iniciar el bot, o el caso
+        // "AlreadySubscribed" en ticks_service.js que puede resolver []
+        // si todavía no había ticks guardados para ese símbolo),
+        // getLast(ticks) devolvía undefined y se le leía .epoch/.quote
+        // directo — el bot se caía ahí mismo y nunca llegaba a operar.
+        // Ahora, si todavía no hay ningún tick, se reintenta unas pocas
+        // veces con una espera corta en vez de resolver con undefined —
+        // el bot espera el primer dato real en lugar de romperse.
+        getLastTick(raw, toString = false, attempt = 0) {
+            const MAX_ATTEMPTS = 25; // ~5s en total (25 x 200ms)
+            const RETRY_DELAY_MS = 200;
+
             return new Promise((resolve, reject) =>
                 this.$scope.ticksService
                     .request({ symbol: this.symbol })
                     .then(ticks => {
+                        const lastTick = getLast(ticks);
+
+                        if (!lastTick) {
+                            if (attempt >= MAX_ATTEMPTS) {
+                                reject(new Error('No hay ticks disponibles todavía para este símbolo.'));
+                                return;
+                            }
+                            setTimeout(() => {
+                                this.getLastTick(raw, toString, attempt + 1).then(resolve).catch(reject);
+                            }, RETRY_DELAY_MS);
+                            return;
+                        }
+
                         try {
-                            let last_tick = raw ? getLast(ticks) : getLast(ticks).quote;
+                            let last_tick = raw ? lastTick : lastTick.quote;
                             if (!raw && toString) {
                                 last_tick = last_tick.toFixed(this.getPipSize());
                             }
@@ -78,6 +104,8 @@ export default Engine =>
                             };
                             globalObserver.emit('Error', localizedError);
                             resolve(e.code);
+                        } else {
+                            reject(e);
                         }
                     })
             );
