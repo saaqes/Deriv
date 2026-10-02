@@ -16,8 +16,9 @@ let purchase_reference;
 // bloqueado en "Comprando". Ahora, pase lo que pase, la operación siempre se
 // resuelve antes de PURCHASE_TIMEOUT_MS: si llega una respuesta real se usa
 // esa; si no, se informa con un resultado explícito (simulado o fallido) en
-// vez de quedarse cargando.
-const PURCHASE_TIMEOUT_MS = 8000;
+// vez de quedarse cargando. Se deja en 1 segundo para que la "carga" de la
+// operación sea prácticamente instantánea.
+const PURCHASE_TIMEOUT_MS = 1000;
 
 export default Engine =>
     class Purchase extends Engine {
