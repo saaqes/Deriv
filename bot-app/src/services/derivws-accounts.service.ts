@@ -46,6 +46,30 @@ interface OTPResponse {
  * - Singleton pattern to prevent duplicate API calls
  * - Promise caching to handle concurrent requests
  */
+// CORRECCIÓN (Run/Chart se quedan "cargando" para siempre, causa raíz
+// final): ni fetchAccountsList() ni fetchOTPWebSocketURL() tenían ningún
+// timeout en su fetch(). Si cualquiera de estos dos endpoints (resolución
+// de cuentas / OTP del WebSocket) tardaba o nunca respondía, la promesa
+// jamás se resolvía NI se rechazaba — y esto ocurre ANTES de que exista
+// cualquier instancia de chart_api.api/api_base.api, así que ningún
+// timeout agregado más abajo (transport.ts, fake-broker.ts) podía ayudar:
+// el WebSocket de Deriv ni siquiera llegaba a crearse. Ahora cada fetch()
+// se aborta a los 10s con AbortController, lo que hace que la promesa se
+// rechace de verdad (en vez de quedar colgada) y el catch existente de
+// cada método pueda limpiar su promesa en caché y permitir un reintento,
+// o que getSocketURL() caiga al servidor por defecto en vez de colgarse.
+const FETCH_TIMEOUT_MS = 10000;
+
+async function fetchWithTimeout(input: string, init?: RequestInit): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+        return await fetch(input, { ...init, signal: controller.signal });
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
 export class DerivWSAccountsService {
     // Singleton instance for promise caching
     private static accountsFetchPromise: Promise<DerivAccount[]> | null = null;
@@ -158,7 +182,7 @@ export class DerivWSAccountsService {
                 const OptionsDir = brandConfig.platform.derivws.directories.options;
                 const endpoint = `${baseURL}${OptionsDir}accounts`;
 
-                const response = await fetch(endpoint, {
+                const response = await fetchWithTimeout(endpoint, {
                     method: 'GET',
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
@@ -222,7 +246,7 @@ export class DerivWSAccountsService {
                 const optionsDir = brandConfig.platform.derivws.directories.options;
                 const endpoint = `${baseURL}${optionsDir}accounts/${accountId}/otp`;
 
-                const response = await fetch(endpoint, {
+                const response = await fetchWithTimeout(endpoint, {
                     method: 'POST',
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
