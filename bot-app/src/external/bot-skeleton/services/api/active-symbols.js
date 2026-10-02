@@ -50,6 +50,12 @@ export default class ActiveSymbols {
             return this.active_symbols;
         }
 
+        // CORRECCIÓN: cada intento de carga empieza "limpio". Si un intento
+        // anterior falló y dejó has_initialization_error en true, ese
+        // estado no debe contaminar el resultado de un reintento posterior
+        // que sí logra obtener símbolos (ver más abajo).
+        this.has_initialization_error = false;
+
         // Wait for api_base to have symbols available
         if (api_base.has_active_symbols) {
             this.active_symbols = api_base?.active_symbols ?? [];
@@ -93,7 +99,24 @@ export default class ActiveSymbols {
             }
         }
 
-        this.is_initialised = true;
+        // CORRECCIÓN (causa raíz del Chart quedando "obteniendo datos" para
+        // siempre): antes, this.is_initialised se marcaba en true pasara lo
+        // que pasara, incluso cuando el intento terminó con
+        // has_initialization_error = true (sin símbolos reales, por un
+        // active_symbols request lento/fallido — frecuente en redes
+        // móviles). Como el bloque de arriba devuelve el array cacheado de
+        // inmediato cuando is_initialised es true, una vez que un primer
+        // intento fallaba, TODAS las llamadas futuras a
+        // retrieveActiveSymbols() (incluidos los reintentos del hook del
+        // Chart) volvían a recibir ese mismo [] cacheado para siempre, sin
+        // volver a intentar la carga — aunque api_base lograra obtener los
+        // símbolos poco después en segundo plano (su propio
+        // scheduleActiveSymbolsRetry). Al no marcar is_initialised cuando
+        // el intento falló, la siguiente llamada vuelve a intentar la
+        // carga real en vez de quedarse con el resultado vacío cacheado.
+        if (!this.has_initialization_error) {
+            this.is_initialised = true;
+        }
         this.processed_symbols = this.processActiveSymbols();
 
         this.trading_times.onMarketOpenCloseChanged = changes => {
