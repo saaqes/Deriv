@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
 /* [AI] - Analytics removed - rudderstack event tracking removed */
@@ -36,53 +36,21 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
     // scrollToEpoch (prop pública y documentada de SmartCharts, ver
     // README oficial de @deriv-com/smartcharts-champion): "Scrolls the
     // chart to the leftmost side and sets the last spot/bar as the
-    // first visible spot/bar in the chart." El requisito es que el
-    // gráfico esté SIEMPRE siguiendo el precio en vivo — al entrar,
-    // durante una operación y después de que termina — sin quedarse
-    // "atrás".
+    // first visible spot/bar in the chart."
     //
-    // CORRECCIÓN: al principio se actualizaba scrollToEpoch con CADA tick
-    // nuevo, sin agrupar. La librería dispara una animación de "saltar al
-    // último precio" cada vez que este valor cambia — y si llega un tick
-    // nuevo antes de que esa animación termine (los índices de
-    // volatilidad pueden tickear varias veces por segundo), la reinicia
-    // sin dejarla completar. El resultado visible era justo lo contrario
-    // de lo buscado: en vez de seguir el precio en vivo, la vista se
-    // quedaba atascada/atrasada, acumulando ticks sin terminar de
-    // desplazarse, hasta que había que arrastrarla a mano para
-    // "alcanzar" el precio actual.
-    //
-    // Ahora se agrupan los ticks que llegan muy seguido y solo se aplica
-    // el más reciente cada ~800ms — tiempo suficiente para que la
-    // animación de la librería termine antes de pedirle la siguiente —
-    // mantenien el gráfico sincronizado de forma continua y fluida en
-    // vez de en saltos que se pisan entre sí.
+    // Antes se calculaba UNA SOLA VEZ al cargar, para no pelear con el
+    // desplazamiento manual del usuario. Ahora se actualiza con CADA tick
+    // nuevo que llega (dato real, no simulado) a propósito: el
+    // requisito es que el gráfico esté SIEMPRE siguiendo el precio en
+    // vivo — al entrar, durante una operación y después de que termina —
+    // sin quedarse "atrás" a la izquierda. Cada epoch nuevo dispara de
+    // nuevo el scroll-to-live de la librería.
     const [liveScrollEpoch, setLiveScrollEpoch] = useState<number | undefined>(undefined);
-    const pendingEpochRef = useRef<number | undefined>(undefined);
-    const followLiveEpochTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const followLiveEpoch = useCallback((epoch: number | undefined) => {
         if (!epoch) return;
-        pendingEpochRef.current = epoch;
-
-        if (followLiveEpochTimerRef.current) return;
-
-        followLiveEpochTimerRef.current = setTimeout(() => {
-            followLiveEpochTimerRef.current = null;
-            const latestEpoch = pendingEpochRef.current;
-            setLiveScrollEpoch(prev => (prev === latestEpoch ? prev : latestEpoch));
-        }, 800);
+        setLiveScrollEpoch(prev => (prev === epoch ? prev : epoch));
     }, []);
-
-    useEffect(
-        () => () => {
-            if (followLiveEpochTimerRef.current) {
-                clearTimeout(followLiveEpochTimerRef.current);
-                followLiveEpochTimerRef.current = null;
-            }
-        },
-        []
-    );
 
     const extractLatestEpochFromQuotesResult = (result: any): number | undefined => {
         if (!result) return undefined;
