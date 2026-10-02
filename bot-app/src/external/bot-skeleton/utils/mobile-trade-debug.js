@@ -7,7 +7,12 @@
 // Cambiar a `true` temporalmente para depurar un problema de compra o de
 // reconexión del WebSocket en un dispositivo móvil; dejar en `false` en uso
 // normal (incluida producción).
-export const DEBUG_MOBILE_TRADE = false;
+// CORRECCIÓN TEMPORAL DE DIAGNÓSTICO: activado para poder ver en consola el
+// flujo completo RUN -> Purchase -> WebSocket -> contract.purchase_received/
+// failed mientras se investiga el reporte de que el botón Run no ejecuta la
+// operación. Volver a `false` una vez identificada y confirmada la causa
+// real (ver comentario original debajo).
+export const DEBUG_MOBILE_TRADE = true;
 
 export const mobileTradeLog = (...args) => {
     if (!DEBUG_MOBILE_TRADE) return;
