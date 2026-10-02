@@ -11,11 +11,18 @@
  * iterate on the UI locally without a real Deriv account or real trades.
  *
  * Lets DBot actually run against the mock account instead of just showing
- * fake account buttons: `buy`, `sell`, `balance`, and `proposal_open_contract`
- * requests are intercepted and settled against a local fake balance. Ticks,
- * proposal price quotes, and active_symbols still go to Deriv's real API —
- * those endpoints don't need a token, so market data stays real. No request
- * that could touch a real account (buy/sell/balance) ever reaches Deriv.
+ * fake account buttons: `buy`, `sell`, `balance`, `proposal_open_contract`,
+ * `ticks_history` (history + live tick/ohlc stream) and `proposal` requests
+ * are all intercepted and settled/generated locally (see
+ * fake-market-data.ts for the synthetic price engine). This is intentional
+ * ("modo simulado total"): relying on Deriv's real market-data feed left
+ * the Chart and the bot's strategy engine permanently stuck waiting
+ * ("obteniendo datos" / "esperando señal para comprar un contrato")
+ * whenever that real connection didn't respond in time. No request that
+ * could touch a real account (buy/sell/balance) ever reaches Deriv, and
+ * now neither does ticks/proposal — only `active_symbols`/`trading_times`
+ * still go to the real API (and even those have a UI-level fallback, see
+ * useSmartChartAdaptor.ts).
  *
  * Settlement: every contract, of any type, resolves with a fixed 92.3% win /
  * 7.7% loss probability — not based on real market movement. The exit price
@@ -32,6 +39,7 @@ import { Subject } from 'rxjs';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { CONNECTION_STATUS, connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { applyMockBalanceDelta, getActiveMockAccount, isMockLoginAvailable } from '@/external/deriv-core/auth/mock-login';
+import { buildCandleHistory, buildTickHistory, currentPrice, pipSizeFor, stepPrice } from './fake-market-data';
 
 let patchedApiRef: any = null;
 let watcherStarted = false;
@@ -39,6 +47,13 @@ let realSend: ((data: unknown) => Promise<any>) | null = null;
 const fakeMessages$ = new Subject<{ data: any }>();
 const proposalCache = new Map<string, any>();
 const openContracts = new Map<string, any>();
+// MODO SIMULADO TOTAL: streams de ticks/velas 100% locales (ver
+// fake-market-data.ts) — no dependen de que el WebSocket real a Deriv
+// entregue datos a tiempo. Evita que el bot se quede para siempre
+// "esperando señal para comprar un contrato" cuando esa respuesta real
+// nunca llega en el entorno del usuario.
+const tickStreamIntervals = new Map<string, ReturnType<typeof setInterval>>();
+const ohlcStreamIntervals = new Map<string, ReturnType<typeof setInterval>>();
 
 // Re-patch the instant the WebSocket actually opens (fresh connection or
 // reconnect), instead of only relying on the slower interval watcher below.
@@ -72,16 +87,14 @@ function unitToMs(duration: number, duration_unit: string): number {
 const genId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
 async function fetchRealSpot(symbol: string): Promise<number | undefined> {
-    if (!realSend || !symbol) return undefined;
-    try {
-        const res = await realSend({ ticks_history: symbol, count: 1, end: 'latest', style: 'ticks' });
-        const prices = res?.history?.prices;
-        if (Array.isArray(prices) && prices.length) return Number(prices[prices.length - 1]);
-    } catch {
-        // Market data unavailable (closed market, bad symbol, etc.) — the
-        // caller falls back to the probability-weighted settlement.
-    }
-    return undefined;
+    if (!symbol) return undefined;
+    // MODO SIMULADO TOTAL: antes esto pedía un precio real al servidor
+    // (vía realSend), lo que podía quedarse colgado exactamente igual que
+    // el resto de las llamadas reales cuando el WebSocket no responde a
+    // tiempo. Usar directamente el precio sintético local (siempre
+    // disponible, nunca espera a nadie) para el precio de salida del
+    // contrato.
+    return currentPrice(symbol);
 }
 
 // "Porcentaje de ganancia" configurado en Home (ver Notifications ->
@@ -155,6 +168,47 @@ async function settleContract(contract_id: string): Promise<void> {
     pushBalanceMessage();
 }
 
+/**
+ * Construye una cotización (proposal) 100% local a partir del precio
+ * sintético actual del símbolo — ver fake-market-data.ts. Reemplaza la
+ * llamada real (`proposal: 1` al servidor de Deriv) que antes se usaba
+ * aquí, y que podía quedarse esperando para siempre igual que el resto de
+ * las llamadas reales si el WebSocket no respondía a tiempo.
+ */
+function buildSyntheticProposal(params: {
+    amount?: number;
+    basis?: string;
+    contract_type?: string;
+    currency?: string;
+    duration?: number;
+    duration_unit?: string;
+    symbol: string;
+    barrier?: unknown;
+    multiplier?: number;
+}): any {
+    const spot = currentPrice(params.symbol);
+    const amount = Number(params.amount) || 0;
+    const payout = Math.round(amount * 1.85 * 100) / 100;
+    return {
+        id: genId('proposal'),
+        ask_price: amount,
+        display_value: String(amount),
+        payout,
+        spot,
+        spot_time: Math.floor(Date.now() / 1000),
+        date_start: Math.floor(Date.now() / 1000),
+        longcode: 'Mock contract (local dev, no real money)',
+        shortcode: `${params.contract_type}_MOCK`,
+        contract_type: params.contract_type,
+        underlying: params.symbol,
+        barrier: params.barrier,
+        duration: params.duration,
+        duration_unit: params.duration_unit,
+        currency: params.currency,
+        multiplier: params.multiplier,
+    };
+}
+
 async function handleBuy(data: any): Promise<any> {
     const acc = getActiveMockAccount();
     if (!acc) {
@@ -165,26 +219,20 @@ async function handleBuy(data: any): Promise<any> {
     let cachedProposal: any;
 
     if (data.buy === '1' && data.parameters) {
-        // Direct buy (no prior proposal subscription) — grab one real, live
-        // quote first so the price/payout reflect a genuine market price.
+        // Direct buy (no prior proposal subscription) — cotización
+        // sintética local, instantánea (ver buildSyntheticProposal arriba).
         params = data.parameters;
-        try {
-            cachedProposal = (
-                await realSend?.({
-                    proposal: 1,
-                    amount: params.amount,
-                    basis: params.basis,
-                    contract_type: params.contract_type,
-                    currency: params.currency,
-                    duration: params.duration,
-                    duration_unit: params.duration_unit,
-                    symbol: params.underlying_symbol,
-                    barrier: params.barrier,
-                })
-            )?.proposal;
-        } catch {
-            cachedProposal = null;
-        }
+        cachedProposal = buildSyntheticProposal({
+            amount: params.amount,
+            basis: params.basis,
+            contract_type: params.contract_type,
+            currency: params.currency,
+            duration: params.duration,
+            duration_unit: params.duration_unit,
+            symbol: params.underlying_symbol,
+            barrier: params.barrier,
+            multiplier: params.multiplier,
+        });
     } else {
         cachedProposal = proposalCache.get(data.buy);
         params = {
@@ -344,6 +392,123 @@ function handleProposalOpenContractPoll(data: any): Promise<any> {
 }
 
 /**
+ * Arranca (si no existe ya) el stream local de ticks/velas en vivo para un
+ * símbolo — empuja mensajes `tick`/`ohlc` sintéticos por fakeMessages$,
+ * igual que lo haría el servidor real, pero sin depender de él.
+ */
+function ensureTickStream(symbol: string): void {
+    if (tickStreamIntervals.has(symbol)) return;
+    const id = setInterval(() => {
+        const quote = stepPrice(symbol);
+        fakeMessages$.next({
+            data: {
+                msg_type: 'tick',
+                tick: {
+                    symbol,
+                    id: genId('tick_sub'),
+                    quote,
+                    epoch: Math.floor(Date.now() / 1000),
+                    pip_size: Math.max(0, String(pipSizeFor(symbol)).split('.')[1]?.length ?? 2),
+                },
+            },
+        });
+    }, APPROX_TICK_MS);
+    tickStreamIntervals.set(symbol, id);
+}
+
+function ensureOhlcStream(symbol: string, granularity: number): void {
+    const key = `${symbol}_${granularity}`;
+    if (ohlcStreamIntervals.has(key)) return;
+
+    let bucketStart = Math.floor(Date.now() / 1000 / granularity) * granularity;
+    let open = currentPrice(symbol);
+    let high = open;
+    let low = open;
+
+    const id = setInterval(() => {
+        const quote = stepPrice(symbol);
+        const nowSec = Math.floor(Date.now() / 1000);
+        const currentBucket = Math.floor(nowSec / granularity) * granularity;
+
+        if (currentBucket !== bucketStart) {
+            // Nueva vela: la anterior cierra, la nueva arranca en el mismo precio.
+            bucketStart = currentBucket;
+            open = quote;
+            high = quote;
+            low = quote;
+        } else {
+            high = Math.max(high, quote);
+            low = Math.min(low, quote);
+        }
+
+        fakeMessages$.next({
+            data: {
+                msg_type: 'ohlc',
+                ohlc: {
+                    symbol,
+                    granularity,
+                    id: genId('ohlc_sub'),
+                    open,
+                    high,
+                    low,
+                    close: quote,
+                    open_time: bucketStart,
+                    epoch: bucketStart,
+                },
+            },
+        });
+    }, APPROX_TICK_MS);
+    ohlcStreamIntervals.set(key, id);
+}
+
+/**
+ * Intercepta `ticks_history` (con o sin `subscribe: 1`) — tanto el
+ * historial inicial como el stream en vivo pasan a ser 100% locales (ver
+ * fake-market-data.ts). Esta es la causa raíz de que el bot se quedara
+ * "esperando señal para comprar un contrato" para siempre: antes esta
+ * llamada iba al servidor real y, si no respondía a tiempo, la promesa
+ * nunca se resolvía — el intérprete de estrategia jamás recibía un tick
+ * con el que evaluar sus condiciones.
+ */
+function handleTicksHistory(data: any): Promise<any> {
+    const symbol = data.ticks_history === 'na' ? 'R_100' : data.ticks_history;
+    const granularity = Number(data.granularity) || 0;
+    const count = Number(data.count) || 1000;
+
+    if (granularity > 0) {
+        const candles = buildCandleHistory(symbol, count, granularity);
+        if (data.subscribe) ensureOhlcStream(symbol, granularity);
+        return Promise.resolve({ msg_type: 'candles', echo_req: data, candles });
+    }
+
+    const { times, prices } = buildTickHistory(symbol, count);
+    if (data.subscribe) ensureTickStream(symbol);
+    return Promise.resolve({ msg_type: 'history', echo_req: data, history: { times, prices } });
+}
+
+/**
+ * Intercepta `proposal` (cotización indicativa, usada por el motor de
+ * estrategias antes de un `buy` basado en id de propuesta). Igual que
+ * ticks_history, era una de las llamadas que podía quedarse colgada
+ * esperando al servidor real.
+ */
+function handleProposalSubscribe(data: any): Promise<any> {
+    const proposal = buildSyntheticProposal({
+        amount: data.amount,
+        basis: data.basis,
+        contract_type: data.contract_type,
+        currency: data.currency,
+        duration: data.duration,
+        duration_unit: data.duration_unit,
+        symbol: data.symbol,
+        barrier: data.barrier,
+        multiplier: data.multiplier,
+    });
+    proposalCache.set(proposal.id, proposal);
+    return Promise.resolve({ msg_type: 'proposal', echo_req: data, proposal });
+}
+
+/**
  * Patches api_base.api.send / onMessage so buy/sell/balance are simulated
  * locally whenever a mock account is active. Safe to call more than once —
  * only installs itself the first time, and retries shortly if api_base.api
@@ -432,9 +597,24 @@ export function installFakeBroker(): void {
                 proposal_open_contract: {},
             });
         }
+        // MODO SIMULADO TOTAL: ticks_history (historial + stream en vivo) y
+        // proposal (cotización indicativa) ahora se generan 100% en local
+        // (ver fake-market-data.ts) en vez de depender del servidor real —
+        // ver comentarios en handleTicksHistory/handleProposalSubscribe.
+        if (data?.ticks_history !== undefined) {
+            return handleTicksHistory(data);
+        }
+        if (data?.proposal !== undefined && data?.symbol) {
+            return handleProposalSubscribe(data);
+        }
+        if (data?.forget !== undefined || data?.forget_all !== undefined) {
+            // Todos nuestros streams en vivo (tick/ohlc/balance/contrato)
+            // son locales — no hay nada real que "olvidar" en el servidor.
+            return Promise.resolve({ msg_type: data?.forget !== undefined ? 'forget' : 'forget_all', forget: 1 });
+        }
 
-        // Everything else (ticks, proposal quotes, active_symbols, forget,
-        // ...) is public market data — send it to the real API untouched.
+        // Everything else (active_symbols, trading_times, ...) is public
+        // market data — send it to the real API untouched.
         return realSend!(data);
     };
 
