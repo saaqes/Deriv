@@ -187,8 +187,18 @@ describe('useSmartChartAdaptor', () => {
                 { timeout: 5000 }
             );
 
-            expect(result.current.chartData.activeSymbols).toEqual([]);
-            expect(result.current.chartData.tradingTimes).toEqual({});
+            // MODO SIMULADO TOTAL: si no llegan símbolos reales dentro de
+            // FALLBACK_AFTER_MS (4000ms), el hook deja de esperar y usa los
+            // símbolos de respaldo (Índices de Volatilidad) para que el
+            // Chart pueda operar de inmediato en vez de quedarse vacío
+            // para siempre.
+            expect(result.current.chartData.activeSymbols.length).toBeGreaterThan(0);
+            expect(result.current.chartData.activeSymbols[0].symbol).toBe('R_10');
+            expect(result.current.chartData.tradingTimes.R_100).toEqual({
+                isOpen: true,
+                openTime: '00:00:00',
+                closeTime: '23:59:59',
+            });
 
             jest.useRealTimers();
         });
