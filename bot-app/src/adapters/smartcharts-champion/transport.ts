@@ -13,6 +13,32 @@ const logger = {
     error: console.error.bind(console, '[SmartCharts Transport]'),
 };
 
+// CORRECCIÓN (Chart otra vez sin cargar tras volver a usar la API real):
+// ninguna llamada de este archivo tenía timeout ni reintento — si
+// `chart_api.api.send(...)` se quedaba sin responder (red inestable,
+// servidor lento, etc.), tanto `send()` (usada para el historial inicial)
+// como `establishSubscription()` (usada para el stream en vivo) se
+// quedaban esperando esa promesa PARA SIEMPRE, sin ningún mecanismo de
+// recuperación — a diferencia de ticks_service.js (usado por el motor de
+// estrategias del bot), que ya envuelve sus llamadas en `doUntilDone` con
+// reintento y backoff. Por eso el bot podía funcionar mientras el Chart se
+// quedaba trabado en "obteniendo datos". Ahora ambas rutas tienen un
+// timeout y reintentan con backoff en vez de esperar indefinidamente —
+// usando siempre datos REALES de Deriv (nunca inventados), solo con
+// resiliencia ante una respuesta lenta o perdida.
+const REQUEST_TIMEOUT_MS = 8000;
+const MAX_RETRY_DELAY_MS = 10000;
+
+function sendWithTimeout(request: any): Promise<any> {
+    if (!chart_api.api) return Promise.reject(new Error('Chart API not initialized'));
+    return Promise.race([
+        chart_api.api.send(request),
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Timed out waiting for response to ${JSON.stringify(request)}`)), REQUEST_TIMEOUT_MS)
+        ),
+    ]);
+}
+
 /**
  * Create transport wrapper around chart_api.api
  * @returns TTransport implementation
@@ -27,7 +53,7 @@ export function createTransport(): TTransport {
     // registro de onReconnect más abajo) — en ese caso se reutiliza el
     // mismo tempId (y por lo tanto la misma callback ya entregada al que
     // llamó a subscribe()), solo se reemplaza la conexión interna.
-    const establishSubscription = (tempId: string, subscribeRequest: any, callback: (response: any) => void) => {
+    const establishSubscription = (tempId: string, subscribeRequest: any, callback: (response: any) => void, retryCount = 0) => {
         if (!chart_api.api) return;
 
         let initialResponseDelivered = false;
@@ -79,9 +105,8 @@ export function createTransport(): TTransport {
             realSubscriptionId: null, // Will be set when we get the first response
         });
 
-        // Send the subscription request
-        chart_api.api
-            .send(subscribeRequest)
+        // Send the subscription request (con timeout — ver REQUEST_TIMEOUT_MS)
+        sendWithTimeout(subscribeRequest)
             .then((response: any) => {
                 const subscriptionId = response?.subscription?.id;
 
@@ -92,13 +117,30 @@ export function createTransport(): TTransport {
                 }
             })
             .catch((error: any) => {
-                logger.error('Subscription failed:', error);
-                // Clean up failed subscription
+                // No respondió a tiempo (o el servidor rechazó la
+                // petición) — en vez de abandonar la suscripción para
+                // siempre, se reintenta con backoff mientras nadie haya
+                // llamado a unsubscribe() (si llamó, el tempId ya no
+                // está en `subscriptions` y el chequeo de abajo lo evita).
+                logger.warn(`Subscription attempt #${retryCount} failed, retrying:`, error);
                 const storedSub = subscriptions.get(tempId);
-                if (storedSub?.messageSubscription) {
-                    storedSub.messageSubscription.unsubscribe();
+                if (!storedSub) return; // se canceló mientras tanto
+
+                if (storedSub.messageSubscription) {
+                    try {
+                        storedSub.messageSubscription.unsubscribe();
+                    } catch {
+                        // ignore
+                    }
                 }
-                subscriptions.delete(tempId);
+
+                const delayMs = Math.min(1000 * 2 ** retryCount, MAX_RETRY_DELAY_MS);
+                const retryTimeoutId = setTimeout(() => {
+                    establishSubscription(tempId, subscribeRequest, callback, retryCount + 1);
+                }, delayMs);
+                // Guardamos el timeout para poder cancelarlo si llega un
+                // unsubscribe() mientras se espera el próximo intento.
+                subscriptions.set(tempId, { ...storedSub, retryTimeoutId });
             });
     };
 
@@ -127,13 +169,38 @@ export function createTransport(): TTransport {
 
     return {
         /**
-         * Send one-shot API request
+         * Send one-shot API request (p.ej. el historial inicial que pide
+         * getQuotes() al montar el gráfico). Con timeout + reintento con
+         * backoff (máx. 3 intentos) en vez de esperar indefinidamente o
+         * rendirse a la primera: si el request nunca llega a responder,
+         * getQuotes() quedaría devolviendo velas vacías para siempre sin
+         * esto.
          */
         async send(request: any): Promise<any> {
             if (!chart_api.api) {
                 await chart_api.init();
             }
-            return chart_api.api.send(request);
+
+            const MAX_SEND_ATTEMPTS = 3;
+            let lastError: unknown;
+
+            for (let attempt = 0; attempt < MAX_SEND_ATTEMPTS; attempt++) {
+                try {
+                    if (!chart_api.api) {
+                        await chart_api.init();
+                    }
+                    return await sendWithTimeout(request);
+                } catch (error) {
+                    lastError = error;
+                    logger.warn(`send() attempt #${attempt + 1} failed, retrying:`, error);
+                    if (attempt < MAX_SEND_ATTEMPTS - 1) {
+                        const delayMs = Math.min(1000 * 2 ** attempt, MAX_RETRY_DELAY_MS);
+                        await new Promise(resolve => setTimeout(resolve, delayMs));
+                    }
+                }
+            }
+
+            throw lastError;
         },
 
         /**
