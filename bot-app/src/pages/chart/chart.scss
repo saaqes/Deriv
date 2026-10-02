@@ -1,217 +1,193 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import classNames from 'classnames';
-import { observer } from 'mobx-react-lite';
-/* [AI] - Analytics removed - rudderstack event tracking removed */
-/* [/AI] */
-import ChunkLoader from '@/components/loader/chunk-loader';
-import chart_api from '@/external/bot-skeleton/services/api/chart-api';
-import { useSmartChartAdaptor } from '@/hooks/useSmartChartAdaptor';
-import { useStore } from '@/hooks/useStore';
-import { ChartTitle, SmartChart, TGranularity, TStateChangeListener } from '@deriv-com/smartcharts-champion';
-import { useDevice } from '@deriv-com/ui';
-import ToolbarWidgets from './toolbar-widgets';
-import '@deriv-com/smartcharts-champion/dist/smartcharts.css';
+// ⚠️ NO agregar reglas .dc-drawer aquí NUNCA.
+//
+// Este archivo contenía una copia COMPLETA y desactualizada de la
+// regla .dc-drawer (idéntica a bot-app/src/components/shared_ui/drawer/drawer.scss,
+// pero con versiones antiguas de esos cambios). Al compilarse en el
+// bundle, esa copia duplicada podía ganar la cascada CSS sobre la
+// versión real y actualizada, anulando en silencio los ajustes hechos
+// ahí — específicamente en la página de Chart, que es donde vive
+// este archivo. Esto ha reaparecido más de una vez entre distintas
+// subidas del proyecto.
+//
+// La ÚNICA definición de .dc-drawer que debe existir en todo el
+// proyecto es la de drawer.scss — cualquier ajuste al drawer va ahí,
+// nunca aquí. Si en algún momento este archivo vuelve a tener una
+// regla .dc-drawer, es un error: hay que eliminarla, no corregirla.
+//
+// El archivo se mantiene vacío (en vez de borrarlo) porque
+// chart-wrapper.tsx todavía lo importa (`import './chart.scss'`).
 
-const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) => {
-    const barriers: [] = [];
-    const { common, ui } = useStore();
-    const { chart_store, run_panel, dashboard } = useStore();
-    const [isSafari, setIsSafari] = useState(false);
+// Barra de botones encima de la gráfica (ChartMode + DrawTools, los únicos
+// que quedan renderizados — ver toolbar-widgets.tsx). La librería los coloca
+// por defecto en columna vertical (.sc-toolbar-widget{flex-direction:column}),
+// pegada al borde izquierdo. Se fuerza a fila horizontal con separación entre
+// los dos botones.
+.dashboard__chart-wrapper {
+    .sc-toolbar-widget {
+        flex-direction: row !important;
+        // Más juntos que antes (traía 0.3rem).
+        gap: 0.1rem !important;
+        width: auto !important;
+        // Subida desde el borde inferior (donde vivía por defecto, a ~24-48px)
+        // hasta cerca de la mitad de la gráfica, sin llegar a estar centrada.
+        // calc() le resta 100px al 35% para bajarla sin perder el porcentaje
+        // (que la mantiene proporcional al alto de la gráfica).
+        bottom: calc(35% - 100px) !important;
 
-    const {
-        chart_type,
-        getMarketsOrder,
-        granularity,
-        onSymbolChange,
-        setChartStatus,
-        symbol,
-        updateChartType,
-        updateGranularity,
-        updateSymbol,
-    } = chart_store;
+        &__items {
+            display: flex !important;
+            position: static !important;
+            width: auto !important;
+        }
 
-    // Use the custom hook for SmartChart Adaptor
-    const { chartData, getQuotes: rawGetQuotes, subscribeQuotes: rawSubscribeQuotes, unsubscribeQuotes } = useSmartChartAdaptor();
+        // El layout en fila real vive en __items-inner (el hijo directo que
+        // la librería anima) — __items es solo un contenedor posicionador.
+        &__items-inner {
+            flex-direction: row !important;
+            gap: 0.1rem !important;
 
-    // scrollToEpoch (prop pública y documentada de SmartCharts, ver
-    // README oficial de @deriv-com/smartcharts-champion): "Scrolls the
-    // chart to the leftmost side and sets the last spot/bar as the
-    // first visible spot/bar in the chart." El requisito es que el
-    // gráfico esté SIEMPRE siguiendo el precio en vivo — al entrar,
-    // durante una operación y después de que termina — sin quedarse
-    // "atrás".
-    //
-    // CORRECCIÓN: al principio se actualizaba scrollToEpoch con CADA tick
-    // nuevo, sin agrupar. La librería dispara una animación de "saltar al
-    // último precio" cada vez que este valor cambia — y si llega un tick
-    // nuevo antes de que esa animación termine (los índices de
-    // volatilidad pueden tickear varias veces por segundo), la reinicia
-    // sin dejarla completar. El resultado visible era justo lo contrario
-    // de lo buscado: en vez de seguir el precio en vivo, la vista se
-    // quedaba atascada/atrasada, acumulando ticks sin terminar de
-    // desplazarse, hasta que había que arrastrarla a mano para
-    // "alcanzar" el precio actual.
-    //
-    // Ahora se agrupan los ticks que llegan muy seguido y solo se aplica
-    // el más reciente cada ~800ms — tiempo suficiente para que la
-    // animación de la librería termine antes de pedirle la siguiente —
-    // mantenien el gráfico sincronizado de forma continua y fluida en
-    // vez de en saltos que se pisan entre sí.
-    const [liveScrollEpoch, setLiveScrollEpoch] = useState<number | undefined>(undefined);
-    const pendingEpochRef = useRef<number | undefined>(undefined);
-    const followLiveEpochTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const followLiveEpoch = useCallback((epoch: number | undefined) => {
-        if (!epoch) return;
-        pendingEpochRef.current = epoch;
-
-        if (followLiveEpochTimerRef.current) return;
-
-        followLiveEpochTimerRef.current = setTimeout(() => {
-            followLiveEpochTimerRef.current = null;
-            const latestEpoch = pendingEpochRef.current;
-            setLiveScrollEpoch(prev => (prev === latestEpoch ? prev : latestEpoch));
-        }, 800);
-    }, []);
-
-    useEffect(
-        () => () => {
-            if (followLiveEpochTimerRef.current) {
-                clearTimeout(followLiveEpochTimerRef.current);
-                followLiveEpochTimerRef.current = null;
+            > * {
+                margin: 0 !important;
             }
-        },
-        []
-    );
-
-    const extractLatestEpochFromQuotesResult = (result: any): number | undefined => {
-        if (!result) return undefined;
-        if (Array.isArray(result.candles) && result.candles.length > 0) {
-            return result.candles[result.candles.length - 1]?.epoch;
         }
-        if (result.history?.times?.length > 0) {
-            const lastTime = result.history.times[result.history.times.length - 1];
-            return typeof lastTime === 'number' ? lastTime : Number(lastTime);
+
+        // La librería oculta DrawTools en móvil (opacity:0 + deslizado hacia
+        // abajo) hasta que se "expande" el menú con el botón __more. Se
+        // fuerza a que quede SIEMPRE visible, sin necesidad de tocar nada.
+        &__items-inner .sc-chart-mode__menu,
+        &__items-inner .sc-dtools__menu {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+            pointer-events: auto !important;
         }
-        return undefined;
-    };
 
-    const getQuotes: typeof rawGetQuotes = useCallback(
-        async (...args) => {
-            const result = await rawGetQuotes(...args);
-            followLiveEpoch(extractLatestEpochFromQuotesResult(result));
-            return result;
-        },
-        [rawGetQuotes, followLiveEpoch]
-    );
 
-    const subscribeQuotes: typeof rawSubscribeQuotes = useCallback(
-        (params, callback) =>
-            rawSubscribeQuotes(params, quote => {
-                const epoch = (quote as any)?.tick?.epoch ?? (quote as any)?.epoch ?? (quote as any)?.ohlc?.epoch;
-                followLiveEpoch(epoch);
-                callback(quote);
-            }),
-        [rawSubscribeQuotes, followLiveEpoch]
-    );
-
-    const { isDesktop, isMobile } = useDevice();
-    const { is_drawer_open } = run_panel;
-    const { is_chart_modal_visible } = dashboard;
-
-    const settings = {
-        assetInformation: false, // ui.is_chart_asset_info_visible,
-        countdown: true,
-        isHighestLowestMarkerEnabled: false, // TODO: Pending UI,
-        language: common.current_language.toLowerCase(),
-        position: ui.is_chart_layout_default ? 'bottom' : 'left',
-        theme: ui.is_dark_mode_on ? 'dark' : 'light',
-    };
-
-    useEffect(() => {
-        // Safari browser detection using feature detection
-        // More robust than user agent sniffing
-        const isSafariBrowser = () => {
-            // Check for Safari-specific features
-            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
-            // Additional check: Safari has specific webkit features
-            const hasWebkitFeatures = 'webkitAudioContext' in window || 'WebKitMediaSource' in window;
-
-            return isSafari && hasWebkitFeatures;
-        };
-
-        setIsSafari(isSafariBrowser());
-
-        return () => {
-            chart_api.api.forgetAll('ticks');
-        };
-    }, []);
-
-    useEffect(() => {
-        if (!symbol) updateSymbol();
-    }, [symbol, updateSymbol]);
-
-    const is_connection_opened = !!chart_api?.api;
-
-    const handleStateChange: TStateChangeListener = (state, options) => {
-        /* [AI] - Analytics removed - rudderstack event call removed */
-        // Handle state changes: INITIAL, READY, SCROLL_TO_LEFT
-        /* [/AI] */
-        if (state === 'READY') {
-            setChartStatus(true);
+        // El botón "más" que expandía/colapsaba el menú ya no tiene función
+        // (los 2 únicos botones quedan siempre visibles) — se oculta.
+        &__more {
+            display: none !important;
         }
-    };
 
-    if (!symbol || chartData.activeSymbols.length === 0) {
-        return <ChunkLoader message='' />;
+        // La etiqueta de intervalo (ej. "1t") se deja en minúscula y sin
+        // espacio, tal cual la pone la librería (texto correcto, ya
+        // confirmado). Lo que se corrige es SOLO su posición/estilo: por
+        // defecto la librería la pinta como una "cajita" separada (fondo gris
+        // oscuro #414652, esquinas redondeadas, desenfoque) flotando encima
+        // del círculo del ícono. Se le quita esa cajita y se centra el texto
+        // dentro del propio círculo, y se oculta el ícono original que
+        // quedaba detrás.
+        //
+        // OJO: este <span> NO vive dentro del botón de ChartMode — es
+        // hermano de __items a nivel de .sc-toolbar-widget (todo el
+        // contenedor, que ahora mide el ancho de los 2 botones juntos). Por
+        // eso "left:50%" lo centraba en el HUECO entre los dos botones, no
+        // sobre el primero.
+        //
+        // CORRECCIÓN: calcular un "left:Npx" fijo a mano (primero 17px,
+        // luego 20px) seguía quedando corrido a la izquierda — la
+        // librería anida el botón dentro de varias cajas (casilla de
+        // 40px, círculo adentro, ícono adentro de ese) y cualquier
+        // diferencia de unos pocos px en esa cadena desajusta un cálculo
+        // manual. En vez de seguir ajustando a ojo, ahora el texto ocupa
+        // TODO el ancho real del primer botón (40px, el de la casilla que
+        // arma la librería) desde left:0, y se centra con text-align —
+        // así queda centrado sin importar el tamaño exacto del círculo o
+        // el ícono que haya adentro.
+        &__interval {
+            top: 50% !important;
+            left: 0 !important;
+            width: 40px !important;
+            text-align: center !important;
+            transform: translateY(-50%) !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            z-index: 5 !important;
+            // Más pequeño que antes (traía 1.6rem) para que quepa bien
+            // centrado en el círculo ya reducido a 34px.
+            font-size: 1.2rem !important;
+            // Más delgado (la librería lo traía en negrita, font-weight:700).
+            font-weight: 400 !important;
+            // line-height:1 para que el propio glifo del texto quede
+            // centrado verticalmente dentro de su caja — sin esto, la
+            // caja de línea heredada de la librería (pensada para su
+            // "cajita" original) podía desplazar el texto unos px del
+            // centro real del botón.
+            line-height: 1 !important;
+        }
+
+        &__items-inner .sc-chart-mode__menu .ic-icon svg {
+            visibility: hidden !important;
+        }
+
+        // Había un SEGUNDO badge, aparte del anterior: la librería también
+        // pinta ".sc-chart-mode__menu__interval" directamente dentro del
+        // botón (arriba a la izquierda, con su propia cajita oscura). Ese es
+        // "el pequeño cuadro" que quedaba encima — no es el mismo elemento
+        // que ya se centró arriba, así que había que ocultarlo aparte.
+        &__items-inner .sc-chart-mode__menu__interval {
+            display: none !important;
+        }
     }
 
-    return (
-        <div
-            className={classNames('dashboard__chart-wrapper', {
-                'dashboard__chart-wrapper--expanded': is_drawer_open && isDesktop,
-                'dashboard__chart-wrapper--modal': is_chart_modal_visible && isDesktop,
-                'dashboard__chart-wrapper--safari': isSafari,
-            })}
-            dir='ltr'
-        >
-            <SmartChart
-                id={`dbot-${symbol}`}
-                key={`chart-${symbol}`}
-                barriers={barriers}
-                showLastDigitStats={show_digits_stats}
-                chartControlsWidgets={null}
-                enabledChartFooter={false}
-                stateChangeListener={handleStateChange}
-                toolbarWidget={() => (
-                    <ToolbarWidgets
-                        updateChartType={updateChartType}
-                        updateGranularity={updateGranularity}
-                        position={!isDesktop ? 'bottom' : 'top'}
-                        isDesktop={isDesktop}
-                    />
-                )}
-                chartType={chart_type}
-                isMobile={isMobile}
-                enabledNavigationWidget={isDesktop}
-                granularity={granularity as TGranularity}
-                getQuotes={getQuotes}
-                subscribeQuotes={subscribeQuotes}
-                unsubscribeQuotes={unsubscribeQuotes}
-                chartData={{ activeSymbols: chartData.activeSymbols, tradingTimes: chartData.tradingTimes }}
-                settings={settings}
-                symbol={symbol}
-                topWidgets={() => <ChartTitle onChange={onSymbolChange} />}
-                isConnectionOpened={is_connection_opened}
-                getMarketsOrder={getMarketsOrder}
-                isLive
-                scrollToEpoch={liveScrollEpoch}
-                leftMargin={80}
-                drawingToolFloatingMenuPosition={isMobile ? { x: 100, y: 100 } : { x: 200, y: 200 }}
-            />
-        </div>
-    );
-});
+    // Ícono personalizado del botón "marcadores" (DrawTools) — ver
+    // toolbar-widgets.tsx. Se oculta el ícono original de la librería y se
+    // muestra encima el <svg> propio, centrado sobre el botón.
+    .dtools-custom-icon-wrap {
+        position: relative;
+        display: inline-flex;
 
-export default Chart;
+        .sc-dtools__menu .ic-icon svg {
+            visibility: hidden !important;
+        }
+    }
+
+    .dtools-custom-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        // El ícono (compás de dibujo) tiene viewBox 24x30, no cuadrado —
+        // se mantiene esa proporción (4:5) en vez de forzarlo a 24x24, que
+        // lo dejaría deformado. Reducido en la misma proporción que el
+        // círculo (34/40) para que siga viéndose centrado y bien
+        // proporcionado dentro del botón más pequeño.
+        width: 16.3px;
+        height: 20.4px;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+    }
+
+    // Círculos un poco más pequeños que el tamaño de la librería (traían
+    // 40x40px). Selector calcado del que usa la propia librería para
+    // pintar el círculo de fondo de cada botón (ver smartcharts.css).
+    .sc-toolbar-widget .ciq-menu .cq-menu-btn .sc-chart-mode__menu,
+    .sc-toolbar-widget .ciq-menu .cq-menu-btn .sc-dtools__menu {
+        width: 34px !important;
+        height: 34px !important;
+    }
+}
+
+// El color del ícono sigue el tema activo, igual que el resto de íconos de
+// la barra (.smartcharts-light / .smartcharts-dark viven en un ancestro,
+// normalmente <body> o <html>, por eso van sin anidar bajo .dashboard__chart-wrapper).
+.smartcharts-light .dtools-custom-icon path {
+    fill: rgba(0, 0, 0, 0.72);
+}
+
+.smartcharts-dark .dtools-custom-icon path {
+    fill: hsla(0, 0%, 100%, 0.72);
+}
+
+// La etiqueta "1t" traía color blanco fijo (pensado para su cajita gris
+// oscura de fondo, que ya se quitó arriba) — ahora que va directo dentro
+// del círculo, sigue el mismo color que el resto de íconos según el tema.
+.smartcharts-light .sc-toolbar-widget__interval {
+    color: rgba(0, 0, 0, 0.72) !important;
+}
+
+.smartcharts-dark .sc-toolbar-widget__interval {
+    color: hsla(0, 0%, 100%, 0.72) !important;
+}
