@@ -300,18 +300,21 @@
     font-size:10px;
     font-weight:800;
     color:#fff;
+    overflow:hidden;
   }
-  .icon-tv img{ 
-    width: 50px;
-    height: 50px;
-   }
-  .icon-mts img{ 
-    width: 50px;
-    height: 50px;
-    }
-  .icon-options img{ 
-    width: 50px;
-    height: 50px;
+  /* Las imágenes antes tenían un tamaño fijo (50x50) mucho más grande que
+     su contenedor (32x32, o 28x28 en móvil), y ese tamaño fijo no se
+     ajustaba en los breakpoints donde el contenedor se achica — la imagen
+     se salía y quedaba recortada de forma despareja (más ancha que alta).
+     Ahora ocupa siempre el 100% del contenedor (que es cuadrado en todos
+     los tamaños de pantalla), así quedan a la par sin importar el
+     breakpoint. */
+  .icon-tv img,
+  .icon-mts img,
+  .icon-options img{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
 
   .account-name{
@@ -557,12 +560,28 @@
     justify-content:center;
     font-size:9px;
     font-weight:800;
+    overflow:hidden;
   }
-  .explore-icon.mts-icon img{ background:var(--bg-light-gray); padding:15px; border-radius:50%; width:70px; height:70px; }
-  .explore-icon.options-icon img{ background:var(--bg-light-gray); padding:15px; border-radius:50%; width:70px; height:70px;}
-  .explore-icon.tv-icon img{ background:var(--bg-light-gray); padding:15px; border-radius:50%; width:70px; height:70px; }
-  .explore-icon.p2p-icon img{ background:var(--bg-light-gray); padding:15px; border-radius:50%; width:70px; height:70px; }
-  .explore-icon.more-icon img{ background:var(--bg-light-gray); padding:15px; border-radius:50%; width:70px; height:70px; }
+  /* Mismo problema que en "my trading account": las imágenes tenían un
+     tamaño fijo (70x70 + padding) mucho más grande que su círculo
+     contenedor (44x44, o 40x40 en móvil), y ese tamaño no se ajustaba al
+     achicarse el contenedor en los breakpoints — quedaban recortadas de
+     forma despareja. Ahora ocupan el 100% del círculo (box-sizing:
+     border-box para que el padding quede adentro, no sume al tamaño), así
+     se mantienen a la par en cualquier tamaño de pantalla. */
+  .explore-icon.mts-icon img,
+  .explore-icon.options-icon img,
+  .explore-icon.tv-icon img,
+  .explore-icon.p2p-icon img,
+  .explore-icon.more-icon img{
+    background:var(--bg-light-gray);
+    padding:10px;
+    border-radius:50%;
+    width:100%;
+    height:100%;
+    box-sizing:border-box;
+    object-fit:contain;
+  }
 
   .explore-label{
     font-size:12px;
