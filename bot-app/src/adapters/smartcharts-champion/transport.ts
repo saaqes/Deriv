@@ -3,7 +3,6 @@
  * Wraps the existing chart_api.api to match the TTransport interface
  */
 
-import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import chart_api from '@/external/bot-skeleton/services/api/chart-api';
 import { chartDebugLog } from '@/external/bot-skeleton/utils/mobile-trade-debug';
 import type { TTransport } from './types';
@@ -20,16 +19,24 @@ const logger = {
 // reportando OPEN aunque el sistema operativo ya mató la conexión real, algo
 // común en móvil al volver de segundo plano) nunca se resuelve ni se
 // rechaza — se queda esperando para siempre, y con ella el "obteniendo
-// datos" del Chart. Se agrega un timeout: si se cumple, se comprueba la
-// conexión con un ping real (api_base.checkConnectionAlive, ya usado para el
-// mismo problema en el flujo de compra); si está muerta, se fuerza una
-// reconexión y se reintenta la petición UNA sola vez contra el socket nuevo
-// (nunca más de una vez, para no duplicar peticiones). Si sigue sin
-// responder, se rechaza con un error claro en vez de quedarse esperando.
-const TRANSPORT_SEND_TIMEOUT_MS = 12000;
-const RECONNECT_SETTLE_MS = 1500;
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// datos" del Chart. Se agrega un timeout y UN reintento contra la conexión
+// actual.
+//
+// IMPORTANTE (regresión detectada y corregida): una versión anterior de
+// este archivo, al agotarse el timeout, llamaba a
+// `api_base.forceReconnect()`. chart_api.api y api_base.api son LA MISMA
+// conexión compartida con el motor de trading — forzar una reconexión desde
+// aquí reiniciaba esa conexión compartida por una simple petición lenta del
+// gráfico, lo cual: 1) deshabilitaba el botón Run de nuevo (api_base.init()
+// lo deshabilita al arrancar, vía toggleRunButton(true)), y 2) podía cortar
+// las suscripciones activas (balance, contrato abierto, proposal_open_contract)
+// en medio de una operación — exactamente el "ya no funciona nada" que se
+// quiere evitar. La reconexión ante una conexión REALMENTE muerta ya la
+// maneja api_base por su cuenta (evento 'close', visibilitychange con ping
+// real) sin que el gráfico tenga que disparar otra. Por eso aquí solo se
+// reintenta UNA vez contra la conexión actual, sin tocar nada global ni
+// forzar ninguna reconexión.
+const TRANSPORT_SEND_TIMEOUT_MS = 15000;
 
 const sendWithTimeout = (request: any): Promise<any> => {
     return new Promise((resolve, reject) => {
@@ -61,21 +68,15 @@ const sendWithRecovery = async (request: any): Promise<any> => {
     try {
         return await sendWithTimeout(request);
     } catch (error) {
-        chartDebugLog('getQuotes/send timed out or failed, checking connection health...', error);
-
-        const alive = await api_base.checkConnectionAlive(4000);
-        if (!alive) {
-            chartDebugLog('chart connection appears dead, forcing reconnect');
-            api_base.forceReconnect('chart transport.send timeout');
-            await delay(RECONNECT_SETTLE_MS);
-        }
+        chartDebugLog('getQuotes/send timed out or failed, retrying once (no shared reconnect)...', error);
 
         if (!chart_api.api) {
             await chart_api.init();
         }
 
-        // Single retry only — never resend more than once, to avoid
-        // duplicating historical-data requests.
+        // Single retry only, against whatever connection already exists —
+        // never resend more than once, and never force a reconnect of the
+        // connection shared with trading.
         return sendWithTimeout(request);
     }
 };
