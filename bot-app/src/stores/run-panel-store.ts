@@ -618,6 +618,19 @@ export default class RunPanelStore {
                 if (contract_status.contract) GTM.onTransactionClosed(contract_status.contract);
                 break;
             }
+            case 'contract.purchase_failed': {
+                // CORRECCIÓN: antes, cuando la compra fallaba (o no había
+                // respuesta del servidor), el run-panel se quedaba "cargando"
+                // para siempre en la etapa PURCHASE_SENT. Ahora se desbloquea
+                // y se muestra que la operación no se realizó, para que el
+                // bot pueda seguir operando en el siguiente ciclo.
+                this.is_contract_buying_in_progress = false;
+                this.setContractStage(contract_stages.RUNNING);
+                if (contract_status.data) {
+                    this.showErrorMessage(String(contract_status.data));
+                }
+                break;
+            }
             default:
                 break;
         }
