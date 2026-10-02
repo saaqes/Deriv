@@ -103,18 +103,19 @@ export default class ChartStore {
             return block.type === 'trade_definition_market';
         });
 
+        // MODO SIMULADO TOTAL: si todavía no hay bloque de mercado NI
+        // active_symbols real poblado, se usa 'R_100' (Índice de
+        // Volatilidad 100, símbolo estándar siempre disponible) como
+        // símbolo por defecto en vez de dejar `symbol` en `undefined`
+        // para siempre. Esto garantiza que el Chart pueda renderizar de
+        // inmediato; en cuanto haya un bloque de mercado real o lleguen
+        // los active_symbols reales, se actualiza normalmente.
         const symbol =
             market_block?.getFieldValue('SYMBOL_LIST') ??
             (api_base?.active_symbols[0]
                 ? (api_base.active_symbols[0] as any).underlying_symbol || (api_base.active_symbols[0] as any).symbol
-                : undefined);
-
-        if (!symbol) {
-            console.warn(
-                '[ChartStore] updateSymbol(): todavía no hay símbolo disponible (ni bloque de mercado ni ' +
-                    'active_symbols poblado). Chart seguirá mostrando el loader hasta el próximo intento.'
-            );
-        }
+                : undefined) ??
+            'R_100';
 
         this.symbol = symbol;
     };
