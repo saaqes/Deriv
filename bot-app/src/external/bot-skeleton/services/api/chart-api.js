@@ -1,18 +1,9 @@
-import { chartDebugLog } from '../../utils/mobile-trade-debug';
 import { generateDerivApiInstance } from './appId';
 
 class ChartAPI {
     api;
     chart_active_symbols = null; // Separate variable for chart-specific symbols
     reconnect_listeners = []; // Notified whenever `this.api` is replaced by a new socket instance
-
-    // CORRECCIÓN: `this.onsocketclose.bind(this)` crea una función NUEVA
-    // cada vez que se llama. `removeEventListener('close', this.onsocketclose.bind(this))`
-    // nunca eliminaba el listener real (añadido con OTRA función bind
-    // distinta), por lo que cada reconexión dejaba un listener del socket
-    // viejo acumulado. Se guarda una única referencia estable para usar
-    // siempre la misma función en addEventListener/removeEventListener.
-    boundOnSocketClose = this.onsocketclose.bind(this);
 
     // El socket del gráfico (generateDerivApiInstance) puede cerrarse y
     // recrearse solo (red inestable, pestaña en segundo plano, etc.).
@@ -41,20 +32,18 @@ class ChartAPI {
     }
 
     onsocketclose() {
-        chartDebugLog('socket close event received');
         this.reconnectIfNotConnected();
     }
 
     init = async (force_create_connection = false) => {
         const had_previous_api = !!this.api;
         if (!this.api || force_create_connection) {
-            chartDebugLog('init() creating/reusing connection', { had_previous_api, force_create_connection });
             if (this.api?.connection) {
                 this.api.disconnect();
-                this.api.connection.removeEventListener('close', this.boundOnSocketClose);
+                this.api.connection.removeEventListener('close', this.onsocketclose.bind(this));
             }
             this.api = await generateDerivApiInstance();
-            this.api?.connection.addEventListener('close', this.boundOnSocketClose);
+            this.api?.connection.addEventListener('close', this.onsocketclose.bind(this));
 
             // Intercept the send method to filter active_symbols responses for chart
             // this.interceptApiCalls();
@@ -63,7 +52,6 @@ class ChartAPI {
             // this.forceInjectSymbols();
 
             if (had_previous_api) {
-                chartDebugLog('socket reconnect: notifying subscribers to restore subscriptions');
                 this.notifyReconnect();
             }
         }
