@@ -161,31 +161,51 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
         // símbolos, el estado quedaba fijado en vacío para siempre y
         // chart.tsx (que depende únicamente de chartData.activeSymbols)
         // seguía mostrando el loader sin ningún otro intento futuro.
-        // Junto con la corrección en active-symbols.js (que ya no cachea
-        // un resultado vacío como "definitivo" tras un fallo), este margen
-        // más amplio permite que un reintento posterior SÍ tenga éxito en
-        // cuanto los datos realmente estén disponibles, en vez de
-        // depender de ganar una carrera contra un timeout demasiado corto.
-        const loadChartData = async (retryCount = 0, maxRetries = 20, delayMs = 1500) => {
+        //
+        // CORRECCIÓN ADICIONAL: incluso con un margen más amplio, un límite
+        // fijo de reintentos (por grande que sea) sigue significando que,
+        // si la condición que bloqueó el primer intento tarda más que ese
+        // margen en resolverse (reconexión lenta, red inestable en móvil,
+        // etc.), el Chart se queda "congelado" para siempre de todas
+        // formas — exactamente el reporte de "nunca termina de cargar" al
+        // darle Run. Por eso, pasado el primer tramo de reintentos rápidos
+        // (pensado para el caso común: carga inicial un poco lenta), el
+        // hook NUNCA deja de intentar mientras el componente siga montado:
+        // sigue reintentando cada FALLBACK_RETRY_DELAY_MS de forma
+        // indefinida. Combinado con la corrección en active-symbols.js
+        // (que ya no cachea un resultado vacío como "definitivo"), en
+        // cuanto la causa real se resuelva (reconexión completa, servidor
+        // responde, etc.) el próximo intento programado SÍ va a traer los
+        // símbolos reales — nunca se llega a un estado sin salida.
+        const FAST_RETRIES = 20;
+        const FAST_RETRY_DELAY_MS = 1500;
+        const FALLBACK_RETRY_DELAY_MS = 5000;
+
+        const scheduleRetry = (retryCount: number) => {
+            const delayMs = retryCount < FAST_RETRIES ? FAST_RETRY_DELAY_MS : FALLBACK_RETRY_DELAY_MS;
+
+            if (retryTimeoutRef.current) {
+                clearTimeout(retryTimeoutRef.current);
+            }
+
+            retryTimeoutRef.current = setTimeout(() => {
+                if (!cancelled && isMountedRef.current) {
+                    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+                    loadChartData(retryCount + 1);
+                }
+            }, delayMs);
+        };
+
+        const loadChartData = async (retryCount = 0) => {
             try {
                 setIsLoading(true);
                 const data = await adapter.getChartData();
 
                 if (!cancelled && isMountedRef.current) {
-                    // Check if activeSymbols is empty and we have retries left
-                    if (data.activeSymbols.length === 0 && retryCount < maxRetries) {
-                        // Clear any existing timeout
-                        if (retryTimeoutRef.current) {
-                            clearTimeout(retryTimeoutRef.current);
-                        }
-
-                        // Wait for the specified delay before retrying
-                        retryTimeoutRef.current = setTimeout(() => {
-                            if (!cancelled && isMountedRef.current) {
-                                loadChartData(retryCount + 1, maxRetries, delayMs);
-                            }
-                        }, delayMs);
-
+                    // Sin símbolos todavía: nunca nos rendimos mientras el
+                    // componente siga montado (ver comentario arriba).
+                    if (data.activeSymbols.length === 0) {
+                        scheduleRetry(retryCount);
                         return;
                     }
 
@@ -196,29 +216,13 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
                     setError(null);
                 }
             } catch (err) {
-                // If we have retries left, try again
-                if (!cancelled && isMountedRef.current && retryCount < maxRetries) {
-                    // Clear any existing timeout
-                    if (retryTimeoutRef.current) {
-                        clearTimeout(retryTimeoutRef.current);
-                    }
-
-                    retryTimeoutRef.current = setTimeout(() => {
-                        if (!cancelled && isMountedRef.current) {
-                            loadChartData(retryCount + 1, maxRetries, delayMs);
-                        }
-                    }, delayMs);
-
-                    return;
-                }
-
                 if (!cancelled && isMountedRef.current) {
+                    // Deja constancia del error (por si algo más lo usa),
+                    // pero igual sigue reintentando — nunca se detiene por
+                    // su cuenta, ver comentario arriba.
                     setError(err instanceof Error ? err : new Error('Failed to load chart data'));
-                    // Set fallback data to prevent undefined
-                    setChartData({
-                        activeSymbols: [] as ActiveSymbols,
-                        tradingTimes: {} as TradingTimesMap,
-                    });
+                    scheduleRetry(retryCount);
+                    return;
                 }
             } finally {
                 if (!cancelled && isMountedRef.current) {
