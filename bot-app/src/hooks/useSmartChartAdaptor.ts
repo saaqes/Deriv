@@ -3,6 +3,7 @@ import { buildSmartchartsChampionAdapter } from '@/adapters/smartcharts-champion
 import { createServices } from '@/adapters/smartcharts-champion/services';
 import { createTransport } from '@/adapters/smartcharts-champion/transport';
 import chart_api from '@/external/bot-skeleton/services/api/chart-api';
+import { chartDebugLog } from '@/external/bot-skeleton/utils/mobile-trade-debug';
 import type { SmartchartsChampionAdapter } from '@/types/smartchart.types';
 import type {
     ActiveSymbols,
@@ -103,7 +104,9 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
             if (cancelled) return;
 
             if (!chart_api.api) {
+                if (attempt === 0) chartDebugLog('API waiting for chart_api.api to be ready');
                 if (attempt >= maxAttempts) {
+                    chartDebugLog('timed out waiting for chart_api.api');
                     if (isMountedRef.current) {
                         setError(new Error('Timed out waiting for chart connection to be ready'));
                         setIsLoading(false);
@@ -116,6 +119,7 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
             }
 
             try {
+                chartDebugLog('API ready, WebSocket state:', chart_api.api?.connection?.readyState);
                 const transport = createTransport();
                 const services = createServices();
                 const championAdapter = buildSmartchartsChampionAdapter(transport, services, {
@@ -145,60 +149,108 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
     }, [adapterInitialized]);
 
     // Load chart data when adapter is initialized
+    //
+    // CORRECCIÓN (Chart se queda "obteniendo datos" indefinidamente en
+    // móvil): antes se reintentaba a intervalos FIJOS de 200ms, un máximo de
+    // 10 veces — 2 segundos en total — antes de rendirse PARA SIEMPRE (este
+    // efecto no vuelve a ejecutarse solo: sus dependencias
+    // [adapter, adapterInitialized] no cambian una vez montado). El fetch
+    // real de active_symbols puede tardar bastante más que eso (hasta ~10s
+    // por intento, con sus propios reintentos internos — ver
+    // ACTIVE_SYMBOLS_TIMEOUT_MS / scheduleActiveSymbolsRetry en
+    // api-base.ts). En PC, con conexión rápida, el fetch casi siempre
+    // terminaba antes de agotarse los 2 segundos, así que el bug era
+    // invisible. En móvil, con más latencia, los 2 segundos casi nunca
+    // alcanzaban: el efecto se rendía mientras active_symbols seguía en
+    // camino, y cuando por fin llegaba ya no quedaba nadie escuchando — el
+    // Chart se quedaba con activeSymbols=[] para siempre, mostrando el
+    // loader sin ningún error visible.
+    //
+    // Ahora: 1) backoff exponencial acotado a una ventana realista (~45s,
+    // cubriendo el peor caso normal); 2) tras agotarla, en vez de un abandono
+    // definitivo, un sondeo lento (cada 8s, hasta 4 minutos) que sigue
+    // comprobando sin saturar la red; 3) además, cualquier reconexión real
+    // del socket del gráfico (chart_api.onReconnect — ya usado para
+    // restablecer las suscripciones de precios) dispara un reintento
+    // inmediato con el backoff reiniciado, así una recuperación de red tras
+    // agotar los reintentos igual hace que el Chart cargue solo.
     useEffect(() => {
         if (!adapter || !adapterInitialized) return;
 
         let cancelled = false;
+        let retry_window_started_at: number | null = null;
+        let slow_poll_attempts = 0;
 
-        const loadChartData = async (retryCount = 0, maxRetries = 10, delayMs = 200) => {
+        const FAST_RETRY_MAX_DELAY_MS = 5000;
+        const FAST_RETRY_WINDOW_MS = 45000;
+        const SLOW_POLL_INTERVAL_MS = 8000;
+        const MAX_SLOW_POLL_ATTEMPTS = 30; // ~4 minutes of background polling
+
+        const clearPendingRetry = () => {
+            if (retryTimeoutRef.current) {
+                clearTimeout(retryTimeoutRef.current);
+                retryTimeoutRef.current = null;
+            }
+        };
+
+        const loadChartData = async (retryCount = 0) => {
+            if (cancelled) return;
             try {
                 setIsLoading(true);
+                chartDebugLog('getChartData start', { retryCount });
                 const data = await adapter.getChartData();
 
-                if (!cancelled && isMountedRef.current) {
-                    // Check if activeSymbols is empty and we have retries left
-                    if (data.activeSymbols.length === 0 && retryCount < maxRetries) {
-                        // Clear any existing timeout
-                        if (retryTimeoutRef.current) {
-                            clearTimeout(retryTimeoutRef.current);
-                        }
+                if (cancelled || !isMountedRef.current) return;
 
-                        // Wait for the specified delay before retrying
+                if (data.activeSymbols.length === 0) {
+                    if (retry_window_started_at === null) retry_window_started_at = Date.now();
+                    const elapsed = Date.now() - retry_window_started_at;
+
+                    if (elapsed < FAST_RETRY_WINDOW_MS) {
+                        const next_delay = Math.min(300 * 2 ** retryCount, FAST_RETRY_MAX_DELAY_MS);
+                        chartDebugLog('active_symbols still empty, retrying', { retryCount, next_delay, elapsed });
+                        clearPendingRetry();
                         retryTimeoutRef.current = setTimeout(() => {
-                            if (!cancelled && isMountedRef.current) {
-                                loadChartData(retryCount + 1, maxRetries, delayMs);
-                            }
-                        }, delayMs);
-
+                            if (!cancelled && isMountedRef.current) loadChartData(retryCount + 1);
+                        }, next_delay);
                         return;
                     }
 
-                    setChartData({
-                        activeSymbols: data.activeSymbols,
-                        tradingTimes: data.tradingTimes,
-                    });
-                    setError(null);
-                }
-            } catch (err) {
-                // If we have retries left, try again
-                if (!cancelled && isMountedRef.current && retryCount < maxRetries) {
-                    // Clear any existing timeout
-                    if (retryTimeoutRef.current) {
-                        clearTimeout(retryTimeoutRef.current);
+                    if (slow_poll_attempts < MAX_SLOW_POLL_ATTEMPTS) {
+                        slow_poll_attempts += 1;
+                        chartDebugLog('fast retry window exhausted, switching to slow background poll', {
+                            attempt: slow_poll_attempts,
+                        });
+                        clearPendingRetry();
+                        retryTimeoutRef.current = setTimeout(() => {
+                            if (!cancelled && isMountedRef.current) loadChartData(retryCount + 1);
+                        }, SLOW_POLL_INTERVAL_MS);
+                        return;
                     }
 
-                    retryTimeoutRef.current = setTimeout(() => {
-                        if (!cancelled && isMountedRef.current) {
-                            loadChartData(retryCount + 1, maxRetries, delayMs);
-                        }
-                    }, delayMs);
-
-                    return;
+                    // Se agotó también el sondeo lento. No se queda reintentando
+                    // para siempre, pero tampoco queda varado sin posibilidad de
+                    // recuperación: el listener de chart_api.onReconnect (más
+                    // abajo) vuelve a intentarlo inmediatamente en cuanto ocurra
+                    // una reconexión real del socket.
+                    chartDebugLog('gave up background polling for now; will resume on next reconnect event');
                 }
 
+                retry_window_started_at = null;
+                slow_poll_attempts = 0;
+                chartDebugLog('chart data ready', {
+                    activeSymbols: data.activeSymbols.length,
+                    tradingTimes: Object.keys(data.tradingTimes || {}).length,
+                });
+                setChartData({
+                    activeSymbols: data.activeSymbols,
+                    tradingTimes: data.tradingTimes,
+                });
+                setError(null);
+            } catch (err) {
+                chartDebugLog('getChartData threw', err);
                 if (!cancelled && isMountedRef.current) {
                     setError(err instanceof Error ? err : new Error('Failed to load chart data'));
-                    // Set fallback data to prevent undefined
                     setChartData({
                         activeSymbols: [] as ActiveSymbols,
                         tradingTimes: {} as TradingTimesMap,
@@ -213,15 +265,25 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
 
         loadChartData();
 
+        // Reintento inmediato cuando el socket del gráfico se reconecta de
+        // verdad, sin esperar al próximo paso del backoff/sondeo.
+        const unsubscribeReconnect =
+            typeof chart_api.onReconnect === 'function'
+                ? chart_api.onReconnect(() => {
+                      if (cancelled) return;
+                      chartDebugLog('reconnect detected, re-checking chart data');
+                      retry_window_started_at = null;
+                      slow_poll_attempts = 0;
+                      clearPendingRetry();
+                      loadChartData(0);
+                  })
+                : null;
+
         // Cleanup function to cancel async operations
         return () => {
             cancelled = true;
-
-            // Clear any pending retry timeouts
-            if (retryTimeoutRef.current) {
-                clearTimeout(retryTimeoutRef.current);
-                retryTimeoutRef.current = null;
-            }
+            clearPendingRetry();
+            unsubscribeReconnect?.();
         };
     }, [adapter, adapterInitialized]);
 
