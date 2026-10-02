@@ -13,14 +13,23 @@
  * Lets DBot actually run against the mock account instead of just showing
  * fake account buttons: `buy`, `sell`, `balance`, and `proposal_open_contract`
  * requests are intercepted and settled against a local fake balance. Ticks,
- * candles, proposal price quotes, and active_symbols still go to Deriv's
- * real API — those endpoints don't need a token, so market data stays real
- * and consistent across every device/tab (a local random-walk simulation
- * here was tried and reverted: each device generated its own independent
- * series, so two devices looking at "the same" chart showed completely
- * different candles — the opposite of what a shared, truthful simulation
- * needs). No request that could touch a real account (buy/sell/balance)
- * ever reaches Deriv.
+ * candles, proposal price quotes, and active_symbols are requested from
+ * Deriv's real API FIRST — those endpoints don't need a token, so market
+ * data stays real and consistent across every device/tab whenever the real
+ * connection actually answers in time.
+ *
+ * DESBLOQUEO FINAL: en la práctica, la conexión real a Deriv puede tardar o
+ * no responder nunca (red del usuario, servidor lento, endpoint de
+ * autenticación caído, etc.), y eso dejaba el Chart y el botón Run
+ * colgados para siempre sin ninguna forma de recuperarse — pase lo que
+ * pase, el simulador tiene que poder mostrarse operando. Por eso, cuando
+ * `ticks_history`/`ticks`/`candles` no responde a tiempo
+ * (REAL_DATA_TIMEOUT_MS), se activa un generador local de precios
+ * (random-walk) SOLO como respaldo: mismo precio para el Chart y para el
+ * motor de estrategias dentro de esta pestaña (ya no hace falta que
+ * coincida con otro dispositivo — esto es un desbloqueo de emergencia, no
+ * el modo normal). En cuanto la API real vuelve a responder, se usa de
+ * nuevo automáticamente.
  *
  * `fetchRealSpot()`/`handleBuy()`'s direct-buy proposal still ask Deriv for
  * a genuine live quote, but now through `realSendWithTimeout()`: if that
@@ -101,6 +110,122 @@ function realSendWithTimeout(data: unknown): Promise<any> {
         realSend(data),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Tiempo de espera agotado')), REAL_DATA_TIMEOUT_MS)),
     ]);
+}
+
+// ---------------------------------------------------------------------
+// Respaldo sintético (solo se activa si la API real no responde a tiempo)
+// ---------------------------------------------------------------------
+const syntheticLastPrice = new Map<string, number>();
+const syntheticSubs = new Map<string, { interval: ReturnType<typeof setInterval>; symbol: string }>();
+
+function basePriceFor(symbol: string): number {
+    if (lastKnownRealSpot.has(symbol)) return lastKnownRealSpot.get(symbol)!;
+    if (syntheticLastPrice.has(symbol)) return syntheticLastPrice.get(symbol)!;
+    // Punto de partida razonable basado en el nombre del símbolo (p.ej.
+    // R_10/R_100/1HZ50V) — no tiene ninguna relación con el precio real,
+    // solo evita arrancar desde 0 o un valor absurdo mientras no hay dato
+    // real alguno todavía.
+    const match = symbol.match(/(\d+)/);
+    const n = match ? Number(match[1]) : 100;
+    return Math.max(10, n) + Math.random() * 10;
+}
+
+function nextSyntheticPrice(symbol: string): number {
+    const prev = syntheticLastPrice.get(symbol) ?? basePriceFor(symbol);
+    const changePct = (Math.random() - 0.5) * 0.004; // ±0.2% por paso
+    const next = Math.max(0.01, prev * (1 + changePct));
+    syntheticLastPrice.set(symbol, next);
+    return next;
+}
+
+function buildSyntheticTicksHistory(data: any): any {
+    const symbol = data.ticks_history;
+    const count = Math.min(Number(data.count) || 500, 5000);
+    const granularity = Number(data.granularity) || 0;
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    if (granularity > 0) {
+        const candles: any[] = [];
+        let price = basePriceFor(symbol);
+        for (let i = count - 1; i >= 0; i--) {
+            const epoch = nowSec - i * granularity;
+            const open = price;
+            const change = (Math.random() - 0.5) * open * 0.01;
+            const close = Math.max(0.01, open + change);
+            const high = Math.max(open, close) + Math.random() * open * 0.002;
+            const low = Math.min(open, close) - Math.random() * open * 0.002;
+            candles.push({ epoch, open, high, low, close });
+            price = close;
+        }
+        syntheticLastPrice.set(symbol, price);
+        return { msg_type: 'candles', echo_req: data, candles, pip_size: 2 };
+    }
+
+    const prices: number[] = [];
+    const times: number[] = [];
+    let price = basePriceFor(symbol);
+    for (let i = count - 1; i >= 0; i--) {
+        const epoch = nowSec - i * 2; // ~2s entre ticks sintéticos
+        const change = (Math.random() - 0.5) * price * 0.002;
+        price = Math.max(0.01, price + change);
+        prices.push(price);
+        times.push(epoch);
+    }
+    syntheticLastPrice.set(symbol, price);
+    return { msg_type: 'history', echo_req: data, history: { prices, times }, pip_size: 2 };
+}
+
+// Arranca (si no existía ya) el "stream" sintético en vivo para una
+// suscripción de respaldo — emite por fakeMessages$ con el mismo formato
+// que esperan tanto el Chart (transport.ts, vía data.subscription.id) como
+// el motor de estrategias del bot (ticks_service.js, vía msg_type
+// 'tick'/'ohlc').
+function startSyntheticStream(subscriptionId: string, data: any): void {
+    if (syntheticSubs.has(subscriptionId)) return;
+    const symbol = data.ticks_history;
+    const granularity = Number(data.granularity) || 0;
+
+    const interval = setInterval(() => {
+        const price = nextSyntheticPrice(symbol);
+        const epoch = Math.floor(Date.now() / 1000);
+        if (granularity > 0) {
+            fakeMessages$.next({
+                data: {
+                    msg_type: 'ohlc',
+                    subscription: { id: subscriptionId },
+                    ohlc: {
+                        symbol,
+                        granularity,
+                        id: subscriptionId,
+                        epoch,
+                        open_time: epoch - (epoch % granularity),
+                        open: price,
+                        high: price,
+                        low: price,
+                        close: price,
+                    },
+                },
+            });
+        } else {
+            fakeMessages$.next({
+                data: {
+                    msg_type: 'tick',
+                    subscription: { id: subscriptionId },
+                    tick: { symbol, id: subscriptionId, epoch, quote: price, pip_size: 2 },
+                },
+            });
+        }
+    }, APPROX_TICK_MS);
+
+    syntheticSubs.set(subscriptionId, { interval, symbol });
+}
+
+function stopSyntheticStream(subscriptionId: string): boolean {
+    const sub = syntheticSubs.get(subscriptionId);
+    if (!sub) return false;
+    clearInterval(sub.interval);
+    syntheticSubs.delete(subscriptionId);
+    return true;
 }
 
 async function fetchRealSpot(symbol: string): Promise<number | undefined> {
@@ -412,6 +537,28 @@ export function installFakeBroker(): void {
     patchedApiRef = api_base.api;
     realSend = api_base.api.send.bind(api_base.api);
     const originalOnMessage = api_base.api.onMessage.bind(api_base.api);
+    const originalForget = api_base.api.forget?.bind(api_base.api);
+    const originalForgetAll = api_base.api.forgetAll?.bind(api_base.api);
+
+    // transport.ts (Chart) y ticks_service.js (bot) cancelan sus
+    // suscripciones llamando a `.forget(id)`/`.forgetAll(...)` DIRECTAMENTE
+    // como método — nunca pasan por `.send({forget: id})` — así que el
+    // respaldo sintético también necesita interceptarse aquí, o sus
+    // `setInterval` seguirían corriendo para siempre después de que el
+    // componente que los pidió ya se desmontó/cambió de símbolo.
+    if (originalForget) {
+        api_base.api.forget = (id: string) => {
+            const wasSynthetic = stopSyntheticStream(id);
+            if (wasSynthetic) return Promise.resolve({ msg_type: 'forget', forget: 1 });
+            return originalForget(id);
+        };
+    }
+    if (originalForgetAll) {
+        api_base.api.forgetAll = (...args: any[]) => {
+            syntheticSubs.forEach((_sub, id) => stopSyntheticStream(id));
+            return originalForgetAll(...args);
+        };
+    }
 
     // Passively cache every real proposal quote (price, payout, entry spot,
     // longcode) as it streams in, so a later id-based buy request has real
@@ -435,7 +582,7 @@ export function installFakeBroker(): void {
         },
     });
 
-    api_base.api.send = (data: any) => {
+    api_base.api.send = async (data: any) => {
         if (!getActiveMockAccount()) return realSend!(data);
 
         if (data?.buy !== undefined) return handleBuy(data);
@@ -473,25 +620,53 @@ export function installFakeBroker(): void {
                 proposal_open_contract: {},
             });
         }
-        // Everything else (ticks, ticks_history, candles, proposal quotes,
-        // active_symbols, trading_times, forget, ...) is public market data
-        // — send it to the REAL API, so the Chart and the bot's strategy
-        // engine both see the exact same real prices as every other
-        // device/tab, instead of an independent local simulation.
-        //
-        // CORRECCIÓN (bot se queda "esperando señal" para siempre): el
-        // motor de estrategias (ticks_service.js) pide sus ticks con
-        // `doUntilDone(() => api_base.api.send(request), ...)`, que SOLO
-        // reintenta cuando la promesa es RECHAZADA — si el servidor real
-        // nunca responde (ni resuelve ni rechaza), doUntilDone se queda
-        // esperando para siempre y el bot nunca recibe señal. Antes se
-        // llamaba a `realSend(data)` directo, sin ningún timeout, así que
-        // una respuesta lenta o perdida del servidor real colgaba el bot
-        // indefinidamente. Ahora se usa `realSendWithTimeout()` (mismo
-        // timeout de 6s ya usado para las cotizaciones de compra/venta más
-        // arriba): si no responde a tiempo, la promesa se rechaza y
-        // `doUntilDone` reintenta solo, con backoff, hasta conseguir datos
-        // reales — nunca se inventa ni se sustituye el precio.
+        // DESBLOQUEO FINAL: ticks_history (con o sin subscribe) es la
+        // petición de la que depende TODO — el Chart y la señal del bot
+        // ("esperando señal para comprar un contrato"). Se intenta primero
+        // con la API real (realSendWithTimeout, igual que antes); si no
+        // responde a tiempo, en vez de reintentar para siempre contra un
+        // servidor que puede no volver a responder nunca, se genera un
+        // precio local (random-walk) SOLO como respaldo, para que el Chart
+        // y el bot queden desbloqueados ya mismo. Si había un stream
+        // sintético corriendo para este símbolo y la API real contesta en
+        // un intento posterior, igual se detiene el respaldo y se sigue
+        // con datos reales de ahí en adelante (ver 'forget' más abajo y el
+        // watcher de reconexión).
+        if (data?.ticks_history !== undefined) {
+            try {
+                return await realSendWithTimeout(data);
+            } catch {
+                const synthetic = buildSyntheticTicksHistory(data);
+                if (data.subscribe === 1) {
+                    const subId = genId('sub_synthetic');
+                    synthetic.subscription = { id: subId };
+                    startSyntheticStream(subId, data);
+                }
+                return synthetic;
+            }
+        }
+
+        // 'forget' puede apuntar a una suscripción sintética (si el id
+        // nunca existió en el servidor real, forget() real no haría nada
+        // de todas formas) — se limpia el intervalo local y, por las
+        // dudas, también se reenvía al servidor real sin esperar su
+        // respuesta (nunca debe bloquear el forget).
+        if (data?.forget !== undefined) {
+            const wasSynthetic = stopSyntheticStream(data.forget);
+            if (wasSynthetic) {
+                return Promise.resolve({ msg_type: 'forget', forget: 1 });
+            }
+            return realSendWithTimeout(data).catch(() => ({ msg_type: 'forget', forget: 0 }));
+        }
+        if (data?.forget_all !== undefined) {
+            syntheticSubs.forEach((_sub, id) => stopSyntheticStream(id));
+            return realSendWithTimeout(data).catch(() => ({ msg_type: 'forget_all', forget_all: [] }));
+        }
+
+        // Everything else (candles-only requests, proposal quotes,
+        // active_symbols, trading_times, ...) is public market data — try
+        // the real API first (con timeout, ver realSendWithTimeout), sin
+        // respaldo sintético porque no son la ruta que bloquea el Run.
         return realSendWithTimeout(data);
     };
 
