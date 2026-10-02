@@ -1,6 +1,6 @@
 services:
   - type: web
-    name:
+    name: tradelab-bot
     runtime: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
@@ -30,3 +30,17 @@ services:
       - path: /manifest.webmanifest
         name: Content-Type
         value: application/manifest+json
+      # CORRECCIÓN: en el teléfono la operación seguía "cargando" como antes
+      # del último arreglo porque el navegador/PWA del celular tenía
+      # cacheado el index.html viejo, el cual apunta a los archivos .js con
+      # el código ANTERIOR (sin el arreglo de compra/venta). El navegador de
+      # escritorio normalmente revalida más seguido y por eso ya mostraba el
+      # cambio. Forzamos a que index.html NUNCA se sirva desde caché, para
+      # que cualquier dispositivo (celular incluido) reciba siempre la
+      # versión más reciente de la app en cuanto se vuelva a cargar.
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      - path: /
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
