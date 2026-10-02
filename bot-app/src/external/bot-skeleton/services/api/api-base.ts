@@ -66,6 +66,10 @@ class APIBase {
     active_symbols_promise: Promise<any[] | undefined> | null = null;
     common_store: CommonStore | undefined;
     reconnection_attempts: number = 0;
+    // CORRECCIÓN: cuántas veces se reintentó obtener active_symbols tras un
+    // fallo/timeout, para no reintentar para siempre.
+    active_symbols_retry_count: number = 0;
+    private readonly MAX_ACTIVE_SYMBOLS_RETRIES = 5;
     // CORRECCIÓN MÓVIL: se incrementa únicamente cuando `this.api` pasa a
     // apuntar a una instancia de WebSocket realmente distinta (reconexión
     // real), nunca en cada llamada a init(). Purchase.js lo usa para saber
@@ -222,6 +226,7 @@ class APIBase {
                 .catch(error => {
                     console.warn('[APIBase] active_symbols prefetch failed, will retry later:', error);
                     this.active_symbols_promise = null;
+                    this.scheduleActiveSymbolsRetry();
                     return undefined;
                 });
         }
@@ -476,6 +481,7 @@ class APIBase {
                     .catch(error => {
                         console.warn('[APIBase] active_symbols fetch failed, will retry later:', error);
                         this.active_symbols_promise = null;
+                        this.scheduleActiveSymbolsRetry();
                         return undefined;
                     });
             }
@@ -560,11 +566,49 @@ class APIBase {
             }
 
             this.toggleRunButton(false);
+            this.active_symbols_retry_count = 0;
             return this.active_symbols;
         } catch (error) {
             console.error('Failed to fetch and process active symbols:', error);
+            // CORRECCIÓN: antes, si esta carga fallaba o superaba los 10s de
+            // timeout (algo más probable en la pestaña Chart, donde el
+            // gráfico genera tráfico extra sobre el mismo WebSocket
+            // compartido), el botón Run quedaba deshabilitado en el DOM
+            // para siempre — toggleRunButton(false) solo se llamaba en el
+            // camino de éxito, nunca aquí. Eso se veía como "se queda
+            // cargando obteniendo datos del gráfico": el botón Run no
+            // volvía a habilitarse hasta la siguiente reconexión completa
+            // (si es que ocurría). Ahora se libera el botón también en el
+            // fallo, y se reintenta la carga de símbolos de forma acotada.
+            this.toggleRunButton(false);
+            mobileTradeLog('active_symbols fetch failed', { error: error instanceof Error ? error.message : error });
             throw error;
         }
+    };
+
+    // Reintenta obtener active_symbols tras un fallo/timeout, en vez de
+    // depender únicamente de que ocurra una futura reconexión completa.
+    // Acotado a MAX_ACTIVE_SYMBOLS_RETRIES para no reintentar para siempre
+    // si el símbolo/mercado realmente no está disponible.
+    scheduleActiveSymbolsRetry = () => {
+        if (this.has_active_symbols || this.active_symbols_promise) return;
+        if (this.active_symbols_retry_count >= this.MAX_ACTIVE_SYMBOLS_RETRIES) return;
+
+        this.active_symbols_retry_count += 1;
+        const delay_ms = Math.min(2000 * this.active_symbols_retry_count, 10000);
+        mobileTradeLog('Retrying active_symbols fetch', { attempt: this.active_symbols_retry_count, delay_ms });
+
+        setTimeout(() => {
+            if (this.has_active_symbols || this.active_symbols_promise) return;
+            this.active_symbols_promise = this.getActiveSymbols()
+                .then(symbols => symbols)
+                .catch(error => {
+                    console.warn('[APIBase] active_symbols retry failed:', error);
+                    this.active_symbols_promise = null;
+                    this.scheduleActiveSymbolsRetry();
+                    return undefined;
+                });
+        }, delay_ms);
     };
 
     toggleRunButton = (toggle: boolean) => {
