@@ -14,15 +14,3 @@ export const mobileTradeLog = (...args) => {
     // eslint-disable-next-line no-console
     console.log('[TradeLab][MobileTrade]', ...args);
 };
-
-// Misma idea que arriba, pero para el flujo de carga del Chart
-// (useSmartChartAdaptor -> chart_api -> transport -> getQuotes/subscribeQuotes).
-// Prefijo [ChartInit]. Cambiar a `true` temporalmente para depurar un chart
-// que se queda "obteniendo datos"; dejar en `false` en uso normal.
-export const CHART_DEBUG = false;
-
-export const chartDebugLog = (...args) => {
-    if (!CHART_DEBUG) return;
-    // eslint-disable-next-line no-console
-    console.log('[ChartInit]', ...args);
-};
