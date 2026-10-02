@@ -150,7 +150,23 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
 
         let cancelled = false;
 
-        const loadChartData = async (retryCount = 0, maxRetries = 10, delayMs = 200) => {
+        // CORRECCIÓN (causa raíz de "obteniendo datos" indefinido): la
+        // obtención real de active_symbols (ver api-base.ts) puede tardar
+        // legítimamente bastante más que un par de segundos — tiene su
+        // propio timeout interno de 10s más hasta 5 reintentos adicionales
+        // (2s/4s/6s/8s/10s) si el primer intento falla, algo frecuente en
+        // redes móviles o justo al entrar directo a #chart antes de que el
+        // WebSocket termine de autenticar. Antes, aquí solo se reintentaba
+        // durante 2 segundos (10 x 200ms); al agotarse ese margen sin haber
+        // símbolos, el estado quedaba fijado en vacío para siempre y
+        // chart.tsx (que depende únicamente de chartData.activeSymbols)
+        // seguía mostrando el loader sin ningún otro intento futuro.
+        // Junto con la corrección en active-symbols.js (que ya no cachea
+        // un resultado vacío como "definitivo" tras un fallo), este margen
+        // más amplio permite que un reintento posterior SÍ tenga éxito en
+        // cuanto los datos realmente estén disponibles, en vez de
+        // depender de ganar una carrera contra un timeout demasiado corto.
+        const loadChartData = async (retryCount = 0, maxRetries = 20, delayMs = 1500) => {
             try {
                 setIsLoading(true);
                 const data = await adapter.getChartData();
