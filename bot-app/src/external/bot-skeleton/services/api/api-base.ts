@@ -78,6 +78,16 @@ class APIBase {
     // en cambio informa con claridad que se perdió la conexión.
     connection_generation: number = 0;
 
+    // CORRECCIÓN: igual que en chart-api.js — `this.onsocketopen.bind(this)` /
+    // `this.onsocketclose.bind(this)` crean una función nueva en cada
+    // llamada, así que `removeEventListener` nunca eliminaba el listener
+    // real añadido en la reconexión anterior (estaba registrado con OTRA
+    // referencia). Cada reconexión dejaba un listener acumulado del socket
+    // viejo. Se guardan referencias estables y se reutilizan siempre las
+    // mismas en addEventListener/removeEventListener.
+    private boundOnSocketOpen = this.onsocketopen.bind(this);
+    private boundOnSocketClose = this.onsocketclose.bind(this);
+
     // Constants for timeouts - extracted magic numbers for better maintainability
     private readonly ACTIVE_SYMBOLS_TIMEOUT_MS = 10000; // 10 seconds
     private readonly ENRICHMENT_TIMEOUT_MS = 10000; // 10 seconds
@@ -182,8 +192,8 @@ class APIBase {
                 ApiHelpers.disposeInstance();
                 setConnectionStatus(CONNECTION_STATUS.CLOSED);
                 this.api.disconnect();
-                this.api.connection.removeEventListener('open', this.onsocketopen.bind(this));
-                this.api.connection.removeEventListener('close', this.onsocketclose.bind(this));
+                this.api.connection.removeEventListener('open', this.boundOnSocketOpen);
+                this.api.connection.removeEventListener('close', this.boundOnSocketClose);
             }
 
             this.api = await generateDerivApiInstance();
@@ -196,8 +206,8 @@ class APIBase {
                 mobileTradeLog('api instance changed', { generation: this.connection_generation });
             }
 
-            this.api?.connection.addEventListener('open', this.onsocketopen.bind(this));
-            this.api?.connection.addEventListener('close', this.onsocketclose.bind(this));
+            this.api?.connection.addEventListener('open', this.boundOnSocketOpen);
+            this.api?.connection.addEventListener('close', this.boundOnSocketClose);
 
             // Store the current account ID used for this WebSocket connection
             // This will be used to check if we need to regenerate the connection when the tab becomes active
