@@ -54,6 +54,24 @@ const openContracts = new Map<string, any>();
 // nunca llega en el entorno del usuario.
 const tickStreamIntervals = new Map<string, ReturnType<typeof setInterval>>();
 const ohlcStreamIntervals = new Map<string, ReturnType<typeof setInterval>>();
+// CORRECCIÓN (Chart "pegado"/sin avanzar en modo simulado): el transporte
+// que usa el componente Chart (adapters/smartcharts-champion/transport.ts
+// -> establishSubscription) descarta CUALQUIER mensaje que no traiga
+// `data.subscription.id`, y además solo reenvía los mensajes en vivo cuyo
+// `subscription.id` coincide EXACTAMENTE con el id devuelto en la
+// respuesta inicial de la suscripción. Nuestros mensajes sintéticos de
+// tick/vela no traían ese campo — el Chart los recibía pero los
+// descartaba todos silenciosamente, igual en la respuesta inicial que en
+// cada tick posterior, así que nunca llegaba a "engancharse" a la
+// suscripción y se quedaba congelado en el primer frame. (El motor de
+// estrategias del bot, que escucha ticks por otra vía —ticks_service.js—
+// sin depender de `subscription.id`, no se veía afectado; por eso Run ya
+// funcionaba pero el Chart no avanzaba.) Ahora cada símbolo (y cada par
+// símbolo+granularidad, para velas) tiene un id de suscripción estable
+// que se incluye tanto en la respuesta inicial como en cada mensaje en
+// vivo posterior.
+const tickSubscriptionIds = new Map<string, string>();
+const ohlcSubscriptionIds = new Map<string, string>();
 
 // Re-patch the instant the WebSocket actually opens (fresh connection or
 // reconnect), instead of only relying on the slower interval watcher below.
@@ -396,16 +414,23 @@ function handleProposalOpenContractPoll(data: any): Promise<any> {
  * símbolo — empuja mensajes `tick`/`ohlc` sintéticos por fakeMessages$,
  * igual que lo haría el servidor real, pero sin depender de él.
  */
-function ensureTickStream(symbol: string): void {
-    if (tickStreamIntervals.has(symbol)) return;
+function ensureTickStream(symbol: string): string {
+    let subId = tickSubscriptionIds.get(symbol);
+    if (!subId) {
+        subId = genId('tick_sub');
+        tickSubscriptionIds.set(symbol, subId);
+    }
+    if (tickStreamIntervals.has(symbol)) return subId;
+
     const id = setInterval(() => {
         const quote = stepPrice(symbol);
         fakeMessages$.next({
             data: {
                 msg_type: 'tick',
+                subscription: { id: subId },
                 tick: {
                     symbol,
-                    id: genId('tick_sub'),
+                    id: subId,
                     quote,
                     epoch: Math.floor(Date.now() / 1000),
                     pip_size: Math.max(0, String(pipSizeFor(symbol)).split('.')[1]?.length ?? 2),
@@ -414,11 +439,17 @@ function ensureTickStream(symbol: string): void {
         });
     }, APPROX_TICK_MS);
     tickStreamIntervals.set(symbol, id);
+    return subId;
 }
 
-function ensureOhlcStream(symbol: string, granularity: number): void {
+function ensureOhlcStream(symbol: string, granularity: number): string {
     const key = `${symbol}_${granularity}`;
-    if (ohlcStreamIntervals.has(key)) return;
+    let subId = ohlcSubscriptionIds.get(key);
+    if (!subId) {
+        subId = genId('ohlc_sub');
+        ohlcSubscriptionIds.set(key, subId);
+    }
+    if (ohlcStreamIntervals.has(key)) return subId;
 
     let bucketStart = Math.floor(Date.now() / 1000 / granularity) * granularity;
     let open = currentPrice(symbol);
@@ -444,10 +475,11 @@ function ensureOhlcStream(symbol: string, granularity: number): void {
         fakeMessages$.next({
             data: {
                 msg_type: 'ohlc',
+                subscription: { id: subId },
                 ohlc: {
                     symbol,
                     granularity,
-                    id: genId('ohlc_sub'),
+                    id: subId,
                     open,
                     high,
                     low,
@@ -459,6 +491,7 @@ function ensureOhlcStream(symbol: string, granularity: number): void {
         });
     }, APPROX_TICK_MS);
     ohlcStreamIntervals.set(key, id);
+    return subId;
 }
 
 /**
@@ -477,13 +510,21 @@ function handleTicksHistory(data: any): Promise<any> {
 
     if (granularity > 0) {
         const candles = buildCandleHistory(symbol, count, granularity);
-        if (data.subscribe) ensureOhlcStream(symbol, granularity);
-        return Promise.resolve({ msg_type: 'candles', echo_req: data, candles });
+        // El id de suscripción se incluye en la respuesta inicial ANTES de
+        // que lleguen los primeros mensajes en vivo del mismo id — ver
+        // comentario sobre establishSubscription() más arriba.
+        const subscription = data.subscribe ? { id: ensureOhlcStream(symbol, granularity) } : undefined;
+        return Promise.resolve({ msg_type: 'candles', echo_req: data, candles, ...(subscription && { subscription }) });
     }
 
     const { times, prices } = buildTickHistory(symbol, count);
-    if (data.subscribe) ensureTickStream(symbol);
-    return Promise.resolve({ msg_type: 'history', echo_req: data, history: { times, prices } });
+    const subscription = data.subscribe ? { id: ensureTickStream(symbol) } : undefined;
+    return Promise.resolve({
+        msg_type: 'history',
+        echo_req: data,
+        history: { times, prices },
+        ...(subscription && { subscription }),
+    });
 }
 
 /**
