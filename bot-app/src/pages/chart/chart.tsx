@@ -85,6 +85,24 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
         []
     );
 
+    // Salta directo al epoch dado, sin esperar el debounce de 800ms de
+    // followLiveEpoch (cancela cualquier temporizador pendiente). Se usa en
+    // los puntos donde el gráfico necesita "ponerse al día" de inmediato en
+    // vez de esperar el próximo tick agrupado: al volver de otra pestaña, al
+    // darle Run, y (ver getQuotes más abajo) justo después de que termina de
+    // cargar un nuevo historial — p.ej. al volver al gráfico después de que
+    // termina una operación. Los ticks en vivo (subscribeQuotes) siguen
+    // usando followLiveEpoch con su debounce normal, sin cambios.
+    const catchUpImmediately = useCallback((epoch: number | undefined) => {
+        if (!epoch) return;
+        pendingEpochRef.current = epoch;
+        if (followLiveEpochTimerRef.current) {
+            clearTimeout(followLiveEpochTimerRef.current);
+            followLiveEpochTimerRef.current = null;
+        }
+        setLiveScrollEpoch(prev => (prev === epoch ? prev : epoch));
+    }, []);
+
     // CORRECCIÓN: al cambiar de pestaña (o minimizar/bloquear el
     // dispositivo) y volver, el Chart se quedaba "atrás" — el precio real
     // siguió avanzando todo ese tiempo (los ticks por WebSocket llegan
@@ -101,14 +119,7 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
     useEffect(() => {
         const catchUpToLive = () => {
             if (document.visibilityState !== 'visible') return;
-            if (followLiveEpochTimerRef.current) {
-                clearTimeout(followLiveEpochTimerRef.current);
-                followLiveEpochTimerRef.current = null;
-            }
-            const latestEpoch = pendingEpochRef.current;
-            if (latestEpoch) {
-                setLiveScrollEpoch(prev => (prev === latestEpoch ? prev : latestEpoch));
-            }
+            catchUpImmediately(pendingEpochRef.current);
         };
 
         document.addEventListener('visibilitychange', catchUpToLive);
@@ -121,7 +132,7 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
             document.removeEventListener('visibilitychange', catchUpToLive);
             window.removeEventListener('focus', catchUpToLive);
         };
-    }, []);
+    }, [catchUpImmediately]);
 
     // CORRECCIÓN: al darle Run, el gráfico también debía "ponerse al día"
     // de inmediato con el precio actual en vez de esperar el próximo tick
@@ -130,17 +141,10 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
     const wasRunningRef = useRef(false);
     useEffect(() => {
         if (is_running && !wasRunningRef.current) {
-            const latestEpoch = pendingEpochRef.current;
-            if (latestEpoch) {
-                if (followLiveEpochTimerRef.current) {
-                    clearTimeout(followLiveEpochTimerRef.current);
-                    followLiveEpochTimerRef.current = null;
-                }
-                setLiveScrollEpoch(prev => (prev === latestEpoch ? prev : latestEpoch));
-            }
+            catchUpImmediately(pendingEpochRef.current);
         }
         wasRunningRef.current = is_running;
-    }, [is_running]);
+    }, [is_running, catchUpImmediately]);
 
     const extractLatestEpochFromQuotesResult = (result: any): number | undefined => {
         if (!result) return undefined;
@@ -154,13 +158,26 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
         return undefined;
     };
 
+    // CORRECCIÓN: al terminar una operación y volver a ver el gráfico
+    // después de que pasa por su pantalla de "obteniendo datos" (getQuotes
+    // — se dispara al montar el gráfico, al cambiar de símbolo, al
+    // reconectar, etc.), el resultado se aplicaba con el mismo debounce de
+    // 800ms que los ticks en vivo (followLiveEpoch). Si justo en ese
+    // momento no llegaba un tick nuevo enseguida, el gráfico se quedaba
+    // "quieto" mostrando el final del historial recién cargado — ya
+    // desactualizado por el tiempo que tardó esa misma carga — en vez de
+    // saltar de inmediato al precio actual y seguir en movimiento. Ahora,
+    // justo al terminar de obtener los datos, se salta directo al último
+    // punto del historial (catchUpImmediately, sin esperar el debounce);
+    // los ticks en vivo que lleguen después siguen agrupándose con
+    // followLiveEpoch exactamente igual que antes, sin tocar esa parte.
     const getQuotes: typeof rawGetQuotes = useCallback(
         async (...args) => {
             const result = await rawGetQuotes(...args);
-            followLiveEpoch(extractLatestEpochFromQuotesResult(result));
+            catchUpImmediately(extractLatestEpochFromQuotesResult(result));
             return result;
         },
-        [rawGetQuotes, followLiveEpoch]
+        [rawGetQuotes, catchUpImmediately]
     );
 
     const subscribeQuotes: typeof rawSubscribeQuotes = useCallback(
