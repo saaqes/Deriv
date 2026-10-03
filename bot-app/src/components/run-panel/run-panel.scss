@@ -21,11 +21,28 @@
             // pintaba ENCIMA del header y lo tapaba visualmente. Nunca
             // necesita cubrir esa zona — todo lo que contiene (drawer,
             // controles de Run) vive cerca del borde inferior.
-            top: var(--app-header-height, 8rem);
+            //
+            // CORRECCIÓN (marco Chrome activo): este elemento es
+            // position:absolute SIN ningún ancestro posicionado de por
+            // medio, así que su "containing block" es el viewport —
+            // el padding-top que browser-frame.css le agrega al <body>
+            // cuando el marco Chrome está activo NO lo desplaza. Antes
+            // solo se restaba/sumaba la altura del header
+            // (--app-header-height), asumiendo que el header arranca en
+            // y=0 de la pantalla. Con el marco Chrome activo el header
+            // en realidad arranca más abajo (debajo de la barra
+            // simulada), así que esta capa quedaba empezando ANTES de
+            // donde termina el header real — tapándolo. Se suma la
+            // altura real de la barra (--browser-frame-top-height, 0px
+            // si no hay marco activo) para que el tope respete siempre
+            // el header completo, con o sin marco Chrome.
+            top: calc(var(--browser-frame-top-height, 0px) + var(--app-header-height, 8rem));
             left: 0;
             width: 100vw;
             z-index: var(--zindex-drawer);
-            height: calc(100% - var(--app-header-height, 8rem) - env(safe-area-inset-bottom, 0));
+            height: calc(
+                100% - var(--browser-frame-top-height, 0px) - var(--app-header-height, 8rem) - env(safe-area-inset-bottom, 0)
+            );
             padding-bottom: env(safe-area-inset-bottom, 0);
 
             &-closed {
