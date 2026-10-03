@@ -137,14 +137,62 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
     // CORRECCIÓN: al darle Run, el gráfico también debía "ponerse al día"
     // de inmediato con el precio actual en vez de esperar el próximo tick
     // agrupado — igual que al volver de otra pestaña (ver efecto arriba).
+    // CORRECCIÓN ADICIONAL: el usuario reporta que, además, justo al
+    // TERMINAR una operación el gráfico se queda "pausado" en vez de
+    // seguir en movimiento. Antes solo se forzaba el "ponerse al día" en
+    // la transición false→true (al arrancar). Ahora también se hace en la
+    // transición true→false (justo al terminar), para no depender de que
+    // llegue un tick nuevo pronto después de que el motor de trading deja
+    // de correr.
     const { is_running } = run_panel;
     const wasRunningRef = useRef(false);
     useEffect(() => {
-        if (is_running && !wasRunningRef.current) {
+        if (is_running !== wasRunningRef.current) {
             catchUpImmediately(pendingEpochRef.current);
         }
         wasRunningRef.current = is_running;
     }, [is_running, catchUpImmediately]);
+
+    // CORRECCIÓN ("se queda pausada... que siga en movimiento asi yo esté
+    // operando"): más allá de aplicar rápido el último epoch recibido, si
+    // la suscripción de precios en vivo del gráfico deja de recibir ticks
+    // por completo (por la razón que sea: un `forget`/`forgetAll` en la
+    // misma conexión compartida, una reconexión silenciosa del WebSocket,
+    // etc.) no hay ningún epoch nuevo que aplicar y el gráfico se queda
+    // literalmente congelado sin que el código de arriba pueda notarlo.
+    // Para los símbolos usados aquí (Índices de Volatilidad) siempre debe
+    // llegar un tick nuevo cada ~1-2s; si pasan varios segundos sin
+    // ninguno mientras la pestaña está visible, se asume que la
+    // suscripción quedó "muerta" y se fuerza una reconexión real: se
+    // remonta el componente `SmartChart` (cambiando su `key`), lo que
+    // dispara de nuevo todo su ciclo de `getQuotes`/`subscribeQuotes`
+    // desde cero y, gracias a `catchUpImmediately` en `getQuotes`, salta
+    // de inmediato al precio actual. Es la única forma de garantizar que
+    // el gráfico "sí o sí" siga moviéndose sin esperar a que la causa
+    // raíz de un corte silencioso de la suscripción se repare por sí
+    // sola.
+    const lastQuoteAtRef = useRef<number>(Date.now());
+    const [chartInstanceKey, setChartInstanceKey] = useState(0);
+
+    useEffect(() => {
+        const WATCHDOG_CHECK_MS = 3000;
+        const STALL_THRESHOLD_MS = 7000;
+
+        const intervalId = setInterval(() => {
+            if (document.visibilityState !== 'visible') return;
+            const idleMs = Date.now() - lastQuoteAtRef.current;
+            if (idleMs > STALL_THRESHOLD_MS) {
+                console.warn(
+                    `[Chart] Sin ticks en vivo tras ${idleMs}ms — reconectando la suscripción de precios ` +
+                        'para que el gráfico no se quede pausado.'
+                );
+                lastQuoteAtRef.current = Date.now();
+                setChartInstanceKey(k => k + 1);
+            }
+        }, WATCHDOG_CHECK_MS);
+
+        return () => clearInterval(intervalId);
+    }, []);
 
     const extractLatestEpochFromQuotesResult = (result: any): number | undefined => {
         if (!result) return undefined;
@@ -174,6 +222,7 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
     const getQuotes: typeof rawGetQuotes = useCallback(
         async (...args) => {
             const result = await rawGetQuotes(...args);
+            lastQuoteAtRef.current = Date.now();
             catchUpImmediately(extractLatestEpochFromQuotesResult(result));
             return result;
         },
@@ -183,6 +232,7 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
     const subscribeQuotes: typeof rawSubscribeQuotes = useCallback(
         (params, callback) =>
             rawSubscribeQuotes(params, quote => {
+                lastQuoteAtRef.current = Date.now();
                 const epoch = (quote as any)?.tick?.epoch ?? (quote as any)?.epoch ?? (quote as any)?.ohlc?.epoch;
                 followLiveEpoch(epoch);
                 callback(quote);
@@ -281,7 +331,7 @@ const Chart = observer(({ show_digits_stats }: { show_digits_stats: boolean }) =
         >
             <SmartChart
                 id={`dbot-${symbol}`}
-                key={`chart-${symbol}`}
+                key={`chart-${symbol}-${chartInstanceKey}`}
                 barriers={barriers}
                 showLastDigitStats={show_digits_stats}
                 chartControlsWidgets={null}
