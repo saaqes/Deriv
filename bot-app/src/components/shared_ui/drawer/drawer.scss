@@ -199,8 +199,18 @@
             // disponible. Ahora usa TODO el espacio real que existe
             // entre el header y el área reservada para Run — ni un
             // límite fijo de más, ni de menos.
-            height: calc(100vh - var(--app-header-height, 9rem) - 10rem) !important;
-            height: calc(100dvh - var(--app-header-height, 9rem) - 10rem) !important;
+            //
+            // CORRECCIÓN (marco Chrome activo): 100vh/100dvh es el alto
+            // TOTAL de pantalla, pero con el marco Chrome activo la
+            // barra simulada superior también ocupa espacio real arriba
+            // de todo (--browser-frame-top-height, 0px si no hay marco
+            // activo). Antes solo se restaba la altura del header, así
+            // que el cálculo le daba a esta caja un poco más de alto del
+            // que realmente le queda disponible — lo suficiente para que
+            // su borde superior terminara metiéndose encima del header.
+            // Ahora también se descuenta la altura de la barra simulada.
+            height: calc(100vh - var(--browser-frame-top-height, 0px) - var(--app-header-height, 9rem) - 10rem) !important;
+            height: calc(100dvh - var(--browser-frame-top-height, 0px) - var(--app-header-height, 9rem) - 10rem) !important;
         }
     }
 }
