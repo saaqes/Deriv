@@ -3,7 +3,19 @@
 .layout {
     display: flex;
     flex-direction: column;
+    // CORRECCIÓN (marco Chrome activo): 100vh es el alto fijo de TODA la
+    // pantalla. Cuando el marco Chrome está activo, browser-frame.js le
+    // agrega al <body> un padding-top real igual a la altura de su barra
+    // simulada (--browser-frame-top-height) para no superponerse — pero
+    // este contenedor, al seguir pidiendo 100vh completos ADEMÁS de ese
+    // padding, terminaba sobresaliendo por abajo esa misma cantidad
+    // (contenido/menú empujados fuera de la pantalla visible, con scroll
+    // de página de por medio). Se descuenta esa altura para que el
+    // layout entero (header, contenido, menú) quede siempre dentro del
+    // espacio real visible, debajo de la barra simulada — nunca de más.
     height: 100vh;
+    height: calc(100vh - var(--browser-frame-top-height, 0px));
+    height: calc(100dvh - var(--browser-frame-top-height, 0px));
 
     .deriv-header {
         background: var(--general-main-1);
