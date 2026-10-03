@@ -51,7 +51,7 @@ body.bf-active .notif-panel{
   z-index: 5000;
   box-sizing: border-box;
   width: 100%;
-  background: #161719;
+  background: #12121c;
   top: 0;
   padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
   border-bottom: 1px solid #2a2b2e;
@@ -224,6 +224,21 @@ body.bf-safari .run-panel-tab__content--mobile{
   padding: 0;
 }
 .bf-aspect-btn{ color:#ff444f; }
+
+/* Cuadrito con número, estilo botón "pestañas" de Chrome — ver
+   tabsCountHtml() en browser-frame.js. */
+.bf-tabs-count{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1.6px solid currentColor;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
 
 /* ---- Barra Chrome (.bf-top): campo de URL oscuro integrado, texto e
    íconos claros — según la referencia visual proporcionada. La barra
