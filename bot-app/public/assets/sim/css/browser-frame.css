@@ -48,7 +48,15 @@ body.bf-active .notif-panel{
   position: fixed;
   left: 0;
   right: 0;
-  z-index: 5000;
+  /* CORRECCIÓN: "siempre arriba" — algunos elementos propios de la app
+     React usan z-index más alto que el 5000 original (el menú
+     hamburguesa a pantalla completa, el selector de cuenta, el overlay
+     de páginas, etc. llegan hasta 10001). Con ese valor, esos elementos
+     podían terminar pintándose POR ENCIMA de la barra Chrome simulada
+     en vez de quedar siempre debajo de ella. Se sube por encima de todo
+     lo conocido en la app (menos los overlays de carga a pantalla
+     completa, que sí deben tapar todo, incluida esta barra). */
+  z-index: 15000;
   box-sizing: border-box;
   width: 100%;
   background: #12121c;
@@ -301,7 +309,10 @@ body.bf-safari .bf-address{ max-width: 480px; justify-content:flex-start; text-a
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.55);
-  z-index: 6000;
+  /* Debe quedar por encima de .bf-top (ver su z-index más arriba), que
+     ahora subió a 15000 — de lo contrario el selector de Aspecto se
+     abriría oculto detrás de la barra Chrome. */
+  z-index: 16000;
   display: flex;
   align-items: flex-end;
   justify-content: center;
