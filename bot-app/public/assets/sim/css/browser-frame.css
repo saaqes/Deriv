@@ -231,12 +231,12 @@ body.bf-safari .run-panel-tab__content--mobile{
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  border: 1.6px solid currentColor;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
+  width: 22px;
+  height: 22px;
+  border: 2.2px solid currentColor;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1;
 }
 
